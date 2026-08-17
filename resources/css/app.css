@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+@import 'flag-icons/css/flag-icons.min.css';
+@plugin '@tailwindcss/typography';
+
+@source '../../app/Filament';
+@source '../../resources/views';
+@source '../../storage/framework/views/*.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-display: 'Space Grotesk', 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+[x-cloak] {
+    display: none !important;
+}
+
+@layer base {
+    /* Heading pakai font display khas. */
+    h1, h2, h3 {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+    }
+
+    /* Aksesibilitas: focus ring keyboard yang konsisten & terlihat. */
+    a:focus-visible,
+    button:focus-visible,
+    [tabindex]:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        outline: 2px solid var(--brand, #1d4ed8);
+        outline-offset: 2px;
+        border-radius: 2px;
+    }
+}
+
+@layer components {
+    /* ── Tombol ─────────────────────────────────────────── */
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        border-radius: 0.6rem;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        line-height: 1;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease, background-color 0.15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn-primary {
+        background: var(--brand);
+        color: #fff;
+        box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--brand) 70%, transparent);
+    }
+    .btn-primary:hover { box-shadow: 0 12px 26px -8px color-mix(in srgb, var(--brand) 80%, transparent); }
+    .btn-ghost {
+        background: color-mix(in srgb, #fff 12%, transparent);
+        color: #fff;
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 35%, transparent);
+    }
+    .btn-ghost:hover { background: color-mix(in srgb, #fff 22%, transparent); }
+    .btn-outline {
+        background: #fff;
+        color: var(--brand);
+        box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
+    }
+
+    /* ── Kartu ──────────────────────────────────────────── */
+    .card {
+        background: #fff;
+        border-radius: 1rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.12);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .card-hover:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 6px 12px -6px rgba(15, 23, 42, 0.10), 0 20px 40px -16px rgba(15, 23, 42, 0.22);
+    }
+
+    /* Section ber-tint lembut warna brand. */
+    .section-tint {
+        background:
+            radial-gradient(1200px 400px at 100% 0%, color-mix(in srgb, var(--brand) 6%, transparent), transparent),
+            #f8fafc;
+    }
+
+    /* Avatar inisial gradient (fallback tanpa foto). */
+    .avatar-fallback {
+        background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 22%, #fff), color-mix(in srgb, var(--brand-2) 30%, #fff));
+        color: color-mix(in srgb, var(--brand-2) 70%, #000);
+    }
+}
+
+/* ── Scroll reveal (fade-up saat elemen masuk viewport) ──
+   Hanya aktif jika JS hidup (.js di <html>) → tanpa JS konten tetap tampil. */
+.js [data-reveal] {
+    opacity: 0;
+    transform: translateY(16px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+    will-change: opacity, transform;
+}
+.js [data-reveal].is-visible {
+    opacity: 1;
+    transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+    .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
