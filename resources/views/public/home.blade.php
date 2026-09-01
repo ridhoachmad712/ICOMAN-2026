@@ -52,9 +52,12 @@
             <img src="{{ asset('images/hero-pattern.svg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/25 via-transparent to-[var(--brand-2)]/60"></div>
         @endif
+        {{-- Glow lembut + vignette untuk kedalaman --}}
+        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand)] opacity-20 blur-[120px]"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_55%,rgba(0,0,0,0.35))]"></div>
 
         <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
-            <p class="text-sm font-semibold uppercase tracking-widest text-[var(--brand)]">
+            <p class="eyebrow text-[var(--brand)]">
                 {{ $edition?->name ?? 'ICOMAN 2026' }}
             </p>
             <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight max-w-4xl">
@@ -62,14 +65,15 @@
             </h1>
 
             {{-- Info chips --}}
-            <div class="mt-6 flex flex-wrap items-center gap-x-6 gap-y-2 text-slate-200">
+            <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm text-white">
                 @if($edition?->start_date)
-                    <span class="inline-flex items-center gap-2">📅
+                    <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">
+                        <x-ui-icon name="calendar" class="h-4 w-4 text-[var(--brand)]" />
                         {{ $edition->start_date->translatedFormat('d M Y') }}@if($edition->end_date && ! $edition->end_date->equalTo($edition->start_date)) – {{ $edition->end_date->translatedFormat('d M Y') }}@endif
                     </span>
                 @endif
-                @if($s->event_location)<span class="inline-flex items-center gap-2">📍 {{ $s->event_location }}</span>@endif
-                @if($s->event_mode)<span class="inline-flex items-center gap-2">💻 {{ $s->event_mode }}</span>@endif
+                @if($s->event_location)<span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur"><x-ui-icon name="map-pin" class="h-4 w-4 text-[var(--brand)]" /> {{ $s->event_location }}</span>@endif
+                @if($s->event_mode)<span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur"><x-ui-icon name="monitor" class="h-4 w-4 text-[var(--brand)]" /> {{ $s->event_mode }}</span>@endif
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
@@ -87,14 +91,19 @@
     </section>
 
     {{-- STATS STRIP (banner, mengangkat dari hero) --}}
-    @if($stats['speakers'] || $stats['topics'])
-        <section class="relative z-10 -mt-8">
+    @php
+        $statItems = collect([['speakers','speakers_count'],['topics','topics_count'],['countries','countries_count']])
+            ->filter(fn ($item) => (int) ($stats[$item[0]] ?? 0) > 0)
+            ->values();
+    @endphp
+    @if($statItems->isNotEmpty())
+        <section class="relative z-10 -mt-10">
             <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                <div data-reveal class="rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] text-white shadow-xl grid grid-cols-3 divide-x divide-white/15 py-6">
-                    @foreach([['speakers','speakers_count'],['topics','topics_count'],['countries','countries_count']] as [$key,$label])
-                        <div class="text-center px-2">
-                            <div class="font-display text-3xl sm:text-4xl font-bold">{{ $stats[$key] }}</div>
-                            <div class="text-[11px] uppercase tracking-[0.15em] text-white/70 mt-1">{{ __('site.'.$label) }}</div>
+                <div data-reveal class="grid divide-white/15 rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] py-7 text-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.55)] sm:divide-x" style="grid-template-columns: repeat({{ $statItems->count() }}, minmax(0, 1fr));">
+                    @foreach($statItems as [$key,$label])
+                        <div class="px-2 text-center">
+                            <div class="font-display text-4xl font-bold tabular-nums sm:text-5xl">{{ $stats[$key] }}</div>
+                            <div class="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">{{ __('site.'.$label) }}</div>
                         </div>
                     @endforeach
                 </div>
@@ -125,29 +134,28 @@
                     </div>
                     <a href="{{ route('about') }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
                 </div>
-                <div data-reveal class="card p-8 space-y-5">
-                    @if($edition?->start_date)
-                        <div class="flex items-start gap-3">
-                            <span class="text-2xl">📅</span>
-                            <div><div class="text-xs uppercase tracking-wide text-slate-400">{{ app()->getLocale() === 'id' ? 'Tanggal' : 'Date' }}</div>
-                            <div class="font-semibold text-[var(--brand-2)]">{{ $edition->start_date->translatedFormat('d M Y') }}@if($edition->end_date && ! $edition->end_date->equalTo($edition->start_date)) – {{ $edition->end_date->translatedFormat('d M Y') }}@endif</div></div>
-                        </div>
-                    @endif
-                    @if($s->event_location)
-                        <div class="flex items-start gap-3">
-                            <span class="text-2xl">📍</span>
-                            <div><div class="text-xs uppercase tracking-wide text-slate-400">{{ app()->getLocale() === 'id' ? 'Lokasi' : 'Location' }}</div>
-                            <div class="font-semibold text-[var(--brand-2)]">{{ $s->event_location }}</div></div>
-                        </div>
-                    @endif
-                    @if($s->event_mode)
-                        <div class="flex items-start gap-3">
-                            <span class="text-2xl">💻</span>
-                            <div><div class="text-xs uppercase tracking-wide text-slate-400">{{ app()->getLocale() === 'id' ? 'Format' : 'Format' }}</div>
-                            <div class="font-semibold text-[var(--brand-2)]">{{ $s->event_mode }}</div></div>
-                        </div>
-                    @endif
-                    <a href="{{ route('registration') }}" class="btn btn-primary w-full">{{ __('site.register_now') }}</a>
+                <div data-reveal class="card p-8">
+                    <div class="space-y-1">
+                        @php
+                            $factRows = array_filter([
+                                $edition?->start_date ? ['calendar', (app()->getLocale() === 'id' ? 'Tanggal' : 'Date'), $edition->start_date->translatedFormat('d M Y').($edition->end_date && ! $edition->end_date->equalTo($edition->start_date) ? ' – '.$edition->end_date->translatedFormat('d M Y') : '')] : null,
+                                $s->event_location ? ['map-pin', (app()->getLocale() === 'id' ? 'Lokasi' : 'Location'), $s->event_location] : null,
+                                $s->event_mode ? ['monitor', 'Format', $s->event_mode] : null,
+                            ]);
+                        @endphp
+                        @foreach($factRows as [$icon, $label, $value])
+                            <div class="flex items-start gap-4 py-3 {{ ! $loop->last ? 'border-b border-slate-100' : '' }}">
+                                <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                                    <x-ui-icon :name="$icon" class="h-5 w-5" />
+                                </span>
+                                <div>
+                                    <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">{{ $label }}</div>
+                                    <div class="mt-0.5 font-semibold text-[var(--brand-2)]">{{ $value }}</div>
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                    <a href="{{ route('registration') }}" class="btn btn-primary mt-6 w-full">{{ __('site.register_now') }}</a>
                 </div>
             </div>
         </section>
@@ -227,23 +235,50 @@
         </section>
     @endif
 
-    {{-- REGISTRATION TEASER --}}
+    {{-- REGISTRATION TEASER (pricing) --}}
     @if($fees->isNotEmpty())
-        <section class="bg-white py-16">
+        @php
+            $planFees = $fees->take(3)->values();
+            $featuredIndex = $planFees->count() >= 3 ? 1 : ($planFees->count() - 1);
+        @endphp
+        <section class="section-tint py-20">
             <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="__('site.registration_fees')" />
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach($fees->take(3) as $fee)
-                        @php $amount = $fee->price_early_bird ?? $fee->price_regular; @endphp
-                        <div class="card card-hover p-6 text-center">
-                            <h3 class="font-semibold text-[var(--brand-2)]">{{ $fee->category }}</h3>
-                            <div class="mt-3 text-2xl font-bold text-slate-900">{{ $fee->currency }} {{ number_format((float) $amount, 0, ',', '.') }}</div>
-                            @if($fee->price_early_bird)<div class="text-xs text-emerald-600 font-semibold mt-1">{{ __('site.early_bird') }}</div>@endif
+                <x-section-heading :title="__('site.registration_fees')" :eyebrow="app()->getLocale() === 'id' ? 'Investasi' : 'Investment'" />
+                <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    @foreach($planFees as $i => $fee)
+                        @php
+                            $featured = $i === $featuredIndex;
+                            $hasEarly = (bool) $fee->price_early_bird;
+                            $mainPrice = $hasEarly ? $fee->price_early_bird : $fee->price_regular;
+                            $benefit = $fee->notes ? \Illuminate\Support\Str::limit(strip_tags((string) $fee->notes), 90) : null;
+                        @endphp
+                        <div class="relative flex flex-col rounded-2xl bg-white p-7 transition {{ $featured ? 'shadow-[0_28px_60px_-24px_rgba(15,23,42,0.4)] ring-2 ring-[var(--brand)]' : 'shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08),0_12px_28px_-16px_rgba(15,23,42,0.18)]' }}">
+                            @if($featured)
+                                <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow">{{ app()->getLocale() === 'id' ? 'Populer' : 'Most Popular' }}</span>
+                            @endif
+                            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ $fee->category }}</h3>
+                            <div class="mt-4 flex items-baseline gap-1.5">
+                                <span class="text-sm font-semibold text-slate-500">{{ $fee->currency }}</span>
+                                <span class="font-display text-4xl font-bold tracking-tight text-[var(--brand-2)]">{{ number_format((float) $mainPrice, 0, ',', '.') }}</span>
+                            </div>
+                            @if($hasEarly)
+                                <div class="mt-2 flex items-center gap-2 text-xs">
+                                    <span class="chip"><x-ui-icon name="sparkles" class="h-3.5 w-3.5" /> {{ __('site.early_bird') }}</span>
+                                    <span class="text-slate-400 line-through">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            @if($benefit)
+                                <p class="mt-4 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
+                                    <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                                    {{ $benefit }}
+                                </p>
+                            @endif
+                            <a href="{{ route('registration') }}" class="btn {{ $featured ? 'btn-primary' : 'btn-outline' }} mt-6 w-full">{{ __('site.register_now') }}</a>
                         </div>
                     @endforeach
                 </div>
-                <div class="text-center mt-8">
-                    <a href="{{ route('registration') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_fees') }} →</a>
+                <div class="mt-8 text-center">
+                    <a href="{{ route('registration') }}" class="inline-flex items-center gap-1.5 font-medium text-[var(--brand)] hover:underline">{{ __('site.view_fees') }} <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
                 </div>
             </div>
         </section>

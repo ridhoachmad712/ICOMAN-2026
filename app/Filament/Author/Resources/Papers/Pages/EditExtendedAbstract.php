@@ -145,7 +145,9 @@ class EditExtendedAbstract extends EditRecord
                 ->label(app()->getLocale() === 'id' ? 'Simpan Perubahan' : 'Save Changes')
                 ->icon('heroicon-o-cloud-arrow-up'),
             Action::make('submitForReview')
-                ->label(app()->getLocale() === 'id' ? 'Kirim ke Reviewer' : 'Submit to Reviewer')
+                ->label(fn () => $this->record->status === 'revision_required'
+                    ? (app()->getLocale() === 'id' ? 'Kirim Ulang Revisi' : 'Resubmit Revision')
+                    : (app()->getLocale() === 'id' ? 'Kirim ke Reviewer' : 'Submit to Reviewer'))
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
                 ->requiresConfirmation()
@@ -177,22 +179,19 @@ class EditExtendedAbstract extends EditRecord
         }
 
         DB::transaction(function (): void {
-
-            $reviewerIds = $this->record->reviewAssignments()
-                ->where('phase', 'abstract')
-                ->pluck('reviewer_id');
-
-            foreach ($reviewerIds as $reviewerId) {
-                $this->record->reviewAssignments()->firstOrCreate(
-                    ['reviewer_id' => $reviewerId, 'phase' => 'extended_abstract'],
-                    ['assigned_at' => now(), 'status' => 'pending'],
-                );
-            }
+            // Siklus revisi: reviewer yang sudah ditugaskan direset ke `pending`
+            // agar menilai ulang versi terbaru. Keputusan panitia otomatis
+            // tersembunyi sampai seluruh review baru selesai. Pada kiriman
+            // pertama (belum ada reviewer), status jadi extended_abstract_submitted
+            // dan admin menugaskan reviewer.
+            $assignments = $this->record->reviewAssignments()->where('phase', 'extended_abstract');
+            $hasReviewers = (clone $assignments)->exists();
+            (clone $assignments)->update(['status' => 'pending']);
 
             $this->record->update(['extended_abstract_submitted_at' => now()]);
-            $this->record->changeStatus($reviewerIds->isEmpty()
-                ? 'extended_abstract_submitted'
-                : 'extended_abstract_under_review');
+            $this->record->changeStatus($hasReviewers
+                ? 'extended_abstract_under_review'
+                : 'extended_abstract_submitted');
         });
 
         Notification::make()

@@ -126,6 +126,17 @@ class AuthorJourney
             );
         }
 
+        $revision = $submissions->firstWhere('status', 'revision_required');
+        if ($revision) {
+            return $this->action(
+                'revision', 'Perbaiki extended abstract', 'Revise your extended abstract',
+                'Reviewer meminta revisi. Buka detail untuk membaca catatan reviewer, perbaiki kelima bagian, lalu kirim ulang.',
+                'The reviewers requested changes. Open the details to read the reviewer comments, revise all five sections, then resubmit.',
+                PaperResource::getUrl('extended-abstract', ['record' => $revision], panel: 'author'),
+                'Perbaiki sekarang', 'Revise now', 45
+            );
+        }
+
         if ($submissions->isEmpty()) {
             return $this->action(
                 'submission', 'Mulai extended abstract', 'Start your extended abstract',
@@ -199,6 +210,13 @@ class AuthorJourney
                     $id ? 'Paper belum lolos. Buka detail untuk membaca catatan reviewer.' : 'The paper was not approved. Open the details to read reviewer feedback.',
                     $extendedReviewDate ?? $submission->updated_at,
                     'danger', 'heroicon-o-chat-bubble-left-right', $route
+                ));
+            } elseif ($submission->status === 'revision_required') {
+                $updates->push($this->update(
+                    $id ? 'Revisi diminta reviewer' : 'Revision requested',
+                    $id ? 'Buka detail untuk membaca catatan reviewer, perbaiki naskah, lalu kirim ulang.' : 'Open the details to read reviewer comments, revise the manuscript, then resubmit.',
+                    $extendedReviewDate ?? $submission->updated_at,
+                    'warning', 'heroicon-o-arrow-uturn-left', $route
                 ));
             } elseif (in_array($submission->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true)) {
                 $updates->push($this->update(
@@ -275,6 +293,9 @@ class AuthorJourney
         );
         $accepted = $submission?->status === 'accepted';
         $rejected = $submission?->status === 'rejected';
+        $needsRevision = $submission?->status === 'revision_required';
+        // Saat revisi, bola kembali ke author: langkah input aktif lagi.
+        $inputDone = $extendedSubmitted && ! $needsRevision;
 
         if ($submission) {
             $submission->loadMissing('reviewAssignments.review');
@@ -285,8 +306,8 @@ class AuthorJourney
 
         return [
             $this->step(1, 'Bikin akun', 'Create account', 'complete', $author->created_at),
-            $this->step(2, 'Input extended abstract', 'Enter extended abstract', $extendedSubmitted ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $extendedSubmitted ? 'author' : null),
-            $this->step(3, 'Verifikasi reviewer', 'Reviewer verification', $accepted ? 'complete' : ($rejected ? 'failed' : ($extendedSubmitted ? 'current' : 'upcoming')), $accepted || $rejected ? $this->phaseDate($submission, 'extended_abstract') : null, $extendedSubmitted && ! $accepted && ! $rejected ? 'reviewer' : null),
+            $this->step(2, 'Input extended abstract', 'Enter extended abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
+            $this->step(3, 'Verifikasi reviewer', 'Reviewer verification', $accepted ? 'complete' : ($rejected ? 'failed' : ($inputDone ? 'current' : 'upcoming')), $accepted || $rejected ? $this->phaseDate($submission, 'extended_abstract') : null, $inputDone && ! $accepted && ! $rejected ? 'reviewer' : null),
             $this->step(4, 'Accepted', 'Accepted', $accepted ? 'complete' : ($rejected ? 'failed' : 'upcoming'), $accepted ? ($this->phaseDate($submission, 'extended_abstract') ?? $submission->updated_at) : null),
             $this->step(5, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($accepted ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $accepted && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
         ];
@@ -380,7 +401,7 @@ class AuthorJourney
             'profile', 'submission' => ['abstract', 'abstrak', 'submission'],
             'review', 'closed' => ['acceptance', 'penerimaan', 'pengumuman'],
             'registration', 'payment', 'waiting' => ['payment', 'pembayaran', 'registration', 'registrasi'],
-            'extended', 'verification' => ['full paper', 'camera-ready', 'camera ready', 'extended'],
+            'extended', 'verification', 'revision' => ['full paper', 'camera-ready', 'camera ready', 'extended'],
             'complete' => ['conference', 'konferensi', 'pelaksanaan'],
             default => [],
         };

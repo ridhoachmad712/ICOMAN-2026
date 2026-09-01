@@ -13,7 +13,7 @@
         $statusColor = match($record->status) {
             'accepted' => 'success',
             'rejected' => 'danger',
-            'extended_abstract_submitted' => 'warning',
+            'revision_required', 'extended_abstract_submitted' => 'warning',
             default => 'info',
         };
         $steps = app(\App\Services\AuthorJourney::class)->timeline($record->author, collect([$record]), $record->registrations);
@@ -50,6 +50,19 @@
                             {{ $id ? 'Preview PDF' : 'PDF Preview' }}
                         </x-filament::button>
                     @endif
+                </div>
+            </x-filament::section>
+        @endif
+
+        @if($record->status === 'revision_required')
+            <x-filament::section icon="heroicon-o-arrow-uturn-left" icon-color="warning">
+                <x-slot name="heading">{{ $id ? 'Revisi diminta reviewer' : 'Revision requested' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Perbaiki naskah sesuai catatan reviewer di bawah, lalu kirim ulang untuk putaran review berikutnya.' : 'Revise the manuscript according to the reviewer comments below, then resubmit for the next review round.' }}</x-slot>
+                <div class="flex flex-wrap gap-3">
+                    <x-filament::button tag="a" color="warning" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('extended-abstract', ['record' => $record]) }}" icon="heroicon-o-pencil-square">
+                        {{ $id ? 'Perbaiki & Kirim Ulang' : 'Revise & Resubmit' }}
+                    </x-filament::button>
+                    <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank" icon="heroicon-o-document-magnifying-glass">{{ $id ? 'Preview PDF' : 'PDF Preview' }}</x-filament::button>
                 </div>
             </x-filament::section>
         @endif

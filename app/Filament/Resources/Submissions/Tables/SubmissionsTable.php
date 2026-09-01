@@ -22,6 +22,7 @@ class SubmissionsTable
         'extended_abstract_draft' => 'Draft Extended Abstract',
         'extended_abstract_submitted' => 'Extended Abstract Terkirim',
         'extended_abstract_under_review' => 'Verifikasi Extended Abstract',
+        'revision_required' => 'Perlu Revisi',
         'accepted' => 'Accepted',
         'rejected' => 'Tidak Lolos',
     ];
@@ -46,7 +47,7 @@ class SubmissionsTable
                     ->color(fn (string $state) => match ($state) {
                         'accepted' => 'success',
                         'rejected' => 'danger',
-                        'extended_abstract_submitted' => 'warning',
+                        'revision_required', 'extended_abstract_submitted' => 'warning',
                         default => 'gray',
                     })
                     ->sortable(),
@@ -166,6 +167,7 @@ class SubmissionsTable
                             ->label('Keputusan Panitia')
                             ->options([
                                 'accepted' => 'Accepted (Terbitkan LoA)',
+                                'revision_required' => 'Minta Revisi (kembalikan ke author)',
                                 'rejected' => 'Tidak Lolos',
                             ])
                             ->required()

@@ -1,12 +1,14 @@
 @props(['title', 'subtitle' => null, 'eyebrow' => null, 'center' => true])
 
-<div data-reveal class="{{ $center ? 'text-center max-w-2xl mx-auto' : 'max-w-2xl' }} mb-10">
+<div data-reveal class="{{ $center ? 'text-center mx-auto' : '' }} mb-12 max-w-2xl">
     @if($eyebrow)
-        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)] mb-2">{{ $eyebrow }}</p>
+        <p class="eyebrow {{ $center ? 'justify-center' : '' }} mb-3">{{ $eyebrow }}</p>
     @endif
-    <h2 class="font-display text-3xl font-bold text-[var(--brand-2)] sm:text-4xl">{{ $title }}</h2>
+    <h2 class="font-display text-3xl font-bold tracking-tight text-[var(--brand-2)] sm:text-4xl">{{ $title }}</h2>
     @if($subtitle)
-        <p class="mt-3 text-slate-500">{{ $subtitle }}</p>
+        <p class="mt-4 text-base leading-relaxed text-slate-500">{{ $subtitle }}</p>
     @endif
-    <div class="mt-4 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] {{ $center ? 'mx-auto' : '' }}"></div>
+    @unless($eyebrow)
+        <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] {{ $center ? 'mx-auto' : '' }}"></div>
+    @endunless
 </div>

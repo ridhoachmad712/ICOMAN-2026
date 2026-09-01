@@ -33,6 +33,7 @@ class Submission extends Model implements HasMedia, HasRichContent
         'abstract_approved',
         'extended_abstract_submitted',
         'extended_abstract_under_review',
+        'revision_required',
         'accepted',
         'rejected',
     ];
@@ -44,8 +45,18 @@ class Submission extends Model implements HasMedia, HasRichContent
         'abstract_approved' => 'Lolos review abstrak',
         'extended_abstract_submitted' => 'Extended abstract terkirim',
         'extended_abstract_under_review' => 'Verifikasi extended abstract',
+        'revision_required' => 'Perlu revisi',
         'accepted' => 'Accepted',
         'rejected' => 'Tidak lolos',
+    ];
+
+    /**
+     * Status di mana author boleh menyunting & (kembali) mengirim extended abstract.
+     * `revision_required` membuka kembali editor untuk siklus revise & resubmit.
+     */
+    public const AUTHOR_EDITABLE_STATUSES = [
+        'extended_abstract_draft',
+        'revision_required',
     ];
 
     protected $fillable = [

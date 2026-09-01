@@ -26,11 +26,13 @@
 <header x-data="{ open: false, languageOpen: false }" class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
     <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="{{ $locale === 'id' ? 'Navigasi utama' : 'Main navigation' }}">
         <div class="flex h-[4.5rem] items-center justify-between gap-4">
-            <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2">
+            <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5">
                 @if($logo)
                     <img src="{{ $logo }}" alt="{{ $name }}" class="h-10 w-auto">
                 @else
-                    <span class="font-display text-lg font-bold tracking-tight text-[var(--brand-2)]">{{ $name }}</span>
+                    @php $monogram = \Illuminate\Support\Str::of($name)->explode(' ')->filter()->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode(''); @endphp
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] font-display text-sm font-bold text-white shadow-sm">{{ strtoupper($monogram) ?: 'IC' }}</span>
+                    <span class="font-display text-lg font-bold leading-none tracking-tight text-[var(--brand-2)]">{{ $name }}</span>
                 @endif
             </a>
 

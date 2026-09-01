@@ -29,6 +29,7 @@ class SubmissionStatusChanged extends Notification implements ShouldQueue
             'abstract_approved' => 'abstract review passed',
             'extended_abstract_submitted' => 'extended abstract received',
             'extended_abstract_under_review' => 'extended abstract under verification',
+            'revision_required' => 'revision required',
             'accepted' => 'accepted',
             'rejected' => 'not accepted',
         ];
@@ -46,6 +47,7 @@ class SubmissionStatusChanged extends Notification implements ShouldQueue
             'abstract_under_review' => $mail->line('A reviewer is processing your abstract. You can monitor progress in the author portal.'),
             'abstract_approved' => $mail->line('Your abstract passed review. Your next action is to complete registration and payment in the author portal.'),
             'extended_abstract_submitted', 'extended_abstract_under_review' => $mail->line('Your extended abstract is being verified by the reviewer. No further action is required from you now.'),
+            'revision_required' => $mail->line('The reviewers have requested revisions. Open your paper in the author portal, revise the five sections based on the reviewer comments, and resubmit it for another review round.'),
             'accepted' => $mail->line('Congratulations! Your paper is accepted. No further action is required, and your acceptance letter is available in the portal.'),
             'rejected' => $mail->line('The review result and reviewer feedback are available on the paper detail page.'),
             default => null,

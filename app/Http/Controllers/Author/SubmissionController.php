@@ -81,7 +81,7 @@ class SubmissionController extends Controller
     public function submitExtendedAbstract(Request $request, Submission $submission): RedirectResponse
     {
         $this->authorizeOwner($submission);
-        abort_unless(in_array($submission->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true), 403, 'Extended abstract tidak dapat diubah setelah dikirim ke reviewer.');
+        abort_unless(in_array($submission->status, Submission::AUTHOR_EDITABLE_STATUSES, true), 403, 'Extended abstract tidak dapat diubah setelah dikirim ke reviewer.');
 
         $validated = $request->validate([
             'extended_abstract' => ['required', 'string', 'max:20000'],

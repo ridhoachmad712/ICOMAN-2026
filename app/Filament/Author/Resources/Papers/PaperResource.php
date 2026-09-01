@@ -115,17 +115,21 @@ class PaperResource extends Resource
                     'extended_abstract_draft' => 'Draft extended abstract',
                     'abstract_submitted' => 'Abstrak terkirim', 'abstract_under_review' => 'Abstrak direview',
                     'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Extended abstract terkirim',
-                    'extended_abstract_under_review' => 'Verifikasi reviewer', 'accepted' => 'Accepted',
+                    'extended_abstract_under_review' => 'Verifikasi reviewer', 'revision_required' => 'Perlu revisi',
+                    'accepted' => 'Accepted',
                     'rejected' => 'Tidak lolos', default => ucwords(str_replace('_', ' ', $state)),
                 } : ucwords(str_replace('_', ' ', $state)))
                     ->color(fn (string $state) => match ($state) {
                         'accepted' => 'success', 'rejected' => 'danger',
+                        'revision_required' => 'warning',
                         'extended_abstract_submitted' => 'warning', default => 'info',
                     }),
                 TextColumn::make('submitted_at')->label(app()->getLocale() === 'id' ? 'Tanggal kirim' : 'Submitted')->date('d M Y')->sortable()->visibleFrom('sm'),
             ])
             ->recordUrl(fn (Submission $record) => static::getUrl(
-                static::canEdit($record) ? 'extended-abstract' : 'view',
+                // Draft baru langsung ke editor; status lain (termasuk revisi)
+                // ke halaman detail dulu agar author membaca catatan reviewer.
+                $record->status === 'extended_abstract_draft' ? 'extended-abstract' : 'view',
                 ['record' => $record],
             ))
             ->defaultSort('submitted_at', 'desc')
@@ -159,11 +163,7 @@ class PaperResource extends Resource
 
         return (bool) ($author
             && $record->author_id === $author->id
-            && in_array($record->status, [
-                'extended_abstract_draft',
-                'abstract_submitted',
-                'abstract_approved',
-            ], true));
+            && in_array($record->status, Submission::AUTHOR_EDITABLE_STATUSES, true));
     }
 
     public static function canDelete($record): bool

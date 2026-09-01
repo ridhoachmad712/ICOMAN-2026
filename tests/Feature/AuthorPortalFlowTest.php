@@ -10,11 +10,14 @@ use App\Models\RegistrationFee;
 use App\Models\ReviewAssignment;
 use App\Models\Submission;
 use App\Models\User;
+use App\Models\Topic;
 use App\Services\AuthorJourney;
 use App\Services\ExtendedAbstractDocument;
 use App\Filament\Author\Resources\Papers\PaperResource;
+use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class AuthorPortalFlowTest extends TestCase
@@ -288,6 +291,65 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertNotNull($paymentUpdate);
         $this->assertTrue(collect($updates)->contains('title', 'Draft extended abstract tersedia'));
         $this->assertStringContainsString('akses seminar', $paymentUpdate['description']);
+    }
+
+    public function test_committee_revision_reopens_the_editor_and_surfaces_a_revise_action(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'extended_abstract_under_review');
+
+        // Panitia meminta revisi.
+        $submission->changeStatus('revision_required');
+        $submission->refresh();
+
+        // Editor terbuka kembali untuk author (canEdit true → 200, bukan 403).
+        $this->actingAs($author, 'author')
+            ->get(PaperResource::getUrl('extended-abstract', ['record' => $submission], panel: 'author'))
+            ->assertOk();
+
+        // Journey menampilkan aksi "revise" ke author, dan langkah input aktif lagi.
+        $journey = app(AuthorJourney::class);
+        $action = $journey->nextAction($author, collect([$submission]), collect());
+        $timeline = $journey->timeline($author, collect([$submission]), collect());
+        $this->assertSame('revision', $action['key']);
+        $this->assertSame('author', $action['actor']['key']);
+        $this->assertSame('current', $timeline[1]['state']);
+    }
+
+    public function test_resubmitting_a_revision_resets_reviewers_and_returns_to_review(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $topic = Topic::create(['edition_id' => $edition->id, 'title' => ['en' => 'Management'], 'order' => 1]);
+        $submission = $this->submission($edition, $author, 'revision_required');
+        $submission->update([
+            'topic_id' => $topic->id,
+            'extended_abstract_abstract' => $this->richText('Revised abstract.'),
+            'extended_abstract_introduction' => $this->richText('Revised introduction.'),
+            'extended_abstract_method' => $this->richText('Revised method.'),
+            'extended_abstract_results_discussion' => $this->richText('Revised results.'),
+            'extended_abstract_conclusion' => $this->richText('Revised conclusion.'),
+        ]);
+        $submission->authors()->create(['name' => 'Author One', 'email' => 'a1@example.test', 'is_corresponding' => true, 'order' => 1]);
+
+        $reviewer = User::create(['name' => 'Reviewer', 'email' => 'rev@example.test', 'password' => 'secret-password']);
+        $assignment = ReviewAssignment::create([
+            'submission_id' => $submission->id,
+            'reviewer_id' => $reviewer->id,
+            'phase' => 'extended_abstract',
+            'assigned_at' => now(),
+            'status' => 'completed',
+        ]);
+
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('author'));
+        $this->actingAs($author, 'author');
+
+        Livewire::test(EditExtendedAbstract::class, ['record' => $submission->getRouteKey()])
+            ->call('submitForReview');
+
+        $this->assertSame('extended_abstract_under_review', $submission->refresh()->status);
+        $this->assertSame('pending', $assignment->refresh()->status);
     }
 
     public function test_extended_abstract_pdf_only_embeds_images_owned_by_the_submission(): void

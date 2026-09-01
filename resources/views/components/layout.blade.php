@@ -45,6 +45,12 @@
     <meta name="twitter:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($description), 200, '') }}">
     <meta name="twitter:image" content="{{ $ogImageUrl }}">
 
+    {{-- Fonts: Space Grotesk (display) + Instrument Sans (body) --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+
     {{ $head ?? '' }}
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
