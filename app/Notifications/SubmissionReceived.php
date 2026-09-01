@@ -12,9 +12,7 @@ class SubmissionReceived extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public Submission $submission)
-    {
-    }
+    public function __construct(public Submission $submission) {}
 
     public function via(object $notifiable): array
     {

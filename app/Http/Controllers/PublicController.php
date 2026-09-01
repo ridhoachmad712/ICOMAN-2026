@@ -7,6 +7,7 @@ use App\Models\Download;
 use App\Models\Faq;
 use App\Models\Gallery;
 use App\Models\ImportantDate;
+use App\Models\News;
 use App\Models\Page;
 use App\Models\RegistrationFee;
 use App\Models\Schedule;
@@ -47,7 +48,7 @@ class PublicController extends Controller
                 'topics' => Topic::where('edition_id', $editionId)->count(),
                 'countries' => $speakers->pluck('country')->map(fn ($c) => countryCode($c))->filter()->unique()->count(),
             ],
-            'latestNews' => \App\Models\News::with('media')
+            'latestNews' => News::with('media')
                 ->where('is_published', true)
                 ->orderByDesc('published_at')
                 ->limit(3)

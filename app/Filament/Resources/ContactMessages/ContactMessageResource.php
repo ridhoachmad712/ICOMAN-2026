@@ -15,11 +15,11 @@ use Filament\Tables\Table;
 
 class ContactMessageResource extends Resource
 {
-
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
     }
+
     protected static ?string $model = ContactMessage::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Kotak Masuk';

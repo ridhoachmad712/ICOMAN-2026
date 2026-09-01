@@ -4,6 +4,9 @@ namespace App\Services;
 
 use App\Models\Payment;
 use App\Models\Registration;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Midtrans\Config;
 use Midtrans\Snap;
 
@@ -54,7 +57,7 @@ class MidtransService
                 'id' => 'reg-'.$registration->id,
                 'price' => (int) round((float) $registration->amount),
                 'quantity' => 1,
-                'name' => \Illuminate\Support\Str::limit('Registration '.$registration->id, 45, ''),
+                'name' => Str::limit('Registration '.$registration->id, 45, ''),
             ]],
         ];
 
@@ -73,6 +76,10 @@ class MidtransService
     public function verifySignature(array $payload): bool
     {
         $serverKey = (string) config('services.midtrans.server_key');
+
+        if ($serverKey === '' || blank($payload['signature_key'] ?? null)) {
+            return false;
+        }
 
         $expected = hash('sha512',
             ($payload['order_id'] ?? '')
@@ -95,32 +102,53 @@ class MidtransService
             return null;
         }
 
-        $payment = Payment::where('gateway_reference', $orderId)->latest('id')->first();
-        $registration = $payment?->registration;
+        return DB::transaction(function () use ($orderId, $payload): ?Registration {
+            $payment = Payment::where('gateway_reference', $orderId)->lockForUpdate()->latest('id')->first();
+            $registration = $payment?->registration()->lockForUpdate()->first();
 
-        if (! $registration) {
-            return null;
-        }
+            if (! $payment || ! $registration) {
+                return null;
+            }
 
-        $status = $payload['transaction_status'] ?? '';
-        $fraud = $payload['fraud_status'] ?? 'accept';
+            $expectedAmount = number_format((float) $payment->amount, 2, '.', '');
+            $receivedAmount = number_format((float) ($payload['gross_amount'] ?? -1), 2, '.', '');
+            if (! hash_equals($expectedAmount, $receivedAmount)
+                || $registration->gateway_transaction_id !== $orderId
+                || $payment->method !== 'gateway') {
+                Log::warning('Midtrans webhook: transaction mismatch', ['order_id' => $orderId]);
 
-        [$regStatus, $payStatus] = match (true) {
-            in_array($status, ['capture', 'settlement'], true) && $fraud === 'accept' => ['paid', 'success'],
-            $status === 'pending' => ['pending', 'initiated'],
-            in_array($status, ['deny', 'cancel', 'expire'], true) => ['failed', 'failed'],
-            default => [$registration->status, 'initiated'],
-        };
+                return null;
+            }
 
-        $payment?->update(['status' => $payStatus, 'raw_response' => $payload]);
+            $status = $payload['transaction_status'] ?? '';
+            $fraud = $payload['fraud_status'] ?? 'accept';
+            $isSuccess = in_array($status, ['capture', 'settlement'], true) && $fraud === 'accept';
 
-        $registration->update([
-            'status' => $regStatus,
-            'gateway_payload' => $payload,
-            'paid_at' => $regStatus === 'paid' ? now() : $registration->paid_at,
-        ]);
+            $payStatus = match (true) {
+                $isSuccess => 'success',
+                in_array($status, ['deny', 'cancel', 'expire'], true) => 'failed',
+                default => 'initiated',
+            };
 
-        return $registration;
+            $payment->update(['status' => $payStatus, 'raw_response' => $payload]);
+
+            // Status paid bersifat terminal: webhook lama/terlambat tidak boleh menurunkannya.
+            if ($registration->status !== 'paid') {
+                $regStatus = match (true) {
+                    $isSuccess => 'paid',
+                    in_array($status, ['deny', 'cancel', 'expire'], true) => 'failed',
+                    default => $registration->status,
+                };
+
+                $registration->update([
+                    'status' => $regStatus,
+                    'gateway_payload' => $payload,
+                    'paid_at' => $regStatus === 'paid' ? now() : null,
+                ]);
+            }
+
+            return $registration->refresh();
+        });
     }
 
     private function makeOrderId(Registration $registration): string

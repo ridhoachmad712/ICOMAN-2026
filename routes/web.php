@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Author\AuthController;
-use App\Http\Controllers\Author\DashboardController;
 use App\Http\Controllers\Author\PasswordResetController;
 use App\Http\Controllers\Author\RegistrationController;
 use App\Http\Controllers\Author\SubmissionController;
@@ -47,34 +46,40 @@ Route::middleware('setlocale')->group(function () {
         // Guest (belum login sebagai author)
         Route::middleware('guest:author')->group(function () {
             Route::get('register', [AuthController::class, 'showRegister'])->name('register');
-            Route::post('register', [AuthController::class, 'register']);
-            Route::get('login', [AuthController::class, 'showLogin'])->name('login');
-            Route::post('login', [AuthController::class, 'login']);
+            Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 
             Route::get('forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
-            Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])->name('password.email');
+            Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
             Route::get('reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
-            Route::post('reset-password', [PasswordResetController::class, 'reset'])->name('password.update');
+            Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('password.update');
         });
 
         // Authenticated author
         Route::middleware('auth:author')->group(function () {
-            Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-            Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::redirect('dashboard', '/author')->name('dashboard');
 
+            Route::get('submissions', [SubmissionController::class, 'index'])->name('submissions.index');
             Route::get('submissions/create', [SubmissionController::class, 'create'])->name('submissions.create');
             Route::get('submissions/{submission}', [SubmissionController::class, 'show'])->name('submissions.show');
-            Route::post('submissions/{submission}/camera-ready', [SubmissionController::class, 'uploadCameraReady'])->name('submissions.camera-ready');
+            Route::get('submissions/{submission}/loa', [SubmissionController::class, 'loa'])->name('submissions.loa');
+            Route::get('submissions/{submission}/extended-abstract/preview', [SubmissionController::class, 'previewExtendedAbstract'])->name('submissions.extended-abstract.preview');
+            Route::post('submissions/{submission}/extended-abstract', [SubmissionController::class, 'submitExtendedAbstract'])->middleware('throttle:6,1')->name('submissions.extended-abstract');
 
             // Registrasi & pembayaran
             Route::get('registration/create', [RegistrationController::class, 'create'])->name('registration.create');
-            Route::post('registration', [RegistrationController::class, 'store'])->name('registration.store');
+            Route::post('registration', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('registration.store');
             Route::get('registration/{registration}', [RegistrationController::class, 'show'])->name('registration.show');
-            Route::post('registration/{registration}/proof', [RegistrationController::class, 'uploadProof'])->name('registration.proof');
-            Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->name('registration.pay');
+            Route::post('registration/{registration}/proof', [RegistrationController::class, 'uploadProof'])->middleware('throttle:6,1')->name('registration.proof');
+            Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
+            Route::patch('registration/{registration}/payment-method', [RegistrationController::class, 'changePaymentMethod'])->name('registration.payment-method');
         });
     });
 });
+
+Route::middleware(['auth'])->get(
+    'admin/submissions/{submission}/extended-abstract/preview',
+    [SubmissionController::class, 'previewExtendedAbstractForAdmin'],
+)->name('admin.submissions.extended-abstract.preview');
 
 /*
 |--------------------------------------------------------------------------
@@ -82,5 +87,5 @@ Route::middleware('setlocale')->group(function () {
 | Webhook di-exempt dari CSRF (lihat bootstrap/app.php).
 |--------------------------------------------------------------------------
 */
-Route::post('payment/midtrans/notification', [MidtransController::class, 'notification'])->name('payment.midtrans.notification');
+Route::post('payment/midtrans/notification', [MidtransController::class, 'notification'])->middleware('throttle:120,1')->name('payment.midtrans.notification');
 Route::get('payment/midtrans/finish', [MidtransController::class, 'finish'])->name('payment.midtrans.finish');

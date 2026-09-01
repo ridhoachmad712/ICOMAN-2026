@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\Author;
 use App\Models\User;
 
 return [
@@ -75,7 +76,7 @@ return [
 
         'authors' => [
             'driver' => 'eloquent',
-            'model' => App\Models\Author::class,
+            'model' => Author::class,
         ],
     ],
 

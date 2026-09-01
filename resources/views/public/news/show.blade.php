@@ -1,20 +1,25 @@
-<x-layout :title="$item->title" :metaDescription="$item->excerpt">
+@php
+    $displayTitle = str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $item->title);
+    $displayExcerpt = str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $item->excerpt);
+    $displayContent = str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $item->content);
+@endphp
+<x-layout :title="$displayTitle" :metaDescription="$displayExcerpt">
     @php $thumb = $item->getFirstMediaUrl('thumbnail'); @endphp
 
     <article class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-14">
         <a href="{{ route('news.index') }}" class="text-sm text-[var(--brand)] hover:underline">← {{ __('site.back_to_news') }}</a>
 
-        <h1 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-[var(--brand-2)]">{{ $item->title }}</h1>
+        <h1 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-[var(--brand-2)]">{{ $displayTitle }}</h1>
         @if($item->published_at)
             <time class="mt-2 block text-sm text-slate-400">{{ $item->published_at->translatedFormat('l, d F Y') }}</time>
         @endif
 
         @if($thumb)
-            <img src="{{ $thumb }}" alt="{{ $item->title }}" class="mt-6 w-full rounded-xl object-cover">
+            <img src="{{ $thumb }}" alt="{{ $displayTitle }}" class="mt-6 w-full rounded-xl object-cover">
         @endif
 
         <div class="prose prose-slate max-w-none mt-8">
-            {!! $item->content !!}
+            {!! $displayContent !!}
         </div>
     </article>
 

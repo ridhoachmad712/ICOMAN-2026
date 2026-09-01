@@ -1,11 +1,15 @@
 @props(['item'])
 
-@php $thumb = $item->getFirstMediaUrl('thumbnail', 'card'); @endphp
+@php
+    $thumb = $item->getFirstMediaUrl('thumbnail', 'card');
+    $displayTitle = str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $item->title);
+    $displayExcerpt = str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $item->excerpt);
+@endphp
 
 <article class="group card card-hover overflow-hidden flex flex-col">
     <a href="{{ route('news.show', $item->slug) }}" class="block aspect-video bg-slate-100 overflow-hidden">
         @if($thumb)
-            <img src="{{ $thumb }}" alt="{{ $item->title }}" loading="lazy"
+            <img src="{{ $thumb }}" alt="{{ $displayTitle }}" loading="lazy"
                  class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300">
         @else
             <div class="h-full w-full flex items-center justify-center avatar-fallback">
@@ -18,9 +22,9 @@
             <time class="text-xs text-slate-400">{{ $item->published_at->translatedFormat('d M Y') }}</time>
         @endif
         <h3 class="mt-1 font-semibold text-slate-900 leading-snug">
-            <a href="{{ route('news.show', $item->slug) }}" class="hover:text-[var(--brand)]">{{ $item->title }}</a>
+            <a href="{{ route('news.show', $item->slug) }}" class="hover:text-[var(--brand)]">{{ $displayTitle }}</a>
         </h3>
-        @if($item->excerpt)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ $item->excerpt }}</p>@endif
+        @if($displayExcerpt)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ $displayExcerpt }}</p>@endif
         <a href="{{ route('news.show', $item->slug) }}" class="mt-3 inline-block text-sm font-medium text-[var(--brand)] hover:underline">
             {{ __('site.read_more') }} →
         </a>

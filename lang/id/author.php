@@ -2,7 +2,7 @@
 
 return [
     // Umum / navigasi
-    'portal' => 'Portal Author',
+    'portal' => 'Portal Peserta & Pemakalah',
     'login' => 'Masuk',
     'logout' => 'Keluar',
     'register' => 'Daftar',
@@ -19,12 +19,15 @@ return [
     'country' => 'Negara',
     'phone' => 'No. HP / WhatsApp',
     'remember_me' => 'Ingat saya',
+    'show_password' => 'Tampilkan kata sandi',
+    'hide_password' => 'Sembunyikan kata sandi',
+    'need_help' => 'Butuh bantuan? Hubungi sekretariat di',
 
     // Auth
-    'login_title' => 'Masuk Author',
-    'login_subtitle' => 'Masuk untuk mengirim paper & registrasi.',
-    'register_title' => 'Daftar sebagai Author',
-    'register_subtitle' => 'Buat akun untuk mengirim paper & registrasi.',
+    'login_title' => 'Masuk Portal',
+    'login_subtitle' => 'Masuk untuk mengelola naskah paper dan pendaftaran seminar.',
+    'register_title' => 'Registrasi Akun Portal',
+    'register_subtitle' => 'Buat akun untuk mengirimkan paper atau mendaftar seminar internasional.',
     'forgot_password' => 'Lupa kata sandi?',
     'forgot_title' => 'Lupa Kata Sandi',
     'forgot_subtitle' => 'Masukkan email, kami kirimkan tautan reset.',

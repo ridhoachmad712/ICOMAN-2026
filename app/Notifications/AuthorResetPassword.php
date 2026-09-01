@@ -11,9 +11,7 @@ class AuthorResetPassword extends Notification implements ShouldQueue
 {
     use Queueable;
 
-    public function __construct(public string $token)
-    {
-    }
+    public function __construct(public string $token) {}
 
     public function via(object $notifiable): array
     {
@@ -22,7 +20,7 @@ class AuthorResetPassword extends Notification implements ShouldQueue
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = url(route('author.password.reset', [
+        $url = url(route('filament.author.auth.password-reset.reset', [
             'token' => $this->token,
             'email' => $notifiable->getEmailForPasswordReset(),
         ], false));

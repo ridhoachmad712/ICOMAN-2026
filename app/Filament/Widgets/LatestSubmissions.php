@@ -30,12 +30,11 @@ class LatestSubmissions extends BaseWidget
                 TextColumn::make('author.name')->label('Submitter'),
                 TextColumn::make('status')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => ucwords(str_replace('_', ' ', $state)))
+                    ->formatStateUsing(fn (string $state) => Submission::STATUS_LABELS[$state] ?? ucwords(str_replace('_', ' ', $state)))
                     ->color(fn (string $state) => match ($state) {
                         'accepted' => 'success',
                         'rejected' => 'danger',
-                        'revision_required' => 'warning',
-                        'under_review' => 'info',
+                        'extended_abstract_submitted', 'extended_abstract_under_review' => 'warning',
                         default => 'gray',
                     }),
                 TextColumn::make('submitted_at')->dateTime('d M Y H:i'),

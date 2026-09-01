@@ -15,7 +15,7 @@ use Spatie\Translatable\HasTranslations;
 
 class News extends Model implements HasMedia
 {
-    use HasFactory, HasTranslations, HasSlug, InteractsWithMedia;
+    use HasFactory, HasSlug, HasTranslations, InteractsWithMedia;
 
     protected $table = 'news';
 

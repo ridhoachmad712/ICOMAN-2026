@@ -20,7 +20,8 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Guest yang menyentuh route ber-guard `author` diarahkan ke login portal author.
         // (Panel Filament punya redirect sendiri, tidak terpengaruh ini.)
-        $middleware->redirectGuestsTo(fn () => route('author.login'));
+        $middleware->redirectGuestsTo(fn () => route('filament.author.auth.login'));
+        $middleware->redirectUsersTo(fn () => route('filament.author.pages.author-dashboard'));
 
         // Webhook Midtrans datang dari server gateway (tanpa CSRF token) — keamanan
         // dijamin oleh verifikasi signature di MidtransController, bukan CSRF.

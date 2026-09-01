@@ -18,11 +18,11 @@
             }
          }"
          x-init="tick(); setInterval(() => tick(), 1000)"
-         class="grid grid-cols-4 gap-3 max-w-md">
+         class="grid max-w-md grid-cols-4 gap-3">
         @foreach(['days' => __('site.days'), 'hours' => __('site.hours'), 'minutes' => __('site.minutes'), 'seconds' => __('site.seconds')] as $key => $label)
-            <div class="rounded-lg bg-white/10 backdrop-blur px-2 py-3 text-center">
+            <div class="rounded-lg bg-white/10 px-2 py-3 text-center backdrop-blur">
                 <div class="text-3xl font-bold tabular-nums" x-text="String({{ $key }}).padStart(2, '0')">00</div>
-                <div class="text-[11px] uppercase tracking-wide text-white/70 mt-1">{{ $label }}</div>
+                <div class="mt-1 text-[11px] uppercase tracking-wide text-white/70">{{ $label }}</div>
             </div>
         @endforeach
     </div>

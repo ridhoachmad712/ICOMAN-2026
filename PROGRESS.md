@@ -89,9 +89,9 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | Guna | Nilai |
 |---|---|
 | DB | MySQL host 127.0.0.1, db `icoman_2026`, user `root`, password **kosong** |
-| Superadmin (`/admin`) | `ridhoachmad712@gmail.com` / `YsPqSPwpRWsLFQ#7` *(password sementara — ganti di `/admin/profile`)* |
-| Reviewer uji (`/admin`) | `reviewer@icoman.example` / `password123` |
-| Author uji (`/author/login`) | `budi.author@example.com` / `password123` |
+| Superadmin (`/admin`) | Buat melalui seeder lokal; jangan simpan password di repository |
+| Reviewer uji (`/admin`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
+| Author uji (`/author/login`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
 | Mail (dev) | `MAIL_MAILER=log` → email masuk `storage/logs/laravel.log` |
 | Midtrans | `.env` `MIDTRANS_SERVER_KEY`/`MIDTRANS_CLIENT_KEY` **KOSONG** (isi sebelum uji gateway); `MIDTRANS_IS_PRODUCTION=false` |
 

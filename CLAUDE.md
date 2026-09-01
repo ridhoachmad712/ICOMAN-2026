@@ -6,7 +6,7 @@
 > - Status, kredensial, cara run, gotcha (`public/hot`), dan sisa pekerjaan → semua di **`PROGRESS.md`**.
 
 ## Ringkasan Project
-Sistem manajemen International Conference on Management (ICOMAN) 2026: website CMS publik + portal author (submission & review paper) + registrasi & pembayaran ganda (manual & gateway). Laravel 11 + Filament v3 sebagai admin panel, frontend publik Blade + Tailwind + Alpine.js (ringan, tanpa SPA), autentikasi publik terpisah (guard `author`). Referensi lengkap ada di file sebelah: `PRD.md`, `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `ROADMAP.md`. Baca keempatnya sebelum mulai coding.
+Sistem manajemen International Conference on Management (ICOMAN) 2026: website CMS publik + portal author (submission & review paper) + registrasi & pembayaran ganda (manual & gateway). Laravel 13 + Filament v4 sebagai admin panel, frontend publik Blade + Tailwind + Alpine.js (ringan, tanpa SPA), autentikasi publik terpisah (guard `author`). Referensi lengkap ada di file sebelah: `PRD.md`, `ARCHITECTURE.md`, `DATABASE_SCHEMA.md`, `ROADMAP.md`. Baca keempatnya sebelum mulai coding.
 
 ## Keputusan Scope (sudah dikonfirmasi user — jangan tanya ulang)
 1. Bilingual EN/ID — **aktif** untuk seluruh konten CMS.
@@ -18,7 +18,7 @@ Sistem manajemen International Conference on Management (ICOMAN) 2026: website C
 - Belum ada materi konten asli (nama komite, speaker, dsb.) — semua resource generik, diisi via admin (lihat `CONTENT_CHECKLIST.md`). Data preview dummy ada di `DevSeeder` (opt-in, dev-only). Jangan hardcode dummy sebagai default permanen.
 
 ## Konvensi Kode
-- Laravel 11 dengan struktur default (tanpa Kernel.php terpisah, pakai `bootstrap/app.php` untuk middleware/route registration).
+- Laravel 13 dengan struktur default (tanpa Kernel.php terpisah, pakai `bootstrap/app.php` untuk middleware/route registration).
 - Semua model dengan field bilingual pakai trait `Spatie\Translatable\HasTranslations` — daftar field translatable ada di `DATABASE_SCHEMA.md` (ditandai `(T)`).
 - Semua model dengan gambar pakai `Spatie\MediaLibrary\HasMedia` — jangan simpan path gambar manual di kolom string.
 - Filament Resource: satu resource per model, gunakan `Forms\Components` bawaan Filament dulu sebelum bikin custom field.

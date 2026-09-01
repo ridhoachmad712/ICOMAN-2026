@@ -2,7 +2,7 @@
 
 return [
     // Umum / navigasi
-    'portal' => 'Author Portal',
+    'portal' => 'Participant & Author Portal',
     'login' => 'Login',
     'logout' => 'Logout',
     'register' => 'Register',
@@ -19,12 +19,15 @@ return [
     'country' => 'Country',
     'phone' => 'Phone / WhatsApp',
     'remember_me' => 'Remember me',
+    'show_password' => 'Show password',
+    'hide_password' => 'Hide password',
+    'need_help' => 'Need help? Contact secretariat at',
 
     // Auth
-    'login_title' => 'Author Login',
-    'login_subtitle' => 'Sign in to submit papers & register.',
-    'register_title' => 'Register as Author',
-    'register_subtitle' => 'Create an account to submit papers & register.',
+    'login_title' => 'Portal Login',
+    'login_subtitle' => 'Sign in to manage paper submissions and seminar registrations.',
+    'register_title' => 'Portal Registration',
+    'register_subtitle' => 'Create an account to submit papers or register for the seminar.',
     'forgot_password' => 'Forgot password?',
     'forgot_title' => 'Forgot Password',
     'forgot_subtitle' => 'Enter your email and we will send a reset link.',

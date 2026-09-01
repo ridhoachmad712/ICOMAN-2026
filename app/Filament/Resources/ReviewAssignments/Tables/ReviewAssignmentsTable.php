@@ -21,8 +21,20 @@ class ReviewAssignmentsTable
         return $table
             ->defaultSort('assigned_at', 'desc')
             ->columns([
-                TextColumn::make('submission.submission_number')->label('No.')->searchable(),
+                TextColumn::make('submission.submission_number')->label('No. Paper')->searchable()->sortable(),
                 TextColumn::make('submission.title')->label('Title')->limit(50)->wrap()->searchable(),
+                TextColumn::make('phase')
+                    ->label('Tahap')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => $state === 'abstract' ? 'Review Abstrak' : 'Verifikasi Extended Abstract')
+                    ->color(fn (string $state) => $state === 'abstract' ? 'info' : 'primary'),
+                TextColumn::make('reviewer.name')
+                    ->label('Reviewer')
+                    ->badge()
+                    ->color('info')
+                    ->searchable()
+                    ->sortable()
+                    ->visible(fn () => auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false),
                 TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state) => $state === 'completed' ? 'success' : 'warning')
@@ -38,25 +50,38 @@ class ReviewAssignmentsTable
                 SelectFilter::make('status')->options(['pending' => 'Pending', 'completed' => 'Completed']),
             ])
             ->recordActions([
-                Action::make('downloadPaper')
-                    ->label('Paper')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('gray')
-                    ->url(fn ($record) => $record->submission?->getFirstMediaUrl('paper') ?: null)
-                    ->openUrlInNewTab()
-                    ->visible(fn ($record) => (bool) $record->submission?->getFirstMediaUrl('paper')),
-
                 Action::make('review')
                     ->label('Review')
                     ->icon('heroicon-o-pencil-square')
-                    ->modalHeading('Isi Review')
+                    ->modalHeading('Verifikasi Extended Abstract')
+                    ->visible(fn ($record) => auth()->user()?->id === $record->reviewer_id || (auth()->user()?->isSuperadmin() ?? false))
                     ->schema([
                         Placeholder::make('paper_info')
                             ->hiddenLabel()
-                            ->content(fn ($record): HtmlString => new HtmlString(
-                                '<div class="text-sm"><strong>'.e($record->submission?->title).'</strong>'
-                                .'<p class="mt-2 text-gray-500 whitespace-pre-line">'.e($record->submission?->abstract).'</p></div>'
-                            )),
+                            ->content(function ($record): HtmlString {
+                                $submission = $record->submission;
+                                if ($record->phase === 'extended_abstract') {
+                                    $pdfUrl = route('admin.submissions.extended-abstract.preview', $submission);
+                                    $document = view('components.extended-abstract-document', ['submission' => $submission])->render();
+
+                                    return new HtmlString(
+                                        '<div class="mb-4"><strong>'.e($submission?->title).'</strong></div>'
+                                        .'<a class="mb-5 inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold" href="'.e($pdfUrl).'" target="_blank">Buka Preview PDF</a>'
+                                        .$document,
+                                    );
+                                }
+
+                                $content = $submission?->abstract;
+                                $keywords = $record->phase === 'abstract' && filled($submission?->keywords)
+                                    ? '<p class="mt-3 text-xs text-gray-600"><strong>Keywords:</strong> '.e(implode(', ', $submission->keywords)).'</p>'
+                                    : '';
+
+                                return new HtmlString(
+                                    '<div class="text-sm"><strong>'.e($submission?->title).'</strong>'
+                                    .'<p class="mt-2 text-gray-500 whitespace-pre-line">'.e($content).'</p>'
+                                    .$keywords.'</div>'
+                                );
+                            }),
                         TextInput::make('score')
                             ->label('Score (1–100)')
                             ->numeric()->minValue(1)->maxValue(100),

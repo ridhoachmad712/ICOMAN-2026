@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Submissions;
 
 use App\Filament\Resources\Submissions\Pages\EditSubmission;
 use App\Filament\Resources\Submissions\Pages\ListSubmissions;
+use App\Filament\Resources\Submissions\RelationManagers\AuthorsRelationManager;
 use App\Filament\Resources\Submissions\Schemas\SubmissionForm;
 use App\Filament\Resources\Submissions\Tables\SubmissionsTable;
 use App\Models\Submission;
@@ -38,7 +39,7 @@ class SubmissionResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
+        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin']) ?? false;
     }
 
     public static function canCreate(): bool
@@ -49,7 +50,7 @@ class SubmissionResource extends Resource
     public static function getRelations(): array
     {
         return [
-            \App\Filament\Resources\Submissions\RelationManagers\AuthorsRelationManager::class,
+            AuthorsRelationManager::class,
         ];
     }
 

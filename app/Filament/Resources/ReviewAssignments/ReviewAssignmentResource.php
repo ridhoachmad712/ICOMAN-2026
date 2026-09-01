@@ -29,9 +29,16 @@ class ReviewAssignmentResource extends Resource
         return ReviewAssignmentsTable::configure($table);
     }
 
+    public static function getNavigationLabel(): string
+    {
+        return auth()->user()?->hasRole('reviewer') && ! auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi'])
+            ? 'My Reviews'
+            : 'Penugasan Review';
+    }
+
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['reviewer', 'superadmin']) ?? false;
+        return auth()->user()?->hasAnyRole(['reviewer', 'admin_registrasi', 'superadmin']) ?? false;
     }
 
     public static function canCreate(): bool
@@ -39,13 +46,13 @@ class ReviewAssignmentResource extends Resource
         return false;
     }
 
-    /** Reviewer hanya melihat paper yang ditugaskan padanya; superadmin melihat semua. */
+    /** Reviewer hanya melihat paper yang ditugaskan padanya; superadmin dan admin registrasi melihat semua. */
     public static function getEloquentQuery(): Builder
     {
-        $query = parent::getEloquentQuery()->with(['submission', 'review']);
+        $query = parent::getEloquentQuery()->with(['submission', 'reviewer', 'review']);
 
         $user = auth()->user();
-        if ($user && ! $user->isSuperadmin()) {
+        if ($user && $user->hasRole('reviewer') && ! $user->hasAnyRole(['superadmin', 'admin_registrasi'])) {
             $query->where('reviewer_id', $user->id);
         }
 

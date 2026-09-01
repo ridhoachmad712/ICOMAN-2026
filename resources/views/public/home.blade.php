@@ -1,8 +1,14 @@
 <x-layout :metaDescription="$aboutPage?->meta_description">
     @php
         $s = siteSettings();
+        $isId = app()->getLocale() === 'id';
         $heroImage = $s->hero_image ? \Illuminate\Support\Facades\Storage::disk('public')->url($s->hero_image) : null;
         $tierOrder = ['platinum' => 'Platinum', 'gold' => 'Gold', 'silver' => 'Silver', 'partner' => 'Partner', 'media_partner' => 'Media Partner'];
+        $deadlineLabel = fn ($label) => str_ireplace(
+            ['Abstract & Full Paper Submission Deadline', 'Batas Pengumpulan Abstrak & Full Paper', 'Camera-Ready Paper & Registration Payment Deadline', 'Batas Pengumpulan Camera-Ready & Pembayaran'],
+            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Extended Abstract & Registration Payment Deadline', 'Batas Input Extended Abstract & Pembayaran'],
+            (string) $label,
+        );
 
         // JSON-LD Event (structured data untuk Google).
         $mode = strtolower((string) $s->event_mode);
@@ -67,8 +73,8 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register') }}" class="btn btn-primary">{{ __('site.submit_paper') }}</a>
-                <a href="{{ route('author.registration.create') }}" class="btn btn-ghost">{{ __('site.register_now') }}</a>
+                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ $isId ? 'Mulai Extended Abstract' : 'Start Extended Abstract' }}</a>
+                <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
             </div>
 
             @if($edition?->start_date)
@@ -253,7 +259,7 @@
                     <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-[var(--brand)] text-white px-6 py-4">
                         <div>
                             <div class="text-xs uppercase tracking-widest text-white/70">{{ __('site.next_deadline') }}</div>
-                            <div class="font-semibold">{{ $nextDeadline->label }}</div>
+                            <div class="font-semibold">{{ $deadlineLabel($nextDeadline->label) }}</div>
                         </div>
                         <div class="text-lg font-bold">{{ $nextDeadline->date->translatedFormat('d M Y') }}</div>
                     </div>
@@ -262,7 +268,7 @@
                 <ul class="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white overflow-hidden">
                     @foreach($importantDates as $d)
                         <li class="flex items-center justify-between gap-4 px-5 py-4 {{ $d->is_highlighted ? 'bg-[var(--brand)]/5' : '' }}">
-                            <span class="font-medium text-slate-700">{{ $d->label }}</span>
+                            <span class="font-medium text-slate-700">{{ $deadlineLabel($d->label) }}</span>
                             <span class="text-sm font-semibold text-[var(--brand-2)] whitespace-nowrap">
                                 {{ $d->date?->translatedFormat('d M Y') ?? 'TBA' }}
                             </span>
@@ -377,8 +383,8 @@
             <h2 class="text-2xl sm:text-3xl font-bold">{{ __('site.cta_title') }}</h2>
             <p class="mt-2 text-slate-300">{{ __('site.cta_subtitle') }}</p>
             <div class="mt-6 flex flex-wrap justify-center gap-3">
-                <a href="{{ route('author.register') }}" class="btn btn-primary">{{ __('site.submit_paper') }}</a>
-                <a href="{{ route('author.registration.create') }}" class="btn btn-ghost">{{ __('site.register_now') }}</a>
+                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ $isId ? 'Mulai Extended Abstract' : 'Start Extended Abstract' }}</a>
+                <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
             </div>
         </div>
     </section>

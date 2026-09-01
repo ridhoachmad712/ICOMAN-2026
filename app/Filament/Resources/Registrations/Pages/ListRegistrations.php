@@ -7,6 +7,7 @@ use App\Filament\Widgets\RegistrationStats;
 use App\Models\Registration;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Tabs\Tab;
 
 class ListRegistrations extends ListRecords
 {
@@ -47,6 +48,35 @@ class ListRegistrations extends ListRecords
     {
         return [
             RegistrationStats::class,
+        ];
+    }
+
+    public function getTabs(): array
+    {
+        return [
+            'all' => Tab::make('Semua Registrasi')
+                ->badge(Registration::count())
+                ->badgeColor('gray'),
+
+            'pending_verification' => Tab::make('Perlu Verifikasi Bukti')
+                ->badge(Registration::where('status', 'pending_verification')->count())
+                ->badgeColor('warning')
+                ->modifyQueryUsing(fn ($query) => $query->where('status', 'pending_verification')),
+
+            'paid' => Tab::make('Lunas (Paid)')
+                ->badge(Registration::where('status', 'paid')->count())
+                ->badgeColor('success')
+                ->modifyQueryUsing(fn ($query) => $query->where('status', 'paid')),
+
+            'pending' => Tab::make('Menunggu Pembayaran')
+                ->badge(Registration::where('status', 'pending')->count())
+                ->badgeColor('gray')
+                ->modifyQueryUsing(fn ($query) => $query->where('status', 'pending')),
+
+            'failed' => Tab::make('Gagal / Batal')
+                ->badge(Registration::where('status', 'failed')->count())
+                ->badgeColor('danger')
+                ->modifyQueryUsing(fn ($query) => $query->where('status', 'failed')),
         ];
     }
 }

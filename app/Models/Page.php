@@ -11,7 +11,7 @@ use Spatie\Translatable\HasTranslations;
 
 class Page extends Model
 {
-    use HasFactory, HasTranslations, HasSlug;
+    use HasFactory, HasSlug, HasTranslations;
 
     protected $fillable = [
         'edition_id',

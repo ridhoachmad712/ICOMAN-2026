@@ -8,8 +8,8 @@
             ['route' => 'committee', 'label' => __('nav.committee')],
             ['route' => 'venue', 'label' => __('nav.venue')],
         ]],
-        ['type' => 'link', 'route' => 'speakers', 'label' => __('nav.speakers')],
         ['type' => 'group', 'label' => __('nav.program'), 'children' => [
+            ['route' => 'speakers', 'label' => __('nav.speakers')],
             ['route' => 'call-for-papers', 'label' => __('nav.cfp')],
             ['route' => 'important-dates', 'label' => __('nav.dates')],
             ['route' => 'program', 'label' => __('nav.program')],
@@ -19,45 +19,37 @@
         ['type' => 'link', 'route' => 'contact', 'label' => __('nav.contact')],
     ];
     $locale = app()->getLocale();
-    $isActive = fn ($r) => request()->routeIs($r);
-    $groupActive = fn ($children) => collect($children)->contains(fn ($c) => request()->routeIs($c['route']));
+    $isActive = fn ($route) => request()->routeIs($route);
+    $groupActive = fn ($children) => collect($children)->contains(fn ($child) => request()->routeIs($child['route']));
 @endphp
 
-<header x-data="{ open: false }" class="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-slate-200">
-    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex h-16 items-center justify-between gap-4">
-            <a href="{{ route('home') }}" class="flex items-center gap-2 shrink-0">
+<header x-data="{ open: false, languageOpen: false }" class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+    <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="{{ $locale === 'id' ? 'Navigasi utama' : 'Main navigation' }}">
+        <div class="flex h-[4.5rem] items-center justify-between gap-4">
+            <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2">
                 @if($logo)
-                    <img src="{{ $logo }}" alt="{{ $name }}" class="h-9 w-auto">
+                    <img src="{{ $logo }}" alt="{{ $name }}" class="h-10 w-auto">
                 @else
                     <span class="font-display text-lg font-bold tracking-tight text-[var(--brand-2)]">{{ $name }}</span>
                 @endif
             </a>
 
-            {{-- Desktop nav --}}
-            <div class="hidden lg:flex items-center gap-1">
+            <div class="hidden items-center gap-0.5 xl:flex">
                 @foreach($nav as $item)
                     @if($item['type'] === 'link')
-                        <a href="{{ route($item['route']) }}"
-                           class="px-3 py-2 text-sm font-medium rounded-md transition-colors {{ $isActive($item['route']) ? 'text-[var(--brand)]' : 'text-slate-600 hover:text-[var(--brand)] hover:bg-slate-50' }}">
+                        <a href="{{ route($item['route']) }}" class="rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $isActive($item['route']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                             {{ $item['label'] }}
                         </a>
                     @else
-                        <div x-data="{ o: false }" class="relative" @mouseenter="o = true" @mouseleave="o = false">
-                            <button @click="o = !o" :aria-expanded="o" aria-haspopup="true"
-                                    class="inline-flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-md transition-colors {{ $groupActive($item['children']) ? 'text-[var(--brand)]' : 'text-slate-600 hover:text-[var(--brand)] hover:bg-slate-50' }}">
+                        <div x-data="{ expanded: false }" class="relative" @mouseenter="expanded = true" @mouseleave="expanded = false">
+                            <button @click="expanded = !expanded" :aria-expanded="expanded" aria-haspopup="true" class="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $groupActive($item['children']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                                 {{ $item['label'] }}
-                                <svg class="h-4 w-4 transition-transform" :class="o && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7"/></svg>
+                                <svg class="h-4 w-4 transition-transform" :class="expanded && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>
                             </button>
-                            {{-- top-full + pt-2 = "jembatan" transparan tanpa celah, agar hover tak putus saat kursor turun ke panel --}}
-                            <div x-show="o" x-cloak x-transition @click.outside="o = false"
-                                 class="absolute left-0 top-full w-48 pt-2">
-                                <div class="rounded-lg border border-slate-200 bg-white shadow-lg py-1">
+                            <div x-show="expanded" x-cloak x-transition @click.outside="expanded = false" class="absolute left-0 top-full w-56 pt-2">
+                                <div class="rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
                                     @foreach($item['children'] as $child)
-                                        <a href="{{ route($child['route']) }}"
-                                           class="block px-4 py-2 text-sm {{ $isActive($child['route']) ? 'text-[var(--brand)] bg-slate-50' : 'text-slate-600 hover:bg-slate-50' }}">
-                                            {{ $child['label'] }}
-                                        </a>
+                                        <a href="{{ route($child['route']) }}" class="block rounded-lg px-3 py-2.5 text-sm {{ $isActive($child['route']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">{{ $child['label'] }}</a>
                                     @endforeach
                                 </div>
                             </div>
@@ -67,44 +59,64 @@
             </div>
 
             <div class="flex items-center gap-2">
-                {{-- Language switcher --}}
-                <div class="hidden sm:flex items-center rounded-md border border-slate-200 overflow-hidden text-xs font-semibold">
-                    <a href="{{ route('locale.switch', 'en') }}" class="px-2.5 py-1.5 {{ $locale === 'en' ? 'bg-[var(--brand)] text-white' : 'text-slate-500 hover:bg-slate-50' }}">EN</a>
-                    <a href="{{ route('locale.switch', 'id') }}" class="px-2.5 py-1.5 {{ $locale === 'id' ? 'bg-[var(--brand)] text-white' : 'text-slate-500 hover:bg-slate-50' }}">ID</a>
+                @guest('author')
+                    <a href="{{ route('filament.author.auth.login') }}" class="hidden text-sm font-medium text-slate-600 hover:text-slate-950 xl:inline-flex">{{ __('author.login') }}</a>
+                @endguest
+
+                <div class="relative hidden sm:block">
+                    <button @click="languageOpen = !languageOpen" :aria-expanded="languageOpen" aria-haspopup="true" class="inline-flex min-h-10 items-center gap-2 rounded-md border border-slate-200 px-3 text-xs font-semibold text-slate-700 hover:border-slate-300 hover:bg-slate-50" aria-label="{{ $locale === 'id' ? 'Pilih bahasa' : 'Choose language' }}">
+                        <span class="fi fi-{{ $locale === 'id' ? 'id' : 'gb' }} rounded-[2px]"></span>
+                        {{ strtoupper($locale) }}
+                        <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="languageOpen" x-cloak x-transition @click.outside="languageOpen = false" class="absolute right-0 top-full mt-2 w-36 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
+                        <a href="{{ route('locale.switch', 'id') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {{ $locale === 'id' ? 'bg-slate-100 font-semibold text-slate-950' : 'text-slate-600 hover:bg-slate-50' }}"><span class="fi fi-id rounded-[2px]"></span>Indonesia</a>
+                        <a href="{{ route('locale.switch', 'en') }}" class="flex items-center gap-2 rounded-lg px-3 py-2 text-sm {{ $locale === 'en' ? 'bg-slate-100 font-semibold text-slate-950' : 'text-slate-600 hover:bg-slate-50' }}"><span class="fi fi-gb rounded-[2px]"></span>English</a>
+                    </div>
                 </div>
 
-                {{-- Mobile toggle --}}
-                <button @click="open = !open" :aria-expanded="open" class="lg:hidden inline-flex items-center justify-center p-2 rounded-md text-slate-600 hover:bg-slate-100" aria-label="Menu">
+                @auth('author')
+                    <a href="{{ route('filament.author.pages.author-dashboard') }}" class="btn btn-primary hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">Dashboard</a>
+                @else
+                    <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+                @endauth
+
+                <button @click="open = !open" :aria-expanded="open" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 xl:hidden" aria-label="Menu">
                     <svg x-show="!open" class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
-                    <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    <svg x-show="open" x-cloak class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                 </button>
             </div>
         </div>
 
-        {{-- Mobile menu (flattened) --}}
-        <div x-show="open" x-cloak x-transition class="lg:hidden pb-4">
+        <div x-show="open" x-cloak x-transition class="border-t border-slate-100 pb-5 pt-3 xl:hidden">
             <div class="flex flex-col gap-1">
                 @foreach($nav as $item)
                     @if($item['type'] === 'link')
-                        <a href="{{ route($item['route']) }}"
-                           class="px-3 py-2 text-sm font-medium rounded-md {{ $isActive($item['route']) ? 'bg-[var(--brand)] text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                            {{ $item['label'] }}
-                        </a>
+                        <a href="{{ route($item['route']) }}" class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
                     @else
-                        <div class="px-3 pt-3 pb-1 text-xs uppercase tracking-wide text-slate-400">{{ $item['label'] }}</div>
+                        <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ $item['label'] }}</p>
                         @foreach($item['children'] as $child)
-                            <a href="{{ route($child['route']) }}"
-                               class="px-5 py-2 text-sm rounded-md {{ $isActive($child['route']) ? 'bg-[var(--brand)] text-white' : 'text-slate-700 hover:bg-slate-100' }}">
-                                {{ $child['label'] }}
-                            </a>
+                            <a href="{{ route($child['route']) }}" class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
                         @endforeach
                     @endif
                 @endforeach
 
-                <div class="flex gap-2 pt-3">
-                    <a href="{{ route('locale.switch', 'en') }}" class="flex-1 text-center px-3 py-2 text-sm rounded-md border {{ $locale === 'en' ? 'bg-[var(--brand)] text-white' : 'text-slate-600' }}">English</a>
-                    <a href="{{ route('locale.switch', 'id') }}" class="flex-1 text-center px-3 py-2 text-sm rounded-md border {{ $locale === 'id' ? 'bg-[var(--brand)] text-white' : 'text-slate-600' }}">Indonesia</a>
+                <div class="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-4 sm:hidden">
+                    <a href="{{ route('locale.switch', 'id') }}" class="flex min-h-11 items-center justify-center gap-2 rounded-lg border text-xs font-semibold {{ $locale === 'id' ? 'border-[var(--brand)] bg-[var(--brand)] text-white' : 'border-slate-200 text-slate-700' }}"><span class="fi fi-id"></span>Indonesia</a>
+                    <a href="{{ route('locale.switch', 'en') }}" class="flex min-h-11 items-center justify-center gap-2 rounded-lg border text-xs font-semibold {{ $locale === 'en' ? 'border-[var(--brand)] bg-[var(--brand)] text-white' : 'border-slate-200 text-slate-700' }}"><span class="fi fi-gb"></span>English</a>
                 </div>
+
+                @auth('author')
+                    <div class="mt-3 border-t border-slate-100 pt-4">
+                        <a href="{{ route('filament.author.pages.author-dashboard') }}" class="btn btn-primary w-full">Dashboard</a>
+                    </div>
+                @else
+                    <div class="mt-3 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
+                        <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary min-h-11 px-4 text-sm">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+                        <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-outline min-h-11 px-4 text-sm">{{ $locale === 'id' ? 'Daftar Peserta' : 'Register Attendee' }}</a>
+                        <a href="{{ route('filament.author.auth.login') }}" class="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{{ __('author.login') }}</a>
+                    </div>
+                @endauth
             </div>
         </div>
     </nav>

@@ -16,11 +16,11 @@ use Filament\Tables\Table;
 
 class PageResource extends Resource
 {
-
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
     }
+
     protected static ?string $model = Page::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Konten';

@@ -4,7 +4,7 @@
     <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 space-y-14">
         {{-- CFP intro (dari CMS page opsional) --}}
         @if($page && $page->content)
-            <div class="prose prose-slate max-w-none">{!! $page->content !!}</div>
+            <div class="prose prose-slate max-w-none">{!! str_ireplace(['Full Paper', 'full paper'], ['Extended Abstract', 'extended abstract'], (string) $page->content) !!}</div>
         @endif
 
         {{-- Topics --}}
@@ -43,10 +43,10 @@
             </div>
         @endif
 
-        <div class="rounded-2xl section-tint p-8 text-center">
-            <p class="text-slate-600 mb-4">{{ app()->getLocale() === 'id' ? 'Siap mengirimkan paper Anda?' : 'Ready to submit your paper?' }}</p>
+        <div class="border-y border-slate-200 bg-slate-50 p-8 text-center">
+            <p class="text-slate-600 mb-4">{{ app()->getLocale() === 'id' ? 'Siap menulis extended abstract Anda?' : 'Ready to write your extended abstract?' }}</p>
             <div class="flex flex-wrap justify-center gap-3">
-                <a href="{{ route('author.register') }}" class="btn btn-primary">{{ __('site.submit_paper') }}</a>
+                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ app()->getLocale() === 'id' ? 'Mulai Extended Abstract' : 'Start Extended Abstract' }}</a>
                 <a href="{{ route('registration') }}" class="btn btn-outline">{{ __('site.registration_fees') }}</a>
             </div>
         </div>

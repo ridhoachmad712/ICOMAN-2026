@@ -32,7 +32,7 @@ class UserForm
                             ->multiple()
                             ->preload()
                             ->required()
-                            ->helperText('superadmin = akses penuh · content_admin = kelola konten · reviewer = hanya review paper.'),
+                            ->helperText('superadmin = akses penuh · admin_registrasi = kelola pendaftaran & pembayaran · reviewer = hanya review paper.'),
                     ]),
             ]);
     }

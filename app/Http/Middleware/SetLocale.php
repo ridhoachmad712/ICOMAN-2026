@@ -16,7 +16,7 @@ class SetLocale
         $locale = $request->session()->get('locale');
 
         if (! in_array($locale, self::SUPPORTED, true)) {
-            $default = siteSettings()->default_locale;
+            $default = rescue(fn () => siteSettings()->default_locale, 'en', false);
             $locale = in_array($default, self::SUPPORTED, true) ? $default : 'en';
         }
 

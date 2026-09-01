@@ -59,7 +59,7 @@ class PasswordResetController extends Controller
         );
 
         return $status === Password::PasswordReset
-            ? redirect()->route('author.login')->with('status', __($status))
+            ? redirect()->route('filament.author.auth.login')->with('status', __($status))
             : back()->withErrors(['email' => __($status)]);
     }
 }

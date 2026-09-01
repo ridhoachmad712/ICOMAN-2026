@@ -15,8 +15,10 @@ class RegistrationFee extends Model
     protected $fillable = [
         'edition_id',
         'category',
+        'audience',
         'price_early_bird',
         'price_regular',
+        'early_bird_deadline',
         'currency',
         'notes',
         'order',
@@ -29,8 +31,20 @@ class RegistrationFee extends Model
         return [
             'price_early_bird' => 'decimal:2',
             'price_regular' => 'decimal:2',
+            'early_bird_deadline' => 'date',
             'order' => 'integer',
         ];
+    }
+
+    public function currentPrice(): string
+    {
+        if ($this->price_early_bird !== null
+            && $this->early_bird_deadline !== null
+            && today()->lte($this->early_bird_deadline)) {
+            return $this->price_early_bird;
+        }
+
+        return $this->price_regular;
     }
 
     public function edition(): BelongsTo

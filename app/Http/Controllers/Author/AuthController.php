@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Author;
 
+use App\Filament\Author\Resources\Papers\PaperResource;
+use App\Filament\Author\Resources\Registrations\RegistrationResource;
 use App\Http\Controllers\Controller;
 use App\Models\Author;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +28,7 @@ class AuthController extends Controller
             'affiliation' => ['nullable', 'string', 'max:255'],
             'country' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
+            'participation_type' => ['required', 'in:presenter,non_presenter'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
@@ -35,43 +38,27 @@ class AuthController extends Controller
             'affiliation' => $data['affiliation'] ?? null,
             'country' => $data['country'] ?? null,
             'phone' => $data['phone'] ?? null,
+            'participation_type' => $data['participation_type'] === 'non_presenter' ? 'participant' : 'presenter',
             'password' => Hash::make($data['password']),
         ]);
 
         Auth::guard('author')->login($author);
 
-        return redirect()->route('author.dashboard');
-    }
-
-    public function showLogin(): View
-    {
-        return view('author.auth.login');
-    }
-
-    public function login(Request $request): RedirectResponse
-    {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
-        ]);
-
-        if (! Auth::guard('author')->attempt($credentials, $request->boolean('remember'))) {
-            return back()
-                ->withErrors(['email' => __('auth.failed')])
-                ->onlyInput('email');
+        if ($data['participation_type'] === 'presenter') {
+            return redirect()
+                ->to(PaperResource::getUrl('create', panel: 'author'))
+                ->with('status', app()->getLocale() === 'id'
+                    ? 'Akun berhasil didaftarkan! Lengkapi data paper untuk mulai menulis extended abstract.'
+                    : 'Account registered successfully! Complete the paper details to start writing your extended abstract.');
         }
 
-        $request->session()->regenerate();
-
-        return redirect()->intended(route('author.dashboard'));
+        return redirect()
+            ->to(RegistrationResource::getUrl('create', panel: 'author'))
+            ->with('status', app()->getLocale() === 'id'
+                ? 'Akun berhasil didaftarkan! Silakan pilih paket kepesertaan Seminar Internasional.'
+                : 'Account registered successfully! Please choose your International Seminar registration package.');
     }
 
-    public function logout(Request $request): RedirectResponse
-    {
-        Auth::guard('author')->logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('home');
-    }
+    // Login & logout author ditangani panel Filament (filament.author.auth.*).
+    // Metode Blade lama (showLogin/login/logout) sudah dihapus.
 }

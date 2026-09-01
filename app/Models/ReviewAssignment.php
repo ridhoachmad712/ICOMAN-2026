@@ -14,6 +14,7 @@ class ReviewAssignment extends Model
     protected $fillable = [
         'submission_id',
         'reviewer_id',
+        'phase',
         'assigned_at',
         'status',
     ];

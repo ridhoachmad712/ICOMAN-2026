@@ -37,7 +37,7 @@ class MidtransController extends Controller
     public function finish(Request $request)
     {
         return redirect()
-            ->route('author.dashboard')
+            ->route('filament.author.pages.author-dashboard')
             ->with('status', __('Pembayaran diproses. Status akan diperbarui otomatis setelah konfirmasi gateway.'));
     }
 }

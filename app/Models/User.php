@@ -4,12 +4,12 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
-use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthentication;
 use Filament\Auth\MultiFactor\App\Contracts\HasAppAuthenticationRecovery;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
+use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -21,7 +21,7 @@ use Spatie\Permission\Traits\HasRoles;
 class User extends Authenticatable implements FilamentUser, HasAppAuthentication, HasAppAuthenticationRecovery
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     /**
      * Get the attributes that should be cast.
@@ -41,12 +41,22 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     /** Kontrol akses ke panel admin Filament (guard web). */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(['superadmin', 'content_admin', 'reviewer']);
+        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin']);
     }
 
     public function isSuperadmin(): bool
     {
         return $this->hasRole('superadmin');
+    }
+
+    public function isAdminRegistrasi(): bool
+    {
+        return $this->hasAnyRole(['admin_registrasi', 'superadmin']);
+    }
+
+    public function isReviewer(): bool
+    {
+        return $this->hasRole('reviewer');
     }
 
     /** Paper yang ditugaskan ke user ini sebagai reviewer. */

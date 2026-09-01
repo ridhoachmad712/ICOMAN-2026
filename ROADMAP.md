@@ -4,7 +4,7 @@
 
 ## Fase 0 — Setup Environment (0.5 hari)
 - [ ] `laravel new icoman-2026-cms`
-- [ ] Install Filament v3 (`filament:install --panels`)
+- [x] Install Filament v4 (`filament:install --panels`)
 - [ ] Install Tailwind + Vite config untuk frontend publik (terpisah dari asset Filament)
 - [ ] Install package: `spatie/laravel-medialibrary`, `spatie/laravel-translatable`, `spatie/laravel-sluggable`, `spatie/laravel-settings`, `spatie/laravel-permission`
 - [ ] Setup `.env`, database lokal, `php artisan migrate`

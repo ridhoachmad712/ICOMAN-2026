@@ -16,11 +16,11 @@ use Filament\Tables\Table;
 
 class CommitteeResource extends Resource
 {
-
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
     }
+
     protected static ?string $model = Committee::class;
 
     protected static ?string $recordTitleAttribute = 'name';

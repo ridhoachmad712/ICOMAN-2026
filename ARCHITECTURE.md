@@ -4,8 +4,8 @@
 
 | Layer | Pilihan | Alasan |
 |---|---|---|
-| Backend Framework | Laravel 11 | Konsisten dengan stack Anda yang lain |
-| Admin Panel | Filament v3 | CRUD generator cepat, ringan, cocok untuk CMS non-developer |
+| Backend Framework | Laravel 13 | Framework utama dengan dukungan keamanan aktif |
+| Admin Panel | Filament v4 | CRUD dan panel operasional panitia |
 | Frontend Publik | Blade + Tailwind CSS + Alpine.js | Ringan, tanpa build SPA berat, SEO-friendly (server-rendered) |
 | Interaktivitas ringan | Livewire (opsional, hanya untuk komponen kecil: filter jadwal, form kontak) | Sudah include via Filament, tidak perlu dependency tambahan |
 | Database | MySQL/MariaDB (sesuai hosting kampus) | Standar hosting Hostinger/kampus |

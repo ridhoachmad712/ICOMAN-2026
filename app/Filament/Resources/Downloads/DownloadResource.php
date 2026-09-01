@@ -16,11 +16,11 @@ use Filament\Tables\Table;
 
 class DownloadResource extends Resource
 {
-
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
     }
+
     protected static ?string $model = Download::class;
 
     protected static string|\UnitEnum|null $navigationGroup = 'Konten';

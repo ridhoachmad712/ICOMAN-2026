@@ -17,11 +17,11 @@ use UnitEnum;
 
 class SpeakerResource extends Resource
 {
-
     public static function canAccess(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
     }
+
     protected static ?string $model = Speaker::class;
 
     protected static ?string $recordTitleAttribute = 'name';

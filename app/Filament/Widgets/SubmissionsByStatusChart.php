@@ -18,7 +18,13 @@ class SubmissionsByStatusChart extends ChartWidget
 
     protected function getData(): array
     {
-        $statuses = ['submitted', 'under_review', 'revision_required', 'accepted', 'rejected'];
+        $statuses = [
+            'extended_abstract_draft',
+            'extended_abstract_submitted',
+            'extended_abstract_under_review',
+            'accepted',
+            'rejected',
+        ];
 
         $counts = Submission::query()
             ->selectRaw('status, COUNT(*) as total')
@@ -29,9 +35,9 @@ class SubmissionsByStatusChart extends ChartWidget
             'datasets' => [[
                 'label' => 'Submissions',
                 'data' => array_map(fn ($s) => (int) ($counts[$s] ?? 0), $statuses),
-                'backgroundColor' => ['#94a3b8', '#3b82f6', '#f59e0b', '#10b981', '#ef4444'],
+                'backgroundColor' => ['#94a3b8', '#f59e0b', '#8b5cf6', '#16a34a', '#ef4444'],
             ]],
-            'labels' => ['Submitted', 'Under Review', 'Revision', 'Accepted', 'Rejected'],
+            'labels' => ['Draft Extended Abstract', 'Extended Terkirim', 'Verifikasi Extended', 'Accepted', 'Tidak Lolos'],
         ];
     }
 
