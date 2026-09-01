@@ -5,9 +5,9 @@
         $registrationResource = \App\Filament\Author\Resources\Registrations\RegistrationResource::class;
         $profilePage = \App\Filament\Author\Pages\AuthorProfile::class;
         $statusLabel = fn (string $status) => ($id ? [
-            'extended_abstract_draft' => 'Draft extended abstract',
+            'extended_abstract_draft' => 'Draft abstract',
             'abstract_submitted' => 'Abstrak terkirim', 'abstract_under_review' => 'Abstrak direview',
-            'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Extended abstract terkirim',
+            'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Abstract terkirim',
             'extended_abstract_under_review' => 'Verifikasi reviewer', 'accepted' => 'Accepted',
             'rejected' => 'Tidak lolos', 'pending' => 'Belum dibayar',
             'pending_verification' => 'Menunggu verifikasi', 'paid' => 'Lunas', 'failed' => 'Gagal',

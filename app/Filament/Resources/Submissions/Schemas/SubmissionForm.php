@@ -25,9 +25,9 @@ class SubmissionForm
                             ->content(fn ($record) => filled($record?->keywords) ? implode(', ', $record->keywords) : '—')
                             ->columnSpanFull(),
                         Placeholder::make('extended_abstract_document')
-                            ->label('Extended Abstract')
+                            ->label('Abstract')
                             ->content(function ($record): HtmlString {
-                                if (! $record || (! $record->extended_abstract && ! $record->extended_abstract_draft_saved_at)) {
+                                if (! $record || (! filled($record->abstract) && ! $record->extended_abstract_draft_saved_at)) {
                                     return new HtmlString('<p class="text-sm italic text-gray-500">Belum diinput oleh author.</p>');
                                 }
 

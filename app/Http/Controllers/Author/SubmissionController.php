@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
@@ -52,7 +53,7 @@ class SubmissionController extends Controller
     public function loa(Submission $submission): View
     {
         $this->authorizeOwner($submission);
-        abort_unless($submission->status === 'accepted', 404);
+        abort_unless($submission->status === 'accepted' && $submission->isLoaIssued(), 404);
 
         $submission->load(['authors' => fn ($query) => $query->orderBy('order'), 'edition']);
 
@@ -81,37 +82,41 @@ class SubmissionController extends Controller
     public function submitExtendedAbstract(Request $request, Submission $submission): RedirectResponse
     {
         $this->authorizeOwner($submission);
-        abort_unless(in_array($submission->status, Submission::AUTHOR_EDITABLE_STATUSES, true), 403, 'Extended abstract tidak dapat diubah setelah dikirim ke reviewer.');
+        abort_unless(in_array($submission->status, Submission::AUTHOR_EDITABLE_STATUSES, true), 403, 'Abstract tidak dapat diubah setelah dikirim ke reviewer.');
 
         $validated = $request->validate([
-            'extended_abstract' => ['required', 'string', 'max:20000'],
+            'abstract' => ['required', 'string', 'max:6000'],
         ]);
+
+        $wordCount = count(preg_split('/\s+/', trim($validated['abstract']), -1, PREG_SPLIT_NO_EMPTY));
+        if ($wordCount < Submission::ABSTRACT_MIN_WORDS || $wordCount > Submission::ABSTRACT_MAX_WORDS) {
+            throw ValidationException::withMessages([
+                'abstract' => app()->getLocale() === 'id'
+                    ? 'Abstract wajib '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata.'
+                    : 'The abstract must be '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words.',
+            ]);
+        }
 
         DB::transaction(function () use ($submission, $validated): void {
             $submission->update([
-                'extended_abstract' => $validated['extended_abstract'],
+                'abstract' => $validated['abstract'],
                 'extended_abstract_submitted_at' => now(),
             ]);
 
-            $reviewerIds = $submission->reviewAssignments()
-                ->where('phase', 'abstract')
-                ->pluck('reviewer_id');
+            // Siklus revisi: reviewer yang sudah ada direset ke pending untuk
+            // menilai ulang. Kiriman pertama (tanpa reviewer) → submitted.
+            $assignments = $submission->reviewAssignments()->where('phase', 'extended_abstract');
+            $hasReviewers = (clone $assignments)->exists();
+            (clone $assignments)->update(['status' => 'pending']);
 
-            foreach ($reviewerIds as $reviewerId) {
-                $submission->reviewAssignments()->firstOrCreate(
-                    ['reviewer_id' => $reviewerId, 'phase' => 'extended_abstract'],
-                    ['assigned_at' => now(), 'status' => 'pending'],
-                );
-            }
-
-            $submission->changeStatus($reviewerIds->isEmpty()
-                ? 'extended_abstract_submitted'
-                : 'extended_abstract_under_review');
+            $submission->changeStatus($hasReviewers
+                ? 'extended_abstract_under_review'
+                : 'extended_abstract_submitted');
         });
 
         return back()->with('status', app()->getLocale() === 'id'
-            ? 'Extended abstract berhasil dikirim dan menunggu verifikasi reviewer.'
-            : 'Your extended abstract was submitted and is awaiting reviewer verification.');
+            ? 'Abstract berhasil dikirim dan menunggu verifikasi reviewer.'
+            : 'Your abstract was submitted and is awaiting reviewer verification.');
     }
 
     private function authorizeOwner(Submission $submission): void

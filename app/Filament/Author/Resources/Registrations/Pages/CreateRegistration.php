@@ -45,9 +45,9 @@ class CreateRegistration extends CreateRecord
 
         $submission = null;
         if ($author->isPresenter()) {
-            $submission = $author->submissions()->where('edition_id', $edition->id)->where('status', 'accepted')->find($data['submission_id'] ?? null);
+            $submission = $author->submissions()->where('edition_id', $edition->id)->where('status', 'accepted')->whereNotNull('loa_issued_at')->find($data['submission_id'] ?? null);
             if (! $submission) {
-                throw ValidationException::withMessages(['data.submission_id' => app()->getLocale() === 'id' ? 'Pilih paper Anda yang sudah dinyatakan accepted.' : 'Select one of your accepted papers.']);
+                throw ValidationException::withMessages(['data.submission_id' => app()->getLocale() === 'id' ? 'Pilih paper Anda yang LOA-nya sudah diterbitkan.' : 'Select one of your papers whose LOA has been issued.']);
             }
         }
 
@@ -59,13 +59,22 @@ class CreateRegistration extends CreateRecord
             throw ValidationException::withMessages(['data.registration_fee_id' => app()->getLocale() === 'id' ? 'Registrasi aktif untuk jalur ini sudah tersedia.' : 'An active registration already exists for this path.']);
         }
 
+        // Opsi penerbitan SINTA 3 (hanya bila ditawarkan admin) → biaya tambahan.
+        $amount = (float) $fee->currentPrice();
+        if ($submission && $submission->sinta3_offered && ($data['journal_target'] ?? 'regular') === 'sinta3') {
+            $submission->update(['journal_target' => 'sinta3']);
+            $amount += (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false);
+        } elseif ($submission) {
+            $submission->update(['journal_target' => 'regular']);
+        }
+
         return Registration::create([
             'edition_id' => $edition->id,
             'author_id' => $author->id,
             'registration_fee_id' => $fee->id,
             'submission_id' => $submission?->id,
             'payment_method' => $data['payment_method'],
-            'amount' => $fee->currentPrice(),
+            'amount' => $amount,
             'status' => 'pending',
         ]);
     }

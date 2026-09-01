@@ -2,10 +2,7 @@
 
 namespace App\Models;
 
-use App\Filament\Shared\RichContent\EquationBlock;
 use App\Notifications\SubmissionStatusChanged;
-use Filament\Forms\Components\RichEditor\Models\Concerns\InteractsWithRichContent;
-use Filament\Forms\Components\RichEditor\Models\Contracts\HasRichContent;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,16 +11,19 @@ use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Submission extends Model implements HasMedia, HasRichContent
+class Submission extends Model implements HasMedia
 {
-    use HasFactory, InteractsWithMedia, InteractsWithRichContent;
+    use HasFactory, InteractsWithMedia;
 
-    public const EXTENDED_ABSTRACT_FIELDS = [
-        'extended_abstract_abstract' => 'Abstract',
-        'extended_abstract_introduction' => 'Introduction',
-        'extended_abstract_method' => 'Method',
-        'extended_abstract_results_discussion' => 'Results and Discussion',
-        'extended_abstract_conclusion' => 'Conclusion',
+    /** Batas jumlah kata abstract (wajib bahasa Inggris). */
+    public const ABSTRACT_MIN_WORDS = 150;
+
+    public const ABSTRACT_MAX_WORDS = 500;
+
+    /** Target jurnal penerbitan paper. */
+    public const JOURNAL_TARGETS = [
+        'regular' => 'Jurnal Reguler',
+        'sinta3' => 'Jurnal SINTA 3',
     ];
 
     public const STATUSES = [
@@ -39,19 +39,19 @@ class Submission extends Model implements HasMedia, HasRichContent
     ];
 
     public const STATUS_LABELS = [
-        'extended_abstract_draft' => 'Draft extended abstract',
-        'abstract_submitted' => 'Abstrak terkirim',
-        'abstract_under_review' => 'Abstrak direview',
-        'abstract_approved' => 'Lolos review abstrak',
-        'extended_abstract_submitted' => 'Extended abstract terkirim',
-        'extended_abstract_under_review' => 'Verifikasi extended abstract',
+        'extended_abstract_draft' => 'Draft abstract',
+        'abstract_submitted' => 'Abstract terkirim',
+        'abstract_under_review' => 'Abstract direview',
+        'abstract_approved' => 'Lolos review',
+        'extended_abstract_submitted' => 'Abstract terkirim',
+        'extended_abstract_under_review' => 'Verifikasi reviewer',
         'revision_required' => 'Perlu revisi',
         'accepted' => 'Accepted',
         'rejected' => 'Tidak lolos',
     ];
 
     /**
-     * Status di mana author boleh menyunting & (kembali) mengirim extended abstract.
+     * Status di mana author boleh menyunting & (kembali) mengirim abstract.
      * `revision_required` membuka kembali editor untuk siklus revise & resubmit.
      */
     public const AUTHOR_EDITABLE_STATUSES = [
@@ -68,14 +68,11 @@ class Submission extends Model implements HasMedia, HasRichContent
         'abstract',
         'abstract_id',
         'keywords',
-        'extended_abstract',
-        'extended_abstract_abstract',
-        'extended_abstract_introduction',
-        'extended_abstract_method',
-        'extended_abstract_results_discussion',
-        'extended_abstract_conclusion',
         'extended_abstract_draft_saved_at',
         'extended_abstract_submitted_at',
+        'loa_issued_at',
+        'sinta3_offered',
+        'journal_target',
         'status',
         'submitted_at',
     ];
@@ -86,57 +83,55 @@ class Submission extends Model implements HasMedia, HasRichContent
             'submitted_at' => 'datetime',
             'extended_abstract_submitted_at' => 'datetime',
             'extended_abstract_draft_saved_at' => 'datetime',
+            'loa_issued_at' => 'datetime',
+            'sinta3_offered' => 'boolean',
             'keywords' => 'array',
-            'extended_abstract_abstract' => 'array',
-            'extended_abstract_introduction' => 'array',
-            'extended_abstract_method' => 'array',
-            'extended_abstract_results_discussion' => 'array',
-            'extended_abstract_conclusion' => 'array',
         ];
     }
 
-    protected function setUpRichContent(): void
+    /** Jumlah kata abstract (perkiraan berbasis pemisah spasi). */
+    public function abstractWordCount(): int
     {
-        foreach (array_keys(self::EXTENDED_ABSTRACT_FIELDS) as $field) {
-            $this->registerRichContent($field)
-                ->json()
-                ->customBlocks([EquationBlock::class])
-                ->fileAttachmentsDisk('local')
-                ->fileAttachmentsVisibility('private');
-        }
+        $text = trim((string) $this->abstract);
+
+        return $text === '' ? 0 : count(preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY));
+    }
+
+    /** Abstract valid bila jumlah kata dalam rentang yang diizinkan. */
+    public function hasValidAbstract(): bool
+    {
+        $count = $this->abstractWordCount();
+
+        return $count >= self::ABSTRACT_MIN_WORDS && $count <= self::ABSTRACT_MAX_WORDS;
     }
 
     /**
+     * Bagian dokumen abstract untuk ditampilkan/di-PDF-kan. Dipertahankan
+     * sebagai satu bagian "Abstract" agar komponen dokumen & PDF tetap bekerja.
+     *
      * @return array<string, array{label: string, html: string, text: string}>
      */
     public function extendedAbstractSections(): array
     {
-        $sections = [];
+        $text = trim((string) $this->abstract);
 
-        foreach (self::EXTENDED_ABSTRACT_FIELDS as $field => $label) {
-            $attribute = $this->getRichContentAttribute($field);
-            $sections[$field] = [
-                'label' => $label,
-                'html' => $attribute?->toHtml() ?? '',
-                'text' => trim($attribute?->toText() ?? ''),
-            ];
-        }
-
-        if (collect($sections)->every(fn (array $section) => blank($section['text'])) && filled($this->extended_abstract)) {
-            $sections['extended_abstract_abstract'] = [
-                'label' => 'Extended Abstract',
-                'html' => nl2br(e($this->extended_abstract)),
-                'text' => trim($this->extended_abstract),
-            ];
-        }
-
-        return $sections;
+        return [
+            'abstract' => [
+                'label' => 'Abstract',
+                'html' => $text === '' ? '' : nl2br(e($text)),
+                'text' => $text,
+            ],
+        ];
     }
 
-    public function hasCompleteExtendedAbstract(): bool
+    public function isLoaIssued(): bool
     {
-        return collect(array_keys(self::EXTENDED_ABSTRACT_FIELDS))
-            ->every(fn (string $field) => filled(trim($this->getRichContentAttribute($field)?->toText() ?? '')));
+        return $this->loa_issued_at !== null;
+    }
+
+    public function journalTargetLabel(): string
+    {
+        return self::JOURNAL_TARGETS[$this->journal_target] ?? self::JOURNAL_TARGETS['regular'];
     }
 
     protected static function booted(): void

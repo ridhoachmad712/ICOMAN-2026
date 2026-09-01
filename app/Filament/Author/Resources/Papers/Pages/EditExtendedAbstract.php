@@ -3,15 +3,14 @@
 namespace App\Filament\Author\Resources\Papers\Pages;
 
 use App\Filament\Author\Resources\Papers\PaperResource;
-use App\Filament\Shared\RichContent\EquationBlock;
 use App\Models\Submission;
 use App\Models\Topic;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -102,27 +101,24 @@ class EditExtendedAbstract extends EditRecord
                             Toggle::make('is_corresponding')->label('Corresponding author'),
                         ]),
                 ]),
-            Section::make($id ? 'Petunjuk penulisan' : 'Writing guide')
+            Section::make('Abstract')
                 ->description($id
-                    ? 'Gunakan tombol Blocks → Rumus untuk menyisipkan LaTeX. Gambar dapat ditempel atau diunggah langsung ke editor.'
-                    : 'Use Blocks → Equation to insert LaTeX. Images can be pasted or uploaded directly into the editor.')
-                ->icon('heroicon-o-information-circle')
-                ->collapsible()
-                ->collapsed(),
-            ...collect(array_keys(Submission::EXTENDED_ABSTRACT_FIELDS))
-                ->map(fn (string $field) => Section::make(Submission::EXTENDED_ABSTRACT_FIELDS[$field])
-                    ->description(match ($field) {
-                        'extended_abstract_abstract' => $id ? 'Ringkasan tujuan, metode, hasil utama, dan kesimpulan.' : 'Summarize the purpose, method, main findings, and conclusion.',
-                        'extended_abstract_introduction' => $id ? 'Jelaskan latar belakang, masalah, tujuan, dan kontribusi penelitian.' : 'Explain the background, problem, objective, and contribution.',
-                        'extended_abstract_method' => $id ? 'Jelaskan desain, data, sampel, instrumen, dan teknik analisis.' : 'Describe the design, data, sample, instruments, and analysis.',
-                        'extended_abstract_results_discussion' => $id ? 'Paparkan hasil dan hubungkan dengan teori atau penelitian terdahulu.' : 'Present the findings and relate them to theory or prior studies.',
-                        default => $id ? 'Tuliskan simpulan utama, implikasi, dan rekomendasi.' : 'State the main conclusion, implications, and recommendations.',
-                    })
-                    ->schema([
-                        $this->richEditor($field, $id),
-                    ]))
-                ->values()
-                ->all(),
+                    ? 'Tulis abstract dalam bahasa Inggris, '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. Ringkas latar belakang, tujuan, metode, hasil utama, dan kesimpulan.'
+                    : 'Write the abstract in English, '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words. Summarize the background, objective, method, main findings, and conclusion.')
+                ->icon('heroicon-o-document-text')
+                ->schema([
+                    Textarea::make('abstract')
+                        ->hiddenLabel()
+                        ->rows(14)
+                        ->live(onBlur: true)
+                        ->maxLength(6000)
+                        ->helperText($id
+                            ? 'Wajib bahasa Inggris. Panjang '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata.'
+                            : 'Must be written in English. Length '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words.')
+                        ->hint(fn (?string $state): string => $this->wordCount($state).($id ? ' kata' : ' words'))
+                        ->hintColor(fn (?string $state): string => $this->wordCountInRange($state) ? 'success' : 'danger')
+                        ->columnSpanFull(),
+                ]),
         ]);
     }
 
@@ -151,10 +147,10 @@ class EditExtendedAbstract extends EditRecord
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading(app()->getLocale() === 'id' ? 'Kirim extended abstract?' : 'Submit extended abstract?')
+                ->modalHeading(app()->getLocale() === 'id' ? 'Kirim abstract?' : 'Submit abstract?')
                 ->modalDescription(app()->getLocale() === 'id'
-                    ? 'Setelah dikirim, naskah dikunci selama proses verifikasi reviewer.'
-                    : 'After submission, the manuscript is locked during reviewer verification.')
+                    ? 'Setelah dikirim, abstract dikunci selama proses verifikasi reviewer.'
+                    : 'After submission, the abstract is locked during reviewer verification.')
                 ->action(fn () => $this->submitForReview()),
             $this->getCancelFormAction(),
         ];
@@ -164,14 +160,16 @@ class EditExtendedAbstract extends EditRecord
     {
         $this->authorizeAccess();
 
-        // Save the complete draft first, including paper metadata and the
-        // authors relationship, so the submitted PDF always reflects the UI.
+        // Simpan draft lengkap dulu (judul, penulis, abstract) agar PDF & review
+        // selalu mencerminkan tampilan terbaru.
         $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
 
-        if (! $this->record->refresh()->hasCompleteExtendedAbstract()) {
+        if (! $this->record->refresh()->hasValidAbstract()) {
             Notification::make()
-                ->title(app()->getLocale() === 'id' ? 'Extended abstract belum lengkap' : 'Extended abstract is incomplete')
-                ->body(app()->getLocale() === 'id' ? 'Kelima bagian wajib diisi sebelum dikirim.' : 'All five sections are required before submission.')
+                ->title(app()->getLocale() === 'id' ? 'Abstract belum memenuhi syarat' : 'Abstract does not meet the requirement')
+                ->body(app()->getLocale() === 'id'
+                    ? 'Abstract wajib '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata sebelum dikirim.'
+                    : 'The abstract must be '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words before submission.')
                 ->danger()
                 ->send();
 
@@ -195,7 +193,7 @@ class EditExtendedAbstract extends EditRecord
         });
 
         Notification::make()
-            ->title(app()->getLocale() === 'id' ? 'Extended abstract berhasil dikirim' : 'Extended abstract submitted')
+            ->title(app()->getLocale() === 'id' ? 'Abstract berhasil dikirim' : 'Abstract submitted')
             ->success()
             ->send();
 
@@ -204,12 +202,12 @@ class EditExtendedAbstract extends EditRecord
 
     public function updatedData(mixed $value, string $key): void
     {
-        if (! array_key_exists($key, Submission::EXTENDED_ABSTRACT_FIELDS)) {
+        if ($key !== 'abstract') {
             return;
         }
 
         $this->record->update([
-            $key => $value,
+            'abstract' => $value,
             'extended_abstract_draft_saved_at' => now(),
         ]);
     }
@@ -246,30 +244,17 @@ class EditExtendedAbstract extends EditRecord
         return static::getResource()::getUrl('extended-abstract', ['record' => $this->record]);
     }
 
-    private function richEditor(string $field, bool $id): RichEditor
+    private function wordCount(?string $text): int
     {
-        return RichEditor::make($field)
-            ->hiddenLabel()
-            ->json()
-            ->live(onBlur: true)
-            ->customBlocks([EquationBlock::class])
-            ->fileAttachments(true)
-            ->fileAttachmentsDisk('local')
-            ->fileAttachmentsVisibility('private')
-            ->fileAttachmentsDirectory("submissions/{$this->record->id}/extended-abstract")
-            ->fileAttachmentsAcceptedFileTypes(['image/jpeg', 'image/png', 'image/webp'])
-            ->fileAttachmentsMaxSize(5120)
-            ->resizableImages()
-            ->toolbarButtons([
-                ['bold', 'italic', 'underline', 'strike', 'subscript', 'superscript'],
-                ['h2', 'h3', 'paragraph'],
-                ['bulletList', 'orderedList', 'blockquote'],
-                ['table', 'attachFiles', 'customBlocks'],
-                ['undo', 'redo'],
-            ])
-            ->helperText($id
-                ? 'Format dasar dari Word akan dipertahankan. Maksimum gambar 5 MB (JPG, PNG, atau WebP).'
-                : 'Basic formatting from Word will be preserved. Images may be up to 5 MB (JPG, PNG, or WebP).')
-            ->columnSpanFull();
+        $text = trim((string) $text);
+
+        return $text === '' ? 0 : count(preg_split('/\s+/', $text, -1, PREG_SPLIT_NO_EMPTY));
+    }
+
+    private function wordCountInRange(?string $text): bool
+    {
+        $count = $this->wordCount($text);
+
+        return $count >= Submission::ABSTRACT_MIN_WORDS && $count <= Submission::ABSTRACT_MAX_WORDS;
     }
 }

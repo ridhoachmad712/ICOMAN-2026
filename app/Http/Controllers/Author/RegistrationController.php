@@ -54,6 +54,7 @@ class RegistrationController extends Controller
             ],
             'payment_method' => ['required', 'in:manual,gateway'],
             'submission_id' => [$author->isPresenter() ? 'required' : 'prohibited', 'nullable', 'integer', 'exists:submissions,id'],
+            'journal_target' => ['nullable', 'in:regular,sinta3'],
         ]);
 
         $submission = null;
@@ -61,13 +62,14 @@ class RegistrationController extends Controller
             $submission = $author->submissions()
                 ->where('edition_id', $edition->id)
                 ->where('status', 'accepted')
+                ->whereNotNull('loa_issued_at')
                 ->find($data['submission_id']);
 
             if (! $submission) {
                 throw ValidationException::withMessages([
                     'submission_id' => app()->getLocale() === 'id'
-                        ? 'Pilih paper Anda yang sudah dinyatakan accepted.'
-                        : 'Select one of your accepted papers.',
+                        ? 'Pilih paper Anda yang LOA-nya sudah diterbitkan.'
+                        : 'Select one of your papers whose LOA has been issued.',
                 ]);
             }
         }
@@ -86,7 +88,15 @@ class RegistrationController extends Controller
         }
 
         $fee = RegistrationFee::whereBelongsTo($edition)->where('audience', $audience)->findOrFail($data['registration_fee_id']);
-        $amount = $fee->currentPrice();
+        $amount = (float) $fee->currentPrice();
+
+        // Opsi penerbitan SINTA 3 (hanya bila ditawarkan admin) → biaya tambahan.
+        if ($submission && $submission->sinta3_offered && ($data['journal_target'] ?? 'regular') === 'sinta3') {
+            $submission->update(['journal_target' => 'sinta3']);
+            $amount += (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false);
+        } elseif ($submission) {
+            $submission->update(['journal_target' => 'regular']);
+        }
 
         $registration = Registration::create([
             'edition_id' => $edition->id,

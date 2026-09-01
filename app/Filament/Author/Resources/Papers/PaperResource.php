@@ -35,12 +35,12 @@ class PaperResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'id' ? 'Extended Abstract Saya' : 'My Extended Abstract';
+        return app()->getLocale() === 'id' ? 'Abstract Saya' : 'My Abstract';
     }
 
     public static function getModelLabel(): string
     {
-        return app()->getLocale() === 'id' ? 'extended abstract' : 'extended abstract';
+        return app()->getLocale() === 'id' ? 'abstract' : 'abstract';
     }
 
     public static function form(Schema $schema): Schema
@@ -112,9 +112,9 @@ class PaperResource extends Resource
                     ->wrap()
                     ->limit(80),
                 TextColumn::make('status')->badge()->formatStateUsing(fn (string $state) => app()->getLocale() === 'id' ? match ($state) {
-                    'extended_abstract_draft' => 'Draft extended abstract',
+                    'extended_abstract_draft' => 'Draft abstract',
                     'abstract_submitted' => 'Abstrak terkirim', 'abstract_under_review' => 'Abstrak direview',
-                    'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Extended abstract terkirim',
+                    'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Abstract terkirim',
                     'extended_abstract_under_review' => 'Verifikasi reviewer', 'revision_required' => 'Perlu revisi',
                     'accepted' => 'Accepted',
                     'rejected' => 'Tidak lolos', default => ucwords(str_replace('_', ' ', $state)),
@@ -134,10 +134,10 @@ class PaperResource extends Resource
             ))
             ->defaultSort('submitted_at', 'desc')
             ->emptyStateIcon('heroicon-o-document-text')
-            ->emptyStateHeading(app()->getLocale() === 'id' ? 'Belum ada extended abstract' : 'No extended abstract yet')
+            ->emptyStateHeading(app()->getLocale() === 'id' ? 'Belum ada abstract' : 'No abstract yet')
             ->emptyStateDescription(app()->getLocale() === 'id'
-                ? 'Mulai extended abstract untuk masuk ke proses review. Setiap akun memiliki kuota satu paper per edisi.'
-                : 'Start your extended abstract to begin review. Each account has a one-paper quota per edition.');
+                ? 'Mulai abstract untuk masuk ke proses review. Setiap akun memiliki kuota satu paper per edisi.'
+                : 'Start your abstract to begin review. Each account has a one-paper quota per edition.');
     }
 
     public static function getEloquentQuery(): Builder

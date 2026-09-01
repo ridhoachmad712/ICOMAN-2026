@@ -51,6 +51,9 @@ class SiteSettings extends Settings
 
     public ?string $organizer_logo;   // path logo host
 
+    // Biaya tambahan penerbitan jurnal SINTA 3 (ditambahkan ke registrasi presenter).
+    public int $sinta3_fee;
+
     public static function group(): string
     {
         return 'site';

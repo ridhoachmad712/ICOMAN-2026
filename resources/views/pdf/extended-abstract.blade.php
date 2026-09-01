@@ -201,13 +201,8 @@
 <body>
     @php
         $documentSections = app(\App\Services\ExtendedAbstractDocument::class)->sections($submission, true);
-        $abstractSection = $documentSections['extended_abstract_abstract'] ?? null;
-        $bodyFields = [
-            'extended_abstract_introduction' => '1. Introduction',
-            'extended_abstract_method' => '2. Method',
-            'extended_abstract_results_discussion' => '3. Results and Discussion',
-            'extended_abstract_conclusion' => '4. Conclusion',
-        ];
+        $abstractSection = $documentSections['abstract'] ?? null;
+        $bodyFields = [];
         $authors = $submission->authors->sortBy('order')->values();
         $affiliations = $authors->pluck('affiliation')->filter()->unique()->values();
         $corresponding = $authors->firstWhere('is_corresponding', true);
@@ -249,14 +244,14 @@
                     <strong>{{ $submission->edition?->name ?? 'ICOMAN 2026' }}</strong>
                     International Conference on Management<br>
                     @if($editionDates){{ $editionDates }}<br>@endif
-                    Extended Abstract Proceedings
+                    Abstract Proceedings
                 </td>
             </tr>
         </table>
     </header>
 
     <main>
-        <div class="paper-type">Extended Abstract</div>
+        <div class="paper-type">Abstract</div>
         <h1>{{ $submission->title }}</h1>
 
         <div class="authors">

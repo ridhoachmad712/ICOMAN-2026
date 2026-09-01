@@ -26,14 +26,14 @@ class CreatePaper extends CreateRecord
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'id' ? 'Mulai Extended Abstract' : 'Start Extended Abstract';
+        return app()->getLocale() === 'id' ? 'Mulai Abstract' : 'Start Abstract';
     }
 
     public function getSubheading(): ?string
     {
         return app()->getLocale() === 'id'
-            ? 'Lengkapi identitas paper terlebih dahulu. Setelah disimpan, Anda langsung masuk ke editor extended abstract.'
-            : 'Complete the paper identity first. After saving, you will go directly to the extended abstract editor.';
+            ? 'Lengkapi identitas paper terlebih dahulu. Setelah disimpan, Anda langsung masuk ke editor abstract.'
+            : 'Complete the paper identity first. After saving, you will go directly to the abstract editor.';
     }
 
     public function getSteps(): array

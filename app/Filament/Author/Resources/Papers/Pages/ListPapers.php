@@ -13,13 +13,13 @@ class ListPapers extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make()->label(app()->getLocale() === 'id' ? 'Mulai Extended Abstract' : 'Start Extended Abstract'),
+            CreateAction::make()->label(app()->getLocale() === 'id' ? 'Mulai Abstract' : 'Start Abstract'),
         ];
     }
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'id' ? 'Extended Abstract Saya' : 'My Extended Abstract';
+        return app()->getLocale() === 'id' ? 'Abstract Saya' : 'My Abstract';
     }
 
     public function getSubheading(): ?string
@@ -33,7 +33,7 @@ class ListPapers extends ListRecords
         }
 
         return app()->getLocale() === 'id'
-            ? 'Setiap akun dapat mengirim satu extended abstract pada edisi ini.'
-            : 'Each account may submit one extended abstract in this edition.';
+            ? 'Setiap akun dapat mengirim satu abstract pada edisi ini.'
+            : 'Each account may submit one abstract in this edition.';
     }
 }

@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
+use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\ImportantDate;
@@ -9,14 +11,11 @@ use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\ReviewAssignment;
 use App\Models\Submission;
-use App\Models\User;
 use App\Models\Topic;
+use App\Models\User;
 use App\Services\AuthorJourney;
-use App\Services\ExtendedAbstractDocument;
-use App\Filament\Author\Resources\Papers\PaperResource;
-use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
+use App\Settings\SiteSettings;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -52,7 +51,7 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertDatabaseCount('registrations', 0);
     }
 
-    public function test_presenter_registration_is_linked_to_an_approved_abstract_and_cannot_be_duplicated(): void
+    public function test_presenter_registration_requires_an_issued_loa(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
@@ -65,14 +64,46 @@ class AuthorPortalFlowTest extends TestCase
             'payment_method' => 'manual',
         ];
 
+        // Accepted tetapi LOA belum terbit → registrasi ditolak.
+        $this->actingAs($author, 'author')->post(route('author.registration.store'), $payload)
+            ->assertSessionHasErrors('submission_id');
+        $this->assertDatabaseCount('registrations', 0);
+
+        // LOA diterbitkan → registrasi berhasil dan terhubung ke paper.
+        $submission->update(['loa_issued_at' => now()]);
         $this->actingAs($author, 'author')->post(route('author.registration.store'), $payload)->assertRedirect();
         $registration = Registration::firstOrFail();
         $this->assertSame($submission->id, $registration->submission_id);
 
+        // Registrasi kedua untuk jalur yang sama tidak boleh terduplikasi.
         $this->actingAs($author, 'author')
             ->post(route('author.registration.store'), $payload)
             ->assertRedirect(route('author.registration.show', $registration));
         $this->assertDatabaseCount('registrations', 1);
+    }
+
+    public function test_sinta3_option_adds_a_surcharge_to_the_registration(): void
+    {
+        $settings = app(SiteSettings::class);
+        $settings->sinta3_fee = 250_000;
+        $settings->save();
+
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $fee = $this->fee($edition, 'presenter'); // price_regular = 500_000
+        $submission = $this->submission($edition, $author, 'accepted');
+        $submission->update(['loa_issued_at' => now(), 'sinta3_offered' => true]);
+
+        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
+            'registration_fee_id' => $fee->id,
+            'submission_id' => $submission->id,
+            'payment_method' => 'manual',
+            'journal_target' => 'sinta3',
+        ])->assertRedirect();
+
+        $registration = Registration::firstOrFail();
+        $this->assertEqualsWithDelta(750_000.0, (float) $registration->amount, 0.01);
+        $this->assertSame('sinta3', $submission->refresh()->journal_target);
     }
 
     public function test_presenter_can_submit_only_one_abstract_per_edition(): void
@@ -83,7 +114,7 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->actingAs($author, 'author')
             ->get(route('author.submissions.create'))
-            ->assertRedirect(\App\Filament\Author\Resources\Papers\PaperResource::getUrl('view', ['record' => $submission], panel: 'author'));
+            ->assertRedirect(PaperResource::getUrl('view', ['record' => $submission], panel: 'author'));
 
         $this->expectException(QueryException::class);
         $this->submission($edition, $author, 'abstract_submitted');
@@ -117,29 +148,42 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertDatabaseCount('registrations', 1);
     }
 
-    public function test_author_can_submit_extended_abstract_directly_without_payment(): void
+    public function test_author_can_submit_a_valid_abstract_directly(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
         $submission = $this->submission($edition, $author, 'extended_abstract_draft');
 
         $this->actingAs($author, 'author')->post(route('author.submissions.extended-abstract', $submission), [
-            'extended_abstract' => 'Extended abstract content.',
+            'abstract' => $this->validAbstract(),
         ])->assertRedirect();
 
         $this->assertSame('extended_abstract_submitted', $submission->refresh()->status);
-        $this->assertSame('Extended abstract content.', $submission->extended_abstract);
+        $this->assertSame($this->validAbstract(), $submission->abstract);
         $this->assertDatabaseCount('registrations', 0);
     }
 
-    public function test_structured_extended_abstract_is_complete_and_has_identical_pdf_access_for_author_and_reviewer(): void
+    public function test_abstract_below_minimum_words_is_rejected_on_submit(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'extended_abstract_draft');
+
+        $this->actingAs($author, 'author')->post(route('author.submissions.extended-abstract', $submission), [
+            'abstract' => 'This abstract is far too short to qualify.',
+        ])->assertSessionHasErrors('abstract');
+
+        $this->assertSame('extended_abstract_draft', $submission->refresh()->status);
+    }
+
+    public function test_valid_abstract_has_identical_pdf_access_for_author_and_reviewer(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
         $submission = $this->submission($edition, $author, 'extended_abstract_under_review');
         $reviewer = User::create([
-            'name' => 'Extended Abstract Reviewer',
-            'email' => 'extended-reviewer@example.test',
+            'name' => 'Abstract Reviewer',
+            'email' => 'reviewer@example.test',
             'password' => 'secret-password',
         ]);
 
@@ -152,17 +196,11 @@ class AuthorPortalFlowTest extends TestCase
         ]);
 
         $submission->update([
-            'extended_abstract_abstract' => $this->richText('This is the abstract.', 'E = mc^2'),
-            'extended_abstract_introduction' => $this->richText('This is the introduction.'),
-            'extended_abstract_method' => $this->richText('This is the method.'),
-            'extended_abstract_results_discussion' => $this->richText('These are the results and discussion.'),
-            'extended_abstract_conclusion' => $this->richText('This is the conclusion.'),
-            'extended_abstract_draft_saved_at' => now(),
+            'abstract' => $this->validAbstract(),
             'extended_abstract_submitted_at' => now(),
         ]);
 
-        $this->assertTrue($submission->refresh()->hasCompleteExtendedAbstract());
-        $this->assertStringContainsString('E &#61; mc^2', $submission->renderRichContent('extended_abstract_abstract'));
+        $this->assertTrue($submission->refresh()->hasValidAbstract());
 
         $authorPdf = $this->actingAs($author, 'author')
             ->get(route('author.submissions.extended-abstract.preview', $submission));
@@ -175,7 +213,7 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertStringStartsWith('%PDF', $reviewerPdf->getContent());
     }
 
-    public function test_author_can_open_the_structured_extended_abstract_editor_immediately(): void
+    public function test_author_can_open_the_abstract_editor_immediately_and_it_locks_after_submission(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
@@ -188,10 +226,7 @@ class AuthorPortalFlowTest extends TestCase
             ->assertSee('Paper information')
             ->assertSee('Authors')
             ->assertSee('Save Changes')
-            ->assertSee('Abstract')
-            ->assertSee('Introduction')
-            ->assertSee('Results and Discussion')
-            ->assertSee('Conclusion');
+            ->assertSee('Abstract');
 
         $submission->update([
             'status' => 'extended_abstract_submitted',
@@ -203,7 +238,7 @@ class AuthorPortalFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_empty_author_dashboard_shows_the_five_step_presenter_journey(): void
+    public function test_empty_author_dashboard_shows_the_presenter_journey_with_loa_and_payment(): void
     {
         $this->edition();
         $author = $this->author('presenter');
@@ -212,22 +247,16 @@ class AuthorPortalFlowTest extends TestCase
             ->get(\App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author'))
             ->assertOk()
             ->assertSee('Create account')
-            ->assertSee('Enter extended abstract')
+            ->assertSee('Enter abstract')
             ->assertSee('Reviewer verification')
             ->assertSee('Accepted')
+            ->assertSee('LOA issued')
             ->assertSee('Payment')
             ->assertDontSee('Abstract review')
             ->assertDontSee('Review passed');
-
-        $this->actingAs($author, 'author')
-            ->get(PaperResource::getUrl('create', panel: 'author'))
-            ->assertOk()
-            ->assertSee('Start Extended Abstract')
-            ->assertSee('Paper details')
-            ->assertDontSee('Abstract (English)');
     }
 
-    public function test_author_journey_goes_directly_from_extended_abstract_to_reviewer(): void
+    public function test_presenter_timeline_reaches_reviewer_after_submission(): void
     {
         app()->setLocale('id');
         $edition = $this->edition();
@@ -249,12 +278,9 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->assertSame('extended', $action['key']);
         $this->assertSame('author', $action['actor']['key']);
-        $this->assertSame('Batas Extended Abstract', $action['deadline']['label']);
-        $this->assertSame(20, $action['deadline']['days']);
-        $this->assertCount(5, $timeline);
-        $this->assertSame('Input extended abstract', $timeline[1]['label']);
+        $this->assertCount(6, $timeline);
+        $this->assertSame('Input abstract', $timeline[1]['label']);
         $this->assertSame('current', $timeline[1]['state']);
-        $this->assertSame('author', $timeline[1]['actor']['key']);
         $this->assertSame('Verifikasi reviewer', $timeline[2]['label']);
         $this->assertSame('upcoming', $timeline[2]['state']);
         $this->assertFalse($journey->shouldShowPayments($author, $submissions, $registrations));
@@ -289,8 +315,25 @@ class AuthorPortalFlowTest extends TestCase
         $paymentUpdate = collect($updates)->firstWhere('title', 'Pembayaran terverifikasi');
 
         $this->assertNotNull($paymentUpdate);
-        $this->assertTrue(collect($updates)->contains('title', 'Draft extended abstract tersedia'));
+        $this->assertTrue(collect($updates)->contains('title', 'Draft abstract tersedia'));
         $this->assertStringContainsString('akses seminar', $paymentUpdate['description']);
+    }
+
+    public function test_loa_is_gated_behind_issuance(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'accepted');
+
+        // Accepted tetapi LOA belum terbit → LOA tidak dapat dibuka.
+        $this->actingAs($author, 'author')
+            ->get(route('author.submissions.loa', $submission))
+            ->assertNotFound();
+
+        $submission->update(['loa_issued_at' => now()]);
+        $this->actingAs($author, 'author')
+            ->get(route('author.submissions.loa', $submission))
+            ->assertOk();
     }
 
     public function test_committee_revision_reopens_the_editor_and_surfaces_a_revise_action(): void
@@ -299,16 +342,13 @@ class AuthorPortalFlowTest extends TestCase
         $author = $this->author('presenter');
         $submission = $this->submission($edition, $author, 'extended_abstract_under_review');
 
-        // Panitia meminta revisi.
         $submission->changeStatus('revision_required');
         $submission->refresh();
 
-        // Editor terbuka kembali untuk author (canEdit true → 200, bukan 403).
         $this->actingAs($author, 'author')
             ->get(PaperResource::getUrl('extended-abstract', ['record' => $submission], panel: 'author'))
             ->assertOk();
 
-        // Journey menampilkan aksi "revise" ke author, dan langkah input aktif lagi.
         $journey = app(AuthorJourney::class);
         $action = $journey->nextAction($author, collect([$submission]), collect());
         $timeline = $journey->timeline($author, collect([$submission]), collect());
@@ -325,11 +365,7 @@ class AuthorPortalFlowTest extends TestCase
         $submission = $this->submission($edition, $author, 'revision_required');
         $submission->update([
             'topic_id' => $topic->id,
-            'extended_abstract_abstract' => $this->richText('Revised abstract.'),
-            'extended_abstract_introduction' => $this->richText('Revised introduction.'),
-            'extended_abstract_method' => $this->richText('Revised method.'),
-            'extended_abstract_results_discussion' => $this->richText('Revised results.'),
-            'extended_abstract_conclusion' => $this->richText('Revised conclusion.'),
+            'abstract' => $this->validAbstract(),
         ]);
         $submission->authors()->create(['name' => 'Author One', 'email' => 'a1@example.test', 'is_corresponding' => true, 'order' => 1]);
 
@@ -350,32 +386,6 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->assertSame('extended_abstract_under_review', $submission->refresh()->status);
         $this->assertSame('pending', $assignment->refresh()->status);
-    }
-
-    public function test_extended_abstract_pdf_only_embeds_images_owned_by_the_submission(): void
-    {
-        Storage::fake('local');
-        $edition = $this->edition();
-        $author = $this->author('presenter');
-        $other = $this->author('presenter');
-
-        $mine = $this->submission($edition, $author, 'extended_abstract_draft');
-        $victim = $this->submission($edition, $other, 'extended_abstract_draft');
-
-        Storage::disk('local')->put("submissions/{$mine->id}/extended-abstract/own.png", 'OWN-IMAGE-BYTES');
-        Storage::disk('local')->put("submissions/{$victim->id}/extended-abstract/secret.png", 'SECRET-VICTIM-BYTES');
-
-        // Author menyisipkan satu gambar miliknya dan satu gambar milik submission lain.
-        $mine->update(['extended_abstract_abstract' => ['type' => 'doc', 'content' => [
-            ['type' => 'image', 'attrs' => ['id' => "submissions/{$mine->id}/extended-abstract/own.png"]],
-            ['type' => 'image', 'attrs' => ['id' => "submissions/{$victim->id}/extended-abstract/secret.png"]],
-        ]]]);
-
-        $sections = app(ExtendedAbstractDocument::class)->sections($mine->refresh(), true);
-        $html = $sections['extended_abstract_abstract']['html'];
-
-        $this->assertStringContainsString(base64_encode('OWN-IMAGE-BYTES'), $html);
-        $this->assertStringNotContainsString(base64_encode('SECRET-VICTIM-BYTES'), $html);
     }
 
     private function edition(): Edition
@@ -410,29 +420,15 @@ class AuthorPortalFlowTest extends TestCase
             'edition_id' => $edition->id,
             'author_id' => $author->id,
             'title' => 'A test paper',
-            'abstract' => 'A sufficient test abstract.',
+            'abstract' => 'A short placeholder abstract.',
             'keywords' => ['management', 'conference'],
             'status' => $status,
         ]);
     }
 
-    private function richText(string $text, ?string $equation = null): array
+    /** Abstract 160 kata (valid: 150–500). */
+    private function validAbstract(): string
     {
-        $content = [[
-            'type' => 'paragraph',
-            'content' => [['type' => 'text', 'text' => $text]],
-        ]];
-
-        if ($equation) {
-            $content[] = [
-                'type' => 'customBlock',
-                'attrs' => [
-                    'id' => 'equation',
-                    'config' => ['latex' => $equation, 'display' => 'block'],
-                ],
-            ];
-        }
-
-        return ['type' => 'doc', 'content' => $content];
+        return implode(' ', array_fill(0, 160, 'management'));
     }
 }

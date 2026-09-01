@@ -79,8 +79,8 @@ class AuthorJourney
             if ($paidRegistration) {
                 return $this->paperAction(
                     $accepted, 'complete', 'Registrasi presenter selesai', 'Your presenter registration is complete',
-                    'Extended abstract accepted dan pembayaran telah terverifikasi. Slot presentasi Anda terkunci.',
-                    'Your extended abstract is accepted and payment is verified. Your presentation slot is secured.',
+                    'Abstract accepted dan pembayaran telah terverifikasi. Slot presentasi Anda terkunci.',
+                    'Your abstract is accepted and payment is verified. Your presentation slot is secured.',
                     'Lihat registrasi', 'View registration', 100, 'complete'
                 );
             }
@@ -94,11 +94,11 @@ class AuthorJourney
                     $waiting ? 'Bukti pembayaran sedang diverifikasi' : 'Selesaikan pembayaran',
                     $waiting ? 'Your payment proof is being verified' : 'Complete your payment',
                     $waiting
-                        ? 'Extended abstract Anda accepted. Panitia sedang memverifikasi bukti pembayaran registrasi presenter.'
-                        : 'Extended abstract Anda accepted. Selesaikan pembayaran untuk mengunci slot presentasi.',
+                        ? 'Abstract Anda accepted. Panitia sedang memverifikasi bukti pembayaran registrasi presenter.'
+                        : 'Abstract Anda accepted. Selesaikan pembayaran untuk mengunci slot presentasi.',
                     $waiting
-                        ? 'Your extended abstract is accepted. The committee is verifying your presenter registration payment.'
-                        : 'Your extended abstract is accepted. Complete the payment to secure your presentation slot.',
+                        ? 'Your abstract is accepted. The committee is verifying your presenter registration payment.'
+                        : 'Your abstract is accepted. Complete the payment to secure your presentation slot.',
                     RegistrationResource::getUrl('view', ['record' => $pendingRegistration], panel: 'author'),
                     $waiting ? 'Lihat status' : 'Lanjutkan pembayaran',
                     $waiting ? 'View status' : 'Continue payment',
@@ -107,12 +107,21 @@ class AuthorJourney
                 );
             }
 
+            if (! $accepted->isLoaIssued()) {
+                return $this->paperAction(
+                    $accepted, 'loa_wait', 'Menunggu penerbitan LOA', 'Awaiting LOA issuance',
+                    'Abstract Anda accepted. Panitia sedang menyiapkan Letter of Acceptance — pembayaran tersedia setelah LOA terbit.',
+                    'Your abstract is accepted. The committee is preparing your Letter of Acceptance — payment becomes available once the LOA is issued.',
+                    'Lihat status', 'View status', 70, 'committee'
+                );
+            }
+
             return $this->action(
                 'payment', 'Bayar registrasi presenter', 'Pay your presenter registration',
-                'Extended abstract Anda dinyatakan accepted. Lakukan pembayaran untuk mengunci slot presentasi dan akses seminar.',
-                'Your extended abstract is accepted. Complete the payment to secure your presentation slot and seminar access.',
+                'LOA sudah terbit. Lakukan pembayaran untuk mengunci slot presentasi dan akses seminar.',
+                'Your LOA has been issued. Complete the payment to secure your presentation slot and seminar access.',
                 RegistrationResource::getUrl('create', ['submission' => $accepted->id], panel: 'author'),
-                'Bayar sekarang', 'Pay now', 75
+                'Bayar sekarang', 'Pay now', 80
             );
         }
 
@@ -120,8 +129,8 @@ class AuthorJourney
         if ($extendedReview) {
             return $this->paperAction(
                 $extendedReview, 'verification', 'Menunggu verifikasi reviewer', 'Awaiting reviewer verification',
-                'Extended abstract sudah dikirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan penilaian.',
-                'Your extended abstract has been submitted. No further action is needed until the reviewer completes the assessment.',
+                'Abstract sudah dikirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan penilaian.',
+                'Your abstract has been submitted. No further action is needed until the reviewer completes the assessment.',
                 'Lihat status', 'View status', 75, 'reviewer'
             );
         }
@@ -129,9 +138,9 @@ class AuthorJourney
         $revision = $submissions->firstWhere('status', 'revision_required');
         if ($revision) {
             return $this->action(
-                'revision', 'Perbaiki extended abstract', 'Revise your extended abstract',
-                'Reviewer meminta revisi. Buka detail untuk membaca catatan reviewer, perbaiki kelima bagian, lalu kirim ulang.',
-                'The reviewers requested changes. Open the details to read the reviewer comments, revise all five sections, then resubmit.',
+                'revision', 'Perbaiki abstract', 'Revise your abstract',
+                'Reviewer meminta revisi. Buka detail untuk membaca catatan reviewer, perbaiki abstract, lalu kirim ulang.',
+                'The reviewers requested changes. Open the details to read the reviewer comments, revise the abstract, then resubmit.',
                 PaperResource::getUrl('extended-abstract', ['record' => $revision], panel: 'author'),
                 'Perbaiki sekarang', 'Revise now', 45
             );
@@ -139,9 +148,9 @@ class AuthorJourney
 
         if ($submissions->isEmpty()) {
             return $this->action(
-                'submission', 'Mulai extended abstract', 'Start your extended abstract',
-                'Lengkapi data paper, lalu tulis Abstract, Introduction, Method, Results and Discussion, dan Conclusion.',
-                'Complete the paper details, then write the Abstract, Introduction, Method, Results and Discussion, and Conclusion.',
+                'submission', 'Mulai abstract', 'Start your abstract',
+                'Lengkapi data paper, lalu tulis abstract '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata dalam bahasa Inggris.',
+                'Complete the paper details, then write your abstract of '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words in English.',
                 PaperResource::getUrl('create', panel: 'author'), 'Mulai menulis', 'Start writing', 25
             );
         }
@@ -150,9 +159,9 @@ class AuthorJourney
 
         if (in_array($existing->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true)) {
             return $this->action(
-                'extended', 'Lanjutkan extended abstract', 'Continue your extended abstract',
-                'Lengkapi lima bagian naskah. Anda dapat menyimpan draft dan memeriksa PDF sebelum mengirim ke reviewer.',
-                'Complete all five manuscript sections. You can save a draft and check the PDF before submitting it to the reviewer.',
+                'extended', 'Lanjutkan abstract', 'Continue your abstract',
+                'Tulis abstract '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. Anda dapat menyimpan draft dan memeriksa PDF sebelum mengirim ke reviewer.',
+                'Write the abstract of '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words. You can save a draft and check the PDF before submitting it to the reviewer.',
                 PaperResource::getUrl('extended-abstract', ['record' => $existing], panel: 'author'),
                 $existing->extended_abstract_draft_saved_at ? 'Lanjutkan draft' : 'Mulai menulis',
                 $existing->extended_abstract_draft_saved_at ? 'Continue draft' : 'Start writing',
@@ -220,15 +229,15 @@ class AuthorJourney
                 ));
             } elseif (in_array($submission->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true)) {
                 $updates->push($this->update(
-                    $id ? 'Extended abstract berhasil dikirim' : 'Extended abstract submitted',
+                    $id ? 'Abstract berhasil dikirim' : 'Abstract submitted',
                     $id ? 'Reviewer sedang melakukan verifikasi. Tidak ada tindakan tambahan saat ini.' : 'A reviewer is verifying it. No further action is needed now.',
                     $submission->extended_abstract_submitted_at ?? $submission->updated_at,
                     'info', 'heroicon-o-document-check', $route
                 ));
             } elseif (in_array($submission->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true)) {
                 $updates->push($this->update(
-                    $id ? 'Draft extended abstract tersedia' : 'Extended abstract draft available',
-                    $id ? 'Lanjutkan penulisan lima bagian sebelum mengirimkannya ke reviewer.' : 'Continue writing all five sections before submitting them to the reviewer.',
+                    $id ? 'Draft abstract tersedia' : 'Abstract draft available',
+                    $id ? 'Lanjutkan penulisan abstract sebelum mengirimkannya ke reviewer.' : 'Continue writing your abstract before submitting it to the reviewer.',
                     $submission->extended_abstract_draft_saved_at ?? $submission->updated_at,
                     'gray', 'heroicon-o-pencil-square', $route
                 ));
@@ -303,13 +312,15 @@ class AuthorJourney
 
         $paidRegistration = $registrations->firstWhere('status', 'paid');
         $pendingRegistration = $registrations->first(fn (Registration $item) => in_array($item->status, ['pending', 'pending_verification'], true));
+        $loaIssued = (bool) $submission?->isLoaIssued();
 
         return [
             $this->step(1, 'Bikin akun', 'Create account', 'complete', $author->created_at),
-            $this->step(2, 'Input extended abstract', 'Enter extended abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
+            $this->step(2, 'Input abstract', 'Enter abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
             $this->step(3, 'Verifikasi reviewer', 'Reviewer verification', $accepted ? 'complete' : ($rejected ? 'failed' : ($inputDone ? 'current' : 'upcoming')), $accepted || $rejected ? $this->phaseDate($submission, 'extended_abstract') : null, $inputDone && ! $accepted && ! $rejected ? 'reviewer' : null),
             $this->step(4, 'Accepted', 'Accepted', $accepted ? 'complete' : ($rejected ? 'failed' : 'upcoming'), $accepted ? ($this->phaseDate($submission, 'extended_abstract') ?? $submission->updated_at) : null),
-            $this->step(5, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($accepted ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $accepted && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
+            $this->step(5, 'Terbit LOA', 'LOA issued', $loaIssued ? 'complete' : ($accepted ? 'current' : 'upcoming'), $submission?->loa_issued_at, $accepted && ! $loaIssued ? 'committee' : null),
+            $this->step(6, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($loaIssued ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $loaIssued && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
         ];
     }
 
@@ -399,7 +410,7 @@ class AuthorJourney
 
         $patterns = match ($key) {
             'profile', 'submission' => ['abstract', 'abstrak', 'submission'],
-            'review', 'closed' => ['acceptance', 'penerimaan', 'pengumuman'],
+            'review', 'closed', 'loa_wait' => ['acceptance', 'penerimaan', 'pengumuman'],
             'registration', 'payment', 'waiting' => ['payment', 'pembayaran', 'registration', 'registrasi'],
             'extended', 'verification', 'revision' => ['full paper', 'camera-ready', 'camera ready', 'extended'],
             'complete' => ['conference', 'konferensi', 'pelaksanaan'],

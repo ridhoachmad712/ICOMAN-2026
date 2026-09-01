@@ -70,18 +70,33 @@
         @if(in_array($record->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true))
             <x-filament::section icon="heroicon-o-clock" icon-color="info">
                 <x-slot name="heading">{{ $id ? 'Menunggu verifikasi reviewer' : 'Awaiting reviewer verification' }}</x-slot>
-                <x-slot name="description">{{ $id ? 'Extended abstract sudah terkirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan verifikasi.' : 'Your extended abstract was submitted. No further action is required until reviewer verification is complete.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Abstract sudah terkirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan verifikasi.' : 'Your abstract was submitted. No further action is required until reviewer verification is complete.' }}</x-slot>
                 <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank" icon="heroicon-o-document-magnifying-glass">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
             </x-filament::section>
         @endif
 
-        @if($record->status === 'accepted')
+        @if($record->status === 'accepted' && ! $record->isLoaIssued())
             <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
                 <x-slot name="heading">Accepted</x-slot>
-                <x-slot name="description">{{ $id ? 'Extended abstract telah diverifikasi dan dinyatakan diterima.' : 'Your extended abstract was verified and accepted.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Abstract Anda diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA) — akan otomatis muncul di sini.' : 'Your abstract is accepted. The committee is preparing your Letter of Acceptance (LOA) — it will appear here automatically.' }}</x-slot>
+                <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
+            </x-filament::section>
+        @endif
+
+        @if($record->status === 'accepted' && $record->isLoaIssued())
+            <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
+                <x-slot name="heading">Accepted · LOA {{ $id ? 'terbit' : 'issued' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Letter of Acceptance sudah tersedia. Selesaikan pembayaran registrasi presenter untuk mengunci slot Anda.' : 'Your Letter of Acceptance is available. Complete the presenter registration payment to secure your slot.' }}</x-slot>
+                <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
+                    <span class="text-gray-500">{{ $id ? 'Target jurnal:' : 'Journal target:' }}</span>
+                    <x-filament::badge :color="$record->journal_target === 'sinta3' ? 'warning' : 'gray'">{{ $record->journalTargetLabel() }}</x-filament::badge>
+                    @if($record->sinta3_offered && $record->journal_target !== 'sinta3')
+                        <span class="text-xs text-warning-700">{{ $id ? '· Anda ditawari opsi penerbitan SINTA 3 (biaya tambahan) saat pembayaran.' : '· You are offered a SINTA 3 publication option (extra fee) at payment.' }}</span>
+                    @endif
+                </div>
                 <div class="flex flex-wrap gap-3">
+                    <x-filament::button tag="a" color="gray" href="{{ route('author.submissions.loa', $record) }}" target="_blank" icon="heroicon-o-document-check">{{ $id ? 'Buka Letter of Acceptance' : 'Open Letter of Acceptance' }}</x-filament::button>
                     <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
-                    <x-filament::button tag="a" color="gray" href="{{ route('author.submissions.loa', $record) }}" target="_blank">{{ $id ? 'Buka Letter of Acceptance' : 'Open Letter of Acceptance' }}</x-filament::button>
                 </div>
             </x-filament::section>
         @endif
@@ -104,7 +119,7 @@
 
                 @if($record->extended_abstract || $record->extended_abstract_draft_saved_at)
                     <x-filament::section>
-                        <x-slot name="heading">Extended Abstract</x-slot>
+                        <x-slot name="heading">Abstract</x-slot>
                         <x-slot name="description">{{ $record->extended_abstract_submitted_at?->format('d M Y, H:i') }}</x-slot>
                         @include('components.extended-abstract-document', ['submission' => $record])
                     </x-filament::section>

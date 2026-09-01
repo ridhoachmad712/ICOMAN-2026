@@ -57,10 +57,10 @@ class RegistrationResource extends Resource
             return false;
         }
 
-        // Presenter dapat membayar registrasi setelah extended abstract-nya
-        // dinyatakan accepted (LOA terbit). Registrasi lama tetap dapat dilihat.
+        // Presenter dapat membayar registrasi setelah abstract-nya accepted DAN
+        // LOA diterbitkan admin. Registrasi lama tetap dapat dilihat.
         return $author->registrations()->where('edition_id', $edition->id)->exists()
-            || $author->submissions()->where('edition_id', $edition->id)->where('status', 'accepted')->exists();
+            || $author->submissions()->where('edition_id', $edition->id)->where('status', 'accepted')->whereNotNull('loa_issued_at')->exists();
     }
 
     public static function form(Schema $schema): Schema
@@ -71,9 +71,12 @@ class RegistrationResource extends Resource
         $submissions = $author?->submissions()
             ->where('edition_id', $edition?->id)
             ->where('status', 'accepted')
+            ->whereNotNull('loa_issued_at')
             ->whereDoesntHave('registrations', fn (Builder $query) => $query->whereIn('status', ['pending', 'pending_verification', 'paid']))
             ->latest('submitted_at')
             ->get() ?? collect();
+        $eligibleSubmission = $submissions->first();
+        $sinta3Fee = (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false);
         $fees = RegistrationFee::query()
             ->where('edition_id', $edition?->id)
             ->where('audience', $audience)
@@ -84,8 +87,8 @@ class RegistrationResource extends Resource
             Section::make(app()->getLocale() === 'id' ? 'Pilih Registrasi' : 'Choose Registration')
                 ->description($author?->isPresenter()
                     ? (app()->getLocale() === 'id'
-                        ? 'Pembayaran tersedia setelah extended abstract Anda dinyatakan accepted. Selesaikan pembayaran untuk mengunci slot presentasi dan akses seminar.'
-                        : 'Payment becomes available once your extended abstract is accepted. Complete payment to secure your presentation slot and seminar access.')
+                        ? 'Pembayaran tersedia setelah abstract Anda dinyatakan accepted. Selesaikan pembayaran untuk mengunci slot presentasi dan akses seminar.'
+                        : 'Payment becomes available once your abstract is accepted. Complete payment to secure your presentation slot and seminar access.')
                     : (app()->getLocale() === 'id' ? 'Pilih paket peserta yang sesuai.' : 'Choose the attendee package that applies to you.'))
                 ->schema([
                     Select::make('submission_id')
@@ -102,6 +105,18 @@ class RegistrationResource extends Resource
                         ]))
                         ->helperText(app()->getLocale() === 'id' ? 'Harga yang ditampilkan sudah mengikuti periode early-bird atau reguler.' : 'The displayed price already reflects the early-bird or regular period.')
                         ->required(),
+                    Radio::make('journal_target')
+                        ->label(app()->getLocale() === 'id' ? 'Target jurnal penerbitan' : 'Publication journal target')
+                        ->options([
+                            'regular' => app()->getLocale() === 'id' ? 'Jurnal Reguler (sudah termasuk registrasi)' : 'Regular journal (included in registration)',
+                            'sinta3' => (app()->getLocale() === 'id' ? 'Jurnal SINTA 3 — biaya tambahan Rp ' : 'SINTA 3 journal — additional IDR ').number_format((float) $sinta3Fee, 0, ',', '.'),
+                        ])
+                        ->default('regular')
+                        ->required()
+                        ->helperText(app()->getLocale() === 'id'
+                            ? 'Paper Anda ditawari penerbitan ke Jurnal SINTA 3. Biaya SINTA 3 ditambahkan ke total pembayaran registrasi.'
+                            : 'Your paper was offered publication in a SINTA 3 journal. The SINTA 3 fee is added to your registration total.')
+                        ->visible((bool) ($author?->isPresenter() && $eligibleSubmission?->sinta3_offered)),
                 ]),
             Section::make(app()->getLocale() === 'id' ? 'Metode Pembayaran' : 'Payment Method')
                 ->description(app()->getLocale() === 'id' ? 'Metode masih dapat diubah selama pembayaran belum selesai.' : 'You can change this while the payment remains unpaid.')
@@ -166,10 +181,11 @@ class RegistrationResource extends Resource
         }
 
         // Presenter: boleh membuat registrasi bila punya paper accepted yang
-        // belum memiliki registrasi aktif.
+        // LOA-nya sudah diterbitkan dan belum memiliki registrasi aktif.
         return $author->submissions()
             ->where('edition_id', $edition->id)
             ->where('status', 'accepted')
+            ->whereNotNull('loa_issued_at')
             ->whereDoesntHave('registrations', fn (Builder $query) => $query->whereIn('status', ['pending', 'pending_verification', 'paid']))
             ->exists();
     }
