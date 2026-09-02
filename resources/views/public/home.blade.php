@@ -68,26 +68,18 @@
             {{-- Info chips --}}
             <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm text-white">
                 @if($edition?->start_date)
-                    <span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">
-                        <x-ui-icon name="calendar" class="h-4 w-4 text-[var(--brand)]" />
+                    <span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">
                         {{ $edition->start_date->translatedFormat('d M Y') }}@if($edition->end_date && ! $edition->end_date->equalTo($edition->start_date)) – {{ $edition->end_date->translatedFormat('d M Y') }}@endif
                     </span>
                 @endif
-                @if($s->event_location)<span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur"><x-ui-icon name="map-pin" class="h-4 w-4 text-[var(--brand)]" /> {{ $s->event_location }}</span>@endif
-                @if($s->event_mode)<span class="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur"><x-ui-icon name="monitor" class="h-4 w-4 text-[var(--brand)]" /> {{ $s->event_mode }}</span>@endif
+                @if($s->event_location)<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_location }}</span>@endif
+                @if($s->event_mode)<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_mode }}</span>@endif
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
                 <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Mulai Abstract' : 'Start Abstract' }}</a>
                 <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
             </div>
-
-            @if($edition?->start_date)
-                <div class="mt-12">
-                    <p class="text-xs uppercase tracking-widest text-white/60 mb-3">{{ __('site.countdown_to') }}</p>
-                    <x-countdown :date="$edition->start_date" />
-                </div>
-            @endif
         </div>
     </section>
 
