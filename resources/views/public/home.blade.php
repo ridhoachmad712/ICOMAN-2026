@@ -136,8 +136,7 @@
                         if ($edition?->theme && \Illuminate\Support\Str::startsWith($aboutText, $edition->theme)) {
                             $aboutText = trim(substr($aboutText, strlen($edition->theme)));
                         }
-                        $aboutText = preg_split('/\s+\d+[\.\)]\s/', $aboutText)[0];
-                        $aboutExcerpt = \Illuminate\Support\Str::limit(trim($aboutText), 360);
+                        $aboutExcerpt = trim(preg_split('/\s+\d+[\.\)]\s/', $aboutText)[0]);
                     @endphp
                     <p class="text-base leading-relaxed text-slate-600">{{ $aboutExcerpt }}</p>
                     <a href="{{ route('about') }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
@@ -280,7 +279,7 @@
                                         @php
                                             $hasEarly = (bool) $fee->price_early_bird;
                                             $mainPrice = $hasEarly ? $fee->price_early_bird : $fee->price_regular;
-                                            $benefit = $fee->notes ? \Illuminate\Support\Str::limit(strip_tags((string) $fee->notes), 90) : null;
+                                            $benefit = $fee->notes ? trim(strip_tags((string) $fee->notes)) : null;
                                         @endphp
                                         <div class="flex flex-col rounded-2xl bg-white p-6 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08),0_12px_28px_-16px_rgba(15,23,42,0.18)] transition hover:-translate-y-1">
                                             <h4 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ $fee->category }}</h4>
@@ -350,8 +349,8 @@
         <section class="bg-white py-16">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
                 <x-section-heading :title="$publicationPage->title ?: __('site.publication_indexing')" />
-                <div class="prose prose-slate max-w-none mx-auto text-center">
-                    {!! \Illuminate\Support\Str::limit(strip_tags($publicationPage->content), 600) !!}
+                <div class="prose prose-slate max-w-none">
+                    {!! $publicationPage->content !!}
                 </div>
             </div>
         </section>
