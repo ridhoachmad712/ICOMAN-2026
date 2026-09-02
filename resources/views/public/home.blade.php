@@ -77,8 +77,8 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Mulai Abstract' : 'Start Abstract' }}</a>
-                <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
+                <a href="{{ route('registration') }}" class="btn btn-accent">{{ $isId ? 'Registrasi' : 'Register' }}</a>
+                <a href="{{ route('about') }}" class="btn btn-ghost">{{ $isId ? 'Tentang ICOMAN' : 'About ICOMAN' }}</a>
             </div>
         </div>
     </section>
