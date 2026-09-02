@@ -69,6 +69,8 @@
 
     <x-footer :name="$confName" />
 
+    <x-floating-language-switcher />
+
     @livewireScripts
 </body>
 </html>
