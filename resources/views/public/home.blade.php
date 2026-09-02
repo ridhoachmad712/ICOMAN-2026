@@ -6,7 +6,7 @@
         $tierOrder = ['platinum' => 'Platinum', 'gold' => 'Gold', 'silver' => 'Silver', 'partner' => 'Partner', 'media_partner' => 'Media Partner'];
         $deadlineLabel = fn ($label) => str_ireplace(
             ['Abstract & Full Paper Submission Deadline', 'Batas Pengumpulan Abstrak & Full Paper', 'Camera-Ready Paper & Registration Payment Deadline', 'Batas Pengumpulan Camera-Ready & Pembayaran'],
-            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Extended Abstract & Registration Payment Deadline', 'Batas Input Extended Abstract & Pembayaran'],
+            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Abstract & Registration Payment Deadline', 'Batas Input Abstract & Pembayaran'],
             (string) $label,
         );
 
@@ -52,12 +52,13 @@
             <img src="{{ asset('images/hero-pattern.svg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/25 via-transparent to-[var(--brand-2)]/60"></div>
         @endif
-        {{-- Glow lembut + vignette untuk kedalaman --}}
-        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand)] opacity-20 blur-[120px]"></div>
-        <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_55%,rgba(0,0,0,0.35))]"></div>
+        {{-- Glow duotone (biru + aksen hangat) + vignette untuk kedalaman --}}
+        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand)] opacity-25 blur-[120px]"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[var(--accent)] opacity-[0.14] blur-[130px]"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 
         <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
-            <p class="eyebrow text-[var(--brand)]">
+            <p class="eyebrow">
                 {{ $edition?->name ?? 'ICOMAN 2026' }}
             </p>
             <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight max-w-4xl">
@@ -77,7 +78,7 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ $isId ? 'Mulai Extended Abstract' : 'Start Extended Abstract' }}</a>
+                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Mulai Abstract' : 'Start Abstract' }}</a>
                 <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
             </div>
 
@@ -321,9 +322,9 @@
                 <x-section-heading :title="__('site.important_dates')" />
 
                 @if($nextDeadline)
-                    <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-[var(--brand)] text-white px-6 py-4">
+                    <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-6 py-4 shadow-lg">
                         <div>
-                            <div class="text-xs uppercase tracking-widest text-white/70">{{ __('site.next_deadline') }}</div>
+                            <div class="text-xs uppercase tracking-widest text-white/80">{{ __('site.next_deadline') }}</div>
                             <div class="font-semibold">{{ $deadlineLabel($nextDeadline->label) }}</div>
                         </div>
                         <div class="text-lg font-bold">{{ $nextDeadline->date->translatedFormat('d M Y') }}</div>
@@ -448,7 +449,7 @@
             <h2 class="text-2xl sm:text-3xl font-bold">{{ __('site.cta_title') }}</h2>
             <p class="mt-2 text-slate-300">{{ __('site.cta_subtitle') }}</p>
             <div class="mt-6 flex flex-wrap justify-center gap-3">
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ $isId ? 'Mulai Extended Abstract' : 'Start Extended Abstract' }}</a>
+                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Mulai Abstract' : 'Start Abstract' }}</a>
                 <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
             </div>
         </div>

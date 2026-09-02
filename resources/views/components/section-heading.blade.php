@@ -9,6 +9,6 @@
         <p class="mt-4 text-base leading-relaxed text-slate-500">{{ $subtitle }}</p>
     @endif
     @unless($eyebrow)
-        <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] {{ $center ? 'mx-auto' : '' }}"></div>
+        <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--brand)] {{ $center ? 'mx-auto' : '' }}"></div>
     @endunless
 </div>

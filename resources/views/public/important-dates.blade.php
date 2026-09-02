@@ -8,7 +8,7 @@
                     @php
                         $label = str_ireplace(
                             ['Abstract & Full Paper Submission Deadline', 'Batas Pengumpulan Abstrak & Full Paper', 'Camera-Ready Paper & Registration Payment Deadline', 'Batas Pengumpulan Camera-Ready & Pembayaran'],
-                            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Extended Abstract & Registration Payment Deadline', 'Batas Input Extended Abstract & Pembayaran'],
+                            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Abstract & Registration Payment Deadline', 'Batas Input Abstract & Pembayaran'],
                             (string) $d->label,
                         );
                     @endphp

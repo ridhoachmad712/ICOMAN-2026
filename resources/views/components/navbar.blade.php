@@ -78,9 +78,9 @@
                 </div>
 
                 @auth('author')
-                    <a href="{{ route('filament.author.pages.author-dashboard') }}" class="btn btn-primary hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">Dashboard</a>
+                    <a href="{{ route('filament.author.pages.author-dashboard') }}" class="btn btn-accent hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">Dashboard</a>
                 @else
-                    <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+                    <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent hidden min-h-10 px-4 py-2 text-xs sm:inline-flex">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
                 @endauth
 
                 <button @click="open = !open" :aria-expanded="open" class="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-slate-700 hover:bg-slate-100 xl:hidden" aria-label="Menu">
@@ -114,7 +114,7 @@
                     </div>
                 @else
                     <div class="mt-3 grid gap-2 border-t border-slate-100 pt-4 sm:grid-cols-3">
-                        <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary min-h-11 px-4 text-sm">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+                        <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent min-h-11 px-4 text-sm">{{ $locale === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
                         <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-outline min-h-11 px-4 text-sm">{{ $locale === 'id' ? 'Daftar Peserta' : 'Register Attendee' }}</a>
                         <a href="{{ route('filament.author.auth.login') }}" class="inline-flex min-h-11 items-center justify-center rounded-lg px-4 text-sm font-medium text-slate-700 hover:bg-slate-50">{{ __('author.login') }}</a>
                     </div>

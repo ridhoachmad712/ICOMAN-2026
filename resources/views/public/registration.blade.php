@@ -37,14 +37,14 @@
 
                 <p class="mt-4 text-sm leading-6 text-slate-600">
                     {{ $isId
-                        ? 'Untuk akademisi, peneliti, dosen, dan mahasiswa yang akan mengirim extended abstract serta mempresentasikan hasil penelitian.'
-                        : 'For scholars, researchers, lecturers, and students submitting an extended abstract and presenting their research.' }}
+                        ? 'Untuk akademisi, peneliti, dosen, dan mahasiswa yang akan mengirim abstract serta mempresentasikan hasil penelitian.'
+                        : 'For scholars, researchers, lecturers, and students submitting an abstract and presenting their research.' }}
                 </p>
 
                 <ol class="mt-6 grid gap-3 sm:grid-cols-2">
                     @foreach([
                         $isId ? 'Buat akun presenter' : 'Create a presenter account',
-                        $isId ? 'Tulis extended abstract' : 'Write the extended abstract',
+                        $isId ? 'Tulis abstract' : 'Write the abstract',
                         $isId ? 'Verifikasi reviewer' : 'Reviewer verification',
                         'Accepted',
                     ] as $step)
