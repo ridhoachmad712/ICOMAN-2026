@@ -27,6 +27,12 @@ class RegistrationFeeForm
                             ->label('Eligible participant')
                             ->options(['presenter' => 'Presenter / Pemakalah', 'participant' => 'Seminar participant / Peserta'])
                             ->required(),
+                        Select::make('registrant_category')
+                            ->label('Registrant category')
+                            ->options(\App\Models\Author::CATEGORIES)
+                            ->default('general')
+                            ->required()
+                            ->helperText('Mahasiswa S1 vs Dosen/Umum. Tarif difilter berdasarkan pilihan author saat mendaftar.'),
                         TextInput::make('category.en')->label('Category (EN)')->required()->maxLength(255),
                         TextInput::make('category.id')->label('Category (ID)')->maxLength(255),
                         TextInput::make('price_early_bird')->label('Price (Early Bird)')->numeric()->prefix('Rp'),

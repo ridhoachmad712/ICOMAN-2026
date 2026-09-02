@@ -45,7 +45,8 @@ Route::middleware('setlocale')->group(function () {
     Route::prefix('author')->name('author.')->group(function () {
         // Guest (belum login sebagai author)
         Route::middleware('guest:author')->group(function () {
-            Route::get('register', [AuthController::class, 'showRegister'])->name('register');
+            Route::get('register', [AuthController::class, 'showChoose'])->name('register');
+            Route::get('register/start', [AuthController::class, 'showRegister'])->name('register.start');
             Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 
             Route::get('forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');

@@ -27,6 +27,7 @@ class AuthorPortalFlowTest extends TestCase
             'name' => 'Seminar Participant',
             'email' => 'participant@example.test',
             'participation_type' => 'non_presenter',
+            'registrant_category' => 'student_s1',
             'password' => 'StrongPassword123!',
             'password_confirmation' => 'StrongPassword123!',
         ])->assertRedirect(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('create', panel: 'author'));
@@ -34,7 +35,39 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertDatabaseHas('authors', [
             'email' => 'participant@example.test',
             'participation_type' => 'participant',
+            'registrant_category' => 'student_s1',
         ]);
+    }
+
+    public function test_registration_form_requires_choosing_a_type_first(): void
+    {
+        // Tanpa role+category → dialihkan ke halaman pemilihan.
+        $this->get(route('author.register.start'))->assertRedirect(route('author.register'));
+
+        // Dengan pilihan valid → form tampil.
+        $this->get(route('author.register.start', ['role' => 'presenter', 'category' => 'student_s1']))->assertOk();
+    }
+
+    public function test_registration_fee_is_filtered_by_registrant_category(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('participant', 'student_s1');
+        $generalFee = $this->fee($edition, 'participant', 'general', 750000);
+        $studentFee = $this->fee($edition, 'participant', 'student_s1', 450000);
+
+        // Mahasiswa S1 tidak boleh memilih tarif Dosen/Umum.
+        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
+            'registration_fee_id' => $generalFee->id,
+            'payment_method' => 'manual',
+        ])->assertSessionHasErrors('registration_fee_id');
+        $this->assertDatabaseCount('registrations', 0);
+
+        // Tarif mahasiswa S1 berhasil.
+        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
+            'registration_fee_id' => $studentFee->id,
+            'payment_method' => 'manual',
+        ])->assertRedirect();
+        $this->assertSame((float) 450000, (float) Registration::firstOrFail()->amount);
     }
 
     public function test_participant_cannot_select_a_presenter_fee(): void
@@ -393,23 +426,25 @@ class AuthorPortalFlowTest extends TestCase
         return Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
     }
 
-    private function author(string $type): Author
+    private function author(string $type, string $category = 'general'): Author
     {
         return Author::create([
             'name' => 'Portal User',
             'email' => fake()->unique()->safeEmail(),
             'password' => 'secret-password',
             'participation_type' => $type,
+            'registrant_category' => $category,
         ]);
     }
 
-    private function fee(Edition $edition, string $audience): RegistrationFee
+    private function fee(Edition $edition, string $audience, string $category = 'general', int $price = 500000): RegistrationFee
     {
         return RegistrationFee::create([
             'edition_id' => $edition->id,
-            'category' => ['en' => ucfirst($audience)],
+            'category' => ['en' => ucfirst($audience).' '.$category],
             'audience' => $audience,
-            'price_regular' => 500000,
+            'registrant_category' => $category,
+            'price_regular' => $price,
             'currency' => 'IDR',
         ]);
     }

@@ -678,65 +678,63 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
             ]);
         }
 
-        // 8. Registration Fees
+        // 8. Registration Fees — per audience (presenter/participant) × kategori (S1/Umum),
+        //    dengan varian Domestic/International untuk presenter.
         $fees = [
             [
-                'category' => [
-                    'en' => 'Presenter (Domestic / Indonesian Author)',
-                    'id' => 'Pemakalah (Dalam Negeri / Author Indonesia)',
-                ],
-                'audience' => 'presenter',
-                'price_early_bird' => 1500000,
-                'price_regular' => 2000000,
-                'currency' => 'IDR',
+                'category' => ['en' => 'Presenter — Lecturer/General (Domestic)', 'id' => 'Pemakalah — Dosen/Umum (Dalam Negeri)'],
+                'audience' => 'presenter', 'registrant_category' => 'general',
+                'price_early_bird' => 1500000, 'price_regular' => 2000000, 'currency' => 'IDR',
                 'notes' => 'Includes presentation slot (Zoom Breakout Room), international certificate, policy brief, and review feedback.',
             ],
             [
-                'category' => [
-                    'en' => 'Presenter (International Author)',
-                    'id' => 'Pemakalah (Luar Negeri / International Author)',
-                ],
-                'audience' => 'presenter',
-                'price_early_bird' => 2500000,
-                'price_regular' => 3000000,
-                'currency' => 'IDR',
+                'category' => ['en' => 'Presenter — Lecturer/General (International)', 'id' => 'Pemakalah — Dosen/Umum (Luar Negeri)'],
+                'audience' => 'presenter', 'registrant_category' => 'general',
+                'price_early_bird' => 2500000, 'price_regular' => 3000000, 'currency' => 'IDR',
                 'notes' => 'Includes virtual presentation slot, international certificate, and journal recommendation eligibility.',
             ],
             [
-                'category' => [
-                    'en' => 'Non-Presenter Participant (Domestic & International)',
-                    'id' => 'Peserta Non-Pemakalah (Dalam & Luar Negeri)',
-                ],
-                'audience' => 'participant',
-                'price_early_bird' => 500000,
-                'price_regular' => 750000,
-                'currency' => 'IDR',
+                'category' => ['en' => 'Presenter — Undergraduate S1 (Domestic)', 'id' => 'Pemakalah — Mahasiswa S1 (Dalam Negeri)'],
+                'audience' => 'presenter', 'registrant_category' => 'student_s1',
+                'price_early_bird' => 1000000, 'price_regular' => 1250000, 'currency' => 'IDR',
+                'notes' => 'Undergraduate (S1) presenter rate. Includes presentation slot, certificate, and review feedback.',
+            ],
+            [
+                'category' => ['en' => 'Presenter — Undergraduate S1 (International)', 'id' => 'Pemakalah — Mahasiswa S1 (Luar Negeri)'],
+                'audience' => 'presenter', 'registrant_category' => 'student_s1',
+                'price_early_bird' => 1750000, 'price_regular' => 2000000, 'currency' => 'IDR',
+                'notes' => 'Undergraduate (S1) international presenter rate.',
+            ],
+            [
+                'category' => ['en' => 'Attendee — Lecturer/General', 'id' => 'Peserta — Dosen/Umum'],
+                'audience' => 'participant', 'registrant_category' => 'general',
+                'price_early_bird' => 500000, 'price_regular' => 750000, 'currency' => 'IDR',
                 'notes' => 'Access to Main Zoom Room (Keynote & Plenary Panel Sessions) and International E-Certificate.',
+            ],
+            [
+                'category' => ['en' => 'Attendee — Undergraduate S1', 'id' => 'Peserta — Mahasiswa S1'],
+                'audience' => 'participant', 'registrant_category' => 'student_s1',
+                'price_early_bird' => 300000, 'price_regular' => 450000, 'currency' => 'IDR',
+                'notes' => 'Undergraduate (S1) attendee rate. Access to Main Zoom Room and International E-Certificate.',
             ],
         ];
         $existingFees = RegistrationFee::where('edition_id', $eid)->orderBy('id')->get();
         foreach ($fees as $i => $fee) {
+            $payload = [
+                'category' => $fee['category'],
+                'audience' => $fee['audience'],
+                'registrant_category' => $fee['registrant_category'],
+                'price_early_bird' => $fee['price_early_bird'],
+                'price_regular' => $fee['price_regular'],
+                'currency' => $fee['currency'],
+                'notes' => $fee['notes'],
+                'order' => $i + 1,
+            ];
+
             if (isset($existingFees[$i])) {
-                $existingFees[$i]->update([
-                    'category' => $fee['category'],
-                    'audience' => $fee['audience'],
-                    'price_early_bird' => $fee['price_early_bird'],
-                    'price_regular' => $fee['price_regular'],
-                    'currency' => $fee['currency'],
-                    'notes' => $fee['notes'],
-                    'order' => $i + 1,
-                ]);
+                $existingFees[$i]->update($payload);
             } else {
-                RegistrationFee::create([
-                    'edition_id' => $eid,
-                    'category' => $fee['category'],
-                    'audience' => $fee['audience'],
-                    'price_early_bird' => $fee['price_early_bird'],
-                    'price_regular' => $fee['price_regular'],
-                    'currency' => $fee['currency'],
-                    'notes' => $fee['notes'],
-                    'order' => $i + 1,
-                ]);
+                RegistrationFee::create(['edition_id' => $eid] + $payload);
             }
         }
     }

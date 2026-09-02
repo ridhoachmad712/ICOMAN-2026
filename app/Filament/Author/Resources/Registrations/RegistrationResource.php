@@ -80,6 +80,7 @@ class RegistrationResource extends Resource
         $fees = RegistrationFee::query()
             ->where('edition_id', $edition?->id)
             ->where('audience', $audience)
+            ->where('registrant_category', $author?->feeCategory() ?? 'general')
             ->orderBy('order')
             ->get();
 

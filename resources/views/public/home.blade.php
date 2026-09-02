@@ -238,7 +238,9 @@
     {{-- REGISTRATION TEASER (pricing) --}}
     @if($fees->isNotEmpty())
         @php
-            $planFees = $fees->take(3)->values();
+            // Tampilkan tarif standar (Dosen/Umum) sebagai headline; tarif mahasiswa & lengkap ada di halaman registrasi.
+            $planFees = $fees->where('registrant_category', 'general')->take(3)->values();
+            if ($planFees->isEmpty()) { $planFees = $fees->take(3)->values(); }
             $featuredIndex = $planFees->count() >= 3 ? 1 : ($planFees->count() - 1);
         @endphp
         <section class="section-tint py-20">

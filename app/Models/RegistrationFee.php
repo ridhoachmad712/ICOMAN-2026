@@ -16,6 +16,7 @@ class RegistrationFee extends Model
         'edition_id',
         'category',
         'audience',
+        'registrant_category',
         'price_early_bird',
         'price_regular',
         'early_bird_deadline',

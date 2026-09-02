@@ -38,7 +38,7 @@ class CreateRegistration extends CreateRecord
         }
 
         $audience = $author->isPresenter() ? 'presenter' : 'participant';
-        $fee = RegistrationFee::query()->where('edition_id', $edition->id)->where('audience', $audience)->find($data['registration_fee_id'] ?? null);
+        $fee = RegistrationFee::query()->where('edition_id', $edition->id)->where('audience', $audience)->where('registrant_category', $author->feeCategory())->find($data['registration_fee_id'] ?? null);
         if (! $fee) {
             throw ValidationException::withMessages(['data.registration_fee_id' => app()->getLocale() === 'id' ? 'Paket registrasi tidak valid.' : 'The selected registration package is invalid.']);
         }

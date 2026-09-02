@@ -18,6 +18,12 @@ class Author extends Authenticatable implements FilamentUser
 {
     use HasFactory, Notifiable;
 
+    /** Kategori peserta (menentukan tarif). */
+    public const CATEGORIES = [
+        'student_s1' => 'Mahasiswa S1',
+        'general' => 'Dosen / Umum',
+    ];
+
     protected $fillable = [
         'name',
         'email',
@@ -26,6 +32,7 @@ class Author extends Authenticatable implements FilamentUser
         'country',
         'phone',
         'participation_type',
+        'registrant_category',
     ];
 
     protected $hidden = [
@@ -65,6 +72,22 @@ class Author extends Authenticatable implements FilamentUser
     public function isParticipant(): bool
     {
         return $this->participation_type === 'participant';
+    }
+
+    public function isStudentS1(): bool
+    {
+        return $this->registrant_category === 'student_s1';
+    }
+
+    /** Kategori efektif untuk filter tarif (default 'general'). */
+    public function feeCategory(): string
+    {
+        return $this->registrant_category === 'student_s1' ? 'student_s1' : 'general';
+    }
+
+    public function registrantCategoryLabel(): string
+    {
+        return self::CATEGORIES[$this->registrant_category] ?? self::CATEGORIES['general'];
     }
 
     public function hasSeminarAccess(?Edition $edition = null): bool

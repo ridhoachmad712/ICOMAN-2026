@@ -50,7 +50,8 @@ class RegistrationController extends Controller
                 'required',
                 Rule::exists('registration_fees', 'id')->where(fn ($query) => $query
                     ->where('edition_id', $edition->id)
-                    ->where('audience', $audience)),
+                    ->where('audience', $audience)
+                    ->where('registrant_category', $author->feeCategory())),
             ],
             'payment_method' => ['required', 'in:manual,gateway'],
             'submission_id' => [$author->isPresenter() ? 'required' : 'prohibited', 'nullable', 'integer', 'exists:submissions,id'],
@@ -87,7 +88,7 @@ class RegistrationController extends Controller
                 : 'An active registration already exists for this path. Continue from this page.');
         }
 
-        $fee = RegistrationFee::whereBelongsTo($edition)->where('audience', $audience)->findOrFail($data['registration_fee_id']);
+        $fee = RegistrationFee::whereBelongsTo($edition)->where('audience', $audience)->where('registrant_category', $author->feeCategory())->findOrFail($data['registration_fee_id']);
         $amount = (float) $fee->currentPrice();
 
         // Opsi penerbitan SINTA 3 (hanya bila ditawarkan admin) → biaya tambahan.
