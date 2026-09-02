@@ -28,7 +28,7 @@ class SpeakerResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMicrophone;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|UnitEnum|null $navigationGroup = 'Narasumber & Panitia';
 
     protected static ?int $navigationSort = 2;
 

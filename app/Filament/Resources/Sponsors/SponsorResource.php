@@ -25,7 +25,7 @@ class SponsorResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|\UnitEnum|null $navigationGroup = 'Narasumber & Panitia';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

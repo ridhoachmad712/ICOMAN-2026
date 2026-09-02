@@ -25,7 +25,7 @@ class NewsResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|\UnitEnum|null $navigationGroup = 'Halaman & Berita';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

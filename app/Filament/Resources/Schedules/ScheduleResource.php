@@ -23,7 +23,7 @@ class ScheduleResource extends Resource
 
     protected static ?string $model = Schedule::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|\UnitEnum|null $navigationGroup = 'Program & Acara';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

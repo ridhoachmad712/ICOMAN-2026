@@ -23,7 +23,7 @@ class TopicResource extends Resource
 
     protected static ?string $model = Topic::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|\UnitEnum|null $navigationGroup = 'Program & Acara';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

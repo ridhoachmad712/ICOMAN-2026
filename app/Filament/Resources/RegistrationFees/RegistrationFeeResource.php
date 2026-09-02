@@ -23,7 +23,7 @@ class RegistrationFeeResource extends Resource
 
     protected static ?string $model = RegistrationFee::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten';
+    protected static string|\UnitEnum|null $navigationGroup = 'Registrasi & Pembayaran';
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
