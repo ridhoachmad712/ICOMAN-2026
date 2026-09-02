@@ -129,9 +129,17 @@
             <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
                 <div data-reveal>
                     <x-section-heading :title="$aboutPage->title" :eyebrow="__('nav.about')" :center="false" />
-                    <div class="prose prose-slate max-w-none">
-                        {!! \Illuminate\Support\Str::limit(strip_tags($aboutPage->content), 500) !!}
-                    </div>
+                    @php
+                        // Ringkasan bersih untuk homepage: rapikan spasi, buang tema yang
+                        // sudah tampil di hero, dan potong sebelum bagian bernomor gaya proposal.
+                        $aboutText = trim(preg_replace('/\s+/', ' ', strip_tags($aboutPage->content)));
+                        if ($edition?->theme && \Illuminate\Support\Str::startsWith($aboutText, $edition->theme)) {
+                            $aboutText = trim(substr($aboutText, strlen($edition->theme)));
+                        }
+                        $aboutText = preg_split('/\s+\d+[\.\)]\s/', $aboutText)[0];
+                        $aboutExcerpt = \Illuminate\Support\Str::limit(trim($aboutText), 360);
+                    @endphp
+                    <p class="text-base leading-relaxed text-slate-600">{{ $aboutExcerpt }}</p>
                     <a href="{{ route('about') }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
                 </div>
                 <div data-reveal class="card p-8">
@@ -162,14 +170,27 @@
     @endif
 
     {{-- SPEAKERS --}}
-    @if($speakers->isNotEmpty())
-        @php
-            $spotlight = $speakers->firstWhere('type', 'keynote') ?? $speakers->first();
-            $gridSpeakers = $speakers->reject(fn ($sp) => $spotlight && $sp->id === $spotlight->id);
-        @endphp
-        <section class="bg-white py-16">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="__('site.keynote_speakers')" />
+    @php
+        // Speaker "asli" = yang namanya bukan placeholder TBA. Kalau belum ada,
+        // tampilkan state "To Be Announced" yang ringkas.
+        $announcedSpeakers = $speakers->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'));
+    @endphp
+    <section class="bg-white py-16">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <x-section-heading :title="__('site.keynote_speakers')" />
+
+            @if($announcedSpeakers->isEmpty())
+                <div data-reveal class="mx-auto max-w-md text-center">
+                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                        <x-ui-icon name="users" class="h-6 w-6" />
+                    </div>
+                    <p class="text-lg font-semibold text-[var(--brand-2)]">{{ app()->getLocale() === 'id' ? 'Segera Diumumkan' : 'To Be Announced' }}</p>
+                </div>
+            @else
+                @php
+                    $spotlight = $announcedSpeakers->firstWhere('type', 'keynote') ?? $announcedSpeakers->first();
+                    $gridSpeakers = $announcedSpeakers->reject(fn ($sp) => $spotlight && $sp->id === $spotlight->id);
+                @endphp
 
                 {{-- Keynote spotlight --}}
                 @if($spotlight)
@@ -211,9 +232,9 @@
                 <div class="text-center mt-8">
                     <a href="{{ route('speakers') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
                 </div>
-            </div>
-        </section>
-    @endif
+            @endif
+        </div>
+    </section>
 
     {{-- CALL FOR PAPERS TEASER --}}
     @if($topics->isNotEmpty())
@@ -237,46 +258,54 @@
 
     {{-- REGISTRATION TEASER (pricing) --}}
     @if($fees->isNotEmpty())
-        @php
-            // Tampilkan tarif standar (Dosen/Umum) sebagai headline; tarif mahasiswa & lengkap ada di halaman registrasi.
-            $planFees = $fees->where('registrant_category', 'general')->take(3)->values();
-            if ($planFees->isEmpty()) { $planFees = $fees->take(3)->values(); }
-            $featuredIndex = $planFees->count() >= 3 ? 1 : ($planFees->count() - 1);
-        @endphp
         <section class="section-tint py-20">
             <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                 <x-section-heading :title="__('site.registration_fees')" :eyebrow="app()->getLocale() === 'id' ? 'Investasi' : 'Investment'" />
-                <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    @foreach($planFees as $i => $fee)
-                        @php
-                            $featured = $i === $featuredIndex;
-                            $hasEarly = (bool) $fee->price_early_bird;
-                            $mainPrice = $hasEarly ? $fee->price_early_bird : $fee->price_regular;
-                            $benefit = $fee->notes ? \Illuminate\Support\Str::limit(strip_tags((string) $fee->notes), 90) : null;
-                        @endphp
-                        <div class="relative flex flex-col rounded-2xl bg-white p-7 transition {{ $featured ? 'shadow-[0_28px_60px_-24px_rgba(15,23,42,0.4)] ring-2 ring-[var(--brand)]' : 'shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08),0_12px_28px_-16px_rgba(15,23,42,0.18)]' }}">
-                            @if($featured)
-                                <span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--brand)] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow">{{ app()->getLocale() === 'id' ? 'Populer' : 'Most Popular' }}</span>
-                            @endif
-                            <h3 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ $fee->category }}</h3>
-                            <div class="mt-4 flex items-baseline gap-1.5">
-                                <span class="text-sm font-semibold text-slate-500">{{ $fee->currency }}</span>
-                                <span class="font-display text-4xl font-bold tracking-tight text-[var(--brand-2)]">{{ number_format((float) $mainPrice, 0, ',', '.') }}</span>
-                            </div>
-                            @if($hasEarly)
-                                <div class="mt-2 flex items-center gap-2 text-xs">
-                                    <span class="chip"><x-ui-icon name="sparkles" class="h-3.5 w-3.5" /> {{ __('site.early_bird') }}</span>
-                                    <span class="text-slate-400 line-through">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</span>
+                @php
+                    $audiences = [
+                        'presenter' => app()->getLocale() === 'id' ? 'Presenter (Pemakalah)' : 'Presenter',
+                        'participant' => app()->getLocale() === 'id' ? 'Peserta Seminar' : 'Seminar Attendee',
+                    ];
+                @endphp
+                <div class="space-y-10">
+                    @foreach($audiences as $aud => $audLabel)
+                        @php $group = $fees->where('audience', $aud)->sortBy('order'); @endphp
+                        @if($group->isNotEmpty())
+                            <div data-reveal>
+                                <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[var(--brand-2)]">
+                                    <span class="h-4 w-1 rounded-full bg-[var(--brand)]"></span>{{ $audLabel }}
+                                </h3>
+                                <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                                    @foreach($group as $fee)
+                                        @php
+                                            $hasEarly = (bool) $fee->price_early_bird;
+                                            $mainPrice = $hasEarly ? $fee->price_early_bird : $fee->price_regular;
+                                            $benefit = $fee->notes ? \Illuminate\Support\Str::limit(strip_tags((string) $fee->notes), 90) : null;
+                                        @endphp
+                                        <div class="flex flex-col rounded-2xl bg-white p-6 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08),0_12px_28px_-16px_rgba(15,23,42,0.18)] transition hover:-translate-y-1">
+                                            <h4 class="text-sm font-semibold uppercase tracking-wide text-slate-500">{{ $fee->category }}</h4>
+                                            <div class="mt-3 flex items-baseline gap-1.5">
+                                                <span class="text-sm font-semibold text-slate-500">{{ $fee->currency }}</span>
+                                                <span class="font-display text-3xl font-bold tracking-tight text-[var(--brand-2)]">{{ number_format((float) $mainPrice, 0, ',', '.') }}</span>
+                                            </div>
+                                            @if($hasEarly)
+                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                                                    <span class="chip"><x-ui-icon name="sparkles" class="h-3.5 w-3.5" /> {{ __('site.early_bird') }}</span>
+                                                    <span class="text-slate-400 line-through">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</span>
+                                                </div>
+                                            @endif
+                                            @if($benefit)
+                                                <p class="mt-3 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
+                                                    <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                                                    {{ $benefit }}
+                                                </p>
+                                            @endif
+                                            <a href="{{ route('registration') }}" class="btn btn-outline mt-5 w-full">{{ __('site.register_now') }}</a>
+                                        </div>
+                                    @endforeach
                                 </div>
-                            @endif
-                            @if($benefit)
-                                <p class="mt-4 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
-                                    <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
-                                    {{ $benefit }}
-                                </p>
-                            @endif
-                            <a href="{{ route('registration') }}" class="btn {{ $featured ? 'btn-primary' : 'btn-outline' }} mt-6 w-full">{{ __('site.register_now') }}</a>
-                        </div>
+                            </div>
+                        @endif
                     @endforeach
                 </div>
                 <div class="mt-8 text-center">
