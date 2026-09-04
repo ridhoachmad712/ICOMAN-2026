@@ -340,7 +340,9 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->assertSame('extended', $action['key']);
         $this->assertSame('author', $action['actor']['key']);
-        $this->assertCount(6, $timeline);
+        $this->assertCount(7, $timeline);
+        $this->assertSame('Kirim full paper', $timeline[6]['label']);
+        $this->assertSame('upcoming', $timeline[6]['state']);
         $this->assertSame('Input abstract', $timeline[1]['label']);
         $this->assertSame('current', $timeline[1]['state']);
         $this->assertSame('Verifikasi reviewer', $timeline[2]['label']);
@@ -352,6 +354,79 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertSame('complete', $timeline[1]['state']);
         $this->assertSame('current', $timeline[2]['state']);
         $this->assertSame('reviewer', $timeline[2]['actor']['key']);
+    }
+
+    public function test_accepting_a_submission_auto_issues_loa_and_reviewer_drives_sinta3_offer(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'extended_abstract_under_review');
+
+        $reviewer = User::create(['name' => 'Reviewer', 'email' => 'rev-sinta@example.test', 'password' => 'secret-password']);
+        $assignment = ReviewAssignment::create([
+            'submission_id' => $submission->id,
+            'reviewer_id' => $reviewer->id,
+            'phase' => 'extended_abstract',
+            'assigned_at' => now(),
+            'status' => 'completed',
+        ]);
+        \App\Models\Review::create([
+            'review_assignment_id' => $assignment->id,
+            'score' => 90,
+            'recommendation' => 'accept',
+            'recommends_sinta3' => true,
+            'submitted_at' => now(),
+        ]);
+
+        $this->assertNull($submission->loa_issued_at);
+
+        $submission->changeStatus('accepted');
+        $submission->refresh();
+
+        // LOA terbit otomatis, dan tawaran SINTA 3 mengikuti rekomendasi reviewer.
+        $this->assertNotNull($submission->loa_issued_at);
+        $this->assertTrue($submission->sinta3_offered);
+        $this->assertTrue($submission->isLoaIssued());
+    }
+
+    public function test_full_paper_submission_requires_a_paid_registration(): void
+    {
+        \Illuminate\Support\Facades\Storage::fake(config('media-library.disk_name'));
+
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'accepted');
+        $submission->forceFill(['loa_issued_at' => now()])->save();
+
+        // Minimal PDF agar lolos deteksi mime MediaLibrary.
+        $pdf = fn () => \Illuminate\Http\UploadedFile::fake()->createWithContent('paper.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
+
+        // Belum ada registrasi lunas → belum boleh kirim full paper.
+        $this->assertFalse($submission->canSubmitFullPaper());
+        $this->actingAs($author, 'author')
+            ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $pdf()])
+            ->assertForbidden();
+
+        // Setelah registrasi lunas → boleh.
+        $fee = $this->fee($edition, 'presenter');
+        Registration::create([
+            'edition_id' => $edition->id,
+            'author_id' => $author->id,
+            'registration_fee_id' => $fee->id,
+            'submission_id' => $submission->id,
+            'payment_method' => 'manual',
+            'amount' => 500000,
+            'status' => 'paid',
+            'paid_at' => now(),
+        ]);
+
+        $this->assertTrue($submission->refresh()->canSubmitFullPaper());
+        $this->actingAs($author, 'author')
+            ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $pdf()])
+            ->assertRedirect();
+
+        $this->assertTrue($submission->refresh()->hasFullPaper());
+        $this->assertNotNull($submission->full_paper_submitted_at);
     }
 
     public function test_recent_updates_are_targeted_to_review_and_payment_status(): void

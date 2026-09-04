@@ -23,6 +23,7 @@ class Review extends Model
         'comments_for_author',
         'comments_for_committee',
         'recommendation',
+        'recommends_sinta3',
         'submitted_at',
     ];
 
@@ -30,6 +31,7 @@ class Review extends Model
     {
         return [
             'score' => 'integer', // skala 1-100
+            'recommends_sinta3' => 'boolean',
             'submitted_at' => 'datetime',
         ];
     }

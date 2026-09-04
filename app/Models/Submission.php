@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\LoaIssued;
 use App\Notifications\SubmissionStatusChanged;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -71,6 +72,7 @@ class Submission extends Model implements HasMedia
         'extended_abstract_draft_saved_at',
         'extended_abstract_submitted_at',
         'loa_issued_at',
+        'full_paper_submitted_at',
         'sinta3_offered',
         'journal_target',
         'status',
@@ -84,6 +86,7 @@ class Submission extends Model implements HasMedia
             'extended_abstract_submitted_at' => 'datetime',
             'extended_abstract_draft_saved_at' => 'datetime',
             'loa_issued_at' => 'datetime',
+            'full_paper_submitted_at' => 'datetime',
             'sinta3_offered' => 'boolean',
             'keywords' => 'array',
         ];
@@ -134,6 +137,33 @@ class Submission extends Model implements HasMedia
         return self::JOURNAL_TARGETS[$this->journal_target] ?? self::JOURNAL_TARGETS['regular'];
     }
 
+    /** Ada minimal satu reviewer (yang sudah menilai) merekomendasikan jalur SINTA 3. */
+    public function reviewsRecommendSinta3(): bool
+    {
+        return $this->reviewAssignments()
+            ->whereHas('review', fn ($query) => $query->where('recommends_sinta3', true))
+            ->exists();
+    }
+
+    /** Naskah lengkap (full paper) yang diunggah penulis. */
+    public function fullPaperMedia(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
+    {
+        return $this->getFirstMedia('camera_ready');
+    }
+
+    public function hasFullPaper(): bool
+    {
+        return $this->fullPaperMedia() !== null;
+    }
+
+    /** Presenter boleh mengirim full paper hanya setelah LOA terbit & registrasi lunas. */
+    public function canSubmitFullPaper(): bool
+    {
+        return $this->status === 'accepted'
+            && $this->isLoaIssued()
+            && $this->registrations()->where('status', 'paid')->exists();
+    }
+
     protected static function booted(): void
     {
         static::creating(function (Submission $submission): void {
@@ -171,10 +201,23 @@ class Submission extends Model implements HasMedia
         }
 
         $this->status = $status;
+
+        // LOA terbit OTOMATIS saat naskah diterima: stamp waktu terbit + tawaran SINTA 3
+        // ditentukan dari rekomendasi reviewer. Cukup satu email (LoaIssued).
+        $justIssuedLoa = $status === 'accepted' && $this->loa_issued_at === null;
+        if ($justIssuedLoa) {
+            $this->loa_issued_at = now();
+            $this->sinta3_offered = $this->reviewsRecommendSinta3();
+        }
+
         $this->save();
 
         // Notifikasi email ke author (corresponding utama) di setiap perubahan status.
-        $this->author?->notify(new SubmissionStatusChanged($this));
+        if ($justIssuedLoa) {
+            $this->author?->notify(new LoaIssued($this));
+        } else {
+            $this->author?->notify(new SubmissionStatusChanged($this));
+        }
 
         return $this;
     }

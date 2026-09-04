@@ -313,6 +313,7 @@ class AuthorJourney
         $paidRegistration = $registrations->firstWhere('status', 'paid');
         $pendingRegistration = $registrations->first(fn (Registration $item) => in_array($item->status, ['pending', 'pending_verification'], true));
         $loaIssued = (bool) $submission?->isLoaIssued();
+        $fullPaper = (bool) $submission?->hasFullPaper();
 
         return [
             $this->step(1, 'Bikin akun', 'Create account', 'complete', $author->created_at),
@@ -321,6 +322,7 @@ class AuthorJourney
             $this->step(4, 'Accepted', 'Accepted', $accepted ? 'complete' : ($rejected ? 'failed' : 'upcoming'), $accepted ? ($this->phaseDate($submission, 'extended_abstract') ?? $submission->updated_at) : null),
             $this->step(5, 'Terbit LOA', 'LOA issued', $loaIssued ? 'complete' : ($accepted ? 'current' : 'upcoming'), $submission?->loa_issued_at, $accepted && ! $loaIssued ? 'committee' : null),
             $this->step(6, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($loaIssued ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $loaIssued && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
+            $this->step(7, 'Kirim full paper', 'Submit full paper', $fullPaper ? 'complete' : ($paidRegistration ? 'current' : 'upcoming'), $submission?->full_paper_submitted_at, $paidRegistration && ! $fullPaper ? 'author' : null),
         ];
     }
 

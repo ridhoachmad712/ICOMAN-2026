@@ -5,7 +5,6 @@ namespace App\Filament\Resources\Submissions\Tables;
 use App\Models\Review;
 use App\Models\Submission;
 use App\Models\User;
-use App\Notifications\LoaIssued;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -14,7 +13,6 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -238,45 +236,26 @@ class SubmissionsTable
                         Select::make('status')
                             ->label('Keputusan Panitia')
                             ->options([
-                                'accepted' => 'Accepted (Terbitkan LoA)',
+                                'accepted' => 'Accepted (LOA otomatis terbit)',
                                 'revision_required' => 'Minta Revisi (kembalikan ke author)',
                                 'rejected' => 'Tidak Lolos',
                             ])
                             ->required()
-                            ->helperText('Author akan otomatis menerima email notifikasi resmi sesuai keputusan ini.'),
+                            ->helperText('Author menerima email resmi otomatis. Bila "Accepted", LOA langsung terbit; tawaran Jurnal SINTA 3 mengikuti rekomendasi reviewer.'),
                     ])
                     ->action(function (array $data, $record): void {
                         $record->changeStatus($data['status']);
 
-                        Notification::make()->title('Keputusan berhasil disimpan dan notifikasi dikirim ke author.')->success()->send();
+                        Notification::make()->title('Keputusan disimpan. Bila Accepted, LOA otomatis terbit & email dikirim ke author.')->success()->send();
                     }),
 
-                Action::make('issueLoa')
-                    ->label('Terbitkan LOA')
-                    ->icon('heroicon-o-document-check')
-                    ->color('success')
-                    ->visible(fn ($record) => $record->status === 'accepted'
-                        && ! $record->isLoaIssued()
-                        && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
-                    ->modalHeading('Terbitkan Letter of Acceptance')
-                    ->modalDescription('LOA akan otomatis tersedia di akun author. Tentukan pula apakah paper ini ditawari penerbitan ke Jurnal SINTA 3.')
-                    ->schema([
-                        Toggle::make('sinta3_offered')
-                            ->label('Tawarkan penerbitan Jurnal SINTA 3 (biaya tambahan)')
-                            ->helperText(fn (): string => 'Bila diaktifkan, author dapat memilih penerbitan SINTA 3 saat membayar registrasi (biaya tambahan Rp '
-                                .number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').').')
-                            ->default(false),
-                    ])
-                    ->action(function (array $data, $record): void {
-                        $record->update([
-                            'loa_issued_at' => now(),
-                            'sinta3_offered' => (bool) ($data['sinta3_offered'] ?? false),
-                        ]);
-
-                        $record->author?->notify(new LoaIssued($record));
-
-                        Notification::make()->title('LOA diterbitkan & tersedia di akun author.')->success()->send();
-                    }),
+                Action::make('downloadFullPaper')
+                    ->label('Full Paper')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->visible(fn ($record) => $record->hasFullPaper())
+                    ->url(fn ($record) => $record->fullPaperMedia()?->getUrl())
+                    ->openUrlInNewTab(),
 
                 Action::make('changeStatus')
                     ->label('Ubah Status')

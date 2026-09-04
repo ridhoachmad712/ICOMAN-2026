@@ -8,6 +8,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -93,12 +94,18 @@ class ReviewAssignmentsTable
                                 'reject' => 'Reject',
                             ])
                             ->required(),
+                        Toggle::make('recommends_sinta3')
+                            ->label('Direkomendasikan untuk Jurnal SINTA 3')
+                            ->helperText('Bila diaktifkan & naskah diterima, penulis ditawari opsi penerbitan SINTA 3 (biaya tambahan) saat pembayaran.')
+                            ->visible(fn ($record) => $record->phase === 'extended_abstract')
+                            ->default(false),
                         Textarea::make('comments_for_author')->label('Comments for Author')->rows(4),
                         Textarea::make('comments_for_committee')->label('Comments for Committee (internal)')->rows(3),
                     ])
                     ->fillForm(fn ($record) => [
                         'score' => $record->review?->score,
                         'recommendation' => $record->review?->recommendation,
+                        'recommends_sinta3' => (bool) $record->review?->recommends_sinta3,
                         'comments_for_author' => $record->review?->comments_for_author,
                         'comments_for_committee' => $record->review?->comments_for_committee,
                     ])
@@ -108,6 +115,7 @@ class ReviewAssignmentsTable
                             [
                                 'score' => $data['score'] ?? null,
                                 'recommendation' => $data['recommendation'],
+                                'recommends_sinta3' => (bool) ($data['recommends_sinta3'] ?? false),
                                 'comments_for_author' => $data['comments_for_author'] ?? null,
                                 'comments_for_committee' => $data['comments_for_committee'] ?? null,
                                 'submitted_at' => now(),

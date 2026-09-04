@@ -67,6 +67,8 @@ Route::middleware('setlocale')->group(function () {
             Route::get('submissions/{submission}/loa', [SubmissionController::class, 'loa'])->name('submissions.loa');
             Route::get('submissions/{submission}/extended-abstract/preview', [SubmissionController::class, 'previewExtendedAbstract'])->name('submissions.extended-abstract.preview');
             Route::post('submissions/{submission}/extended-abstract', [SubmissionController::class, 'submitExtendedAbstract'])->middleware('throttle:6,1')->name('submissions.extended-abstract');
+            Route::post('submissions/{submission}/full-paper', [SubmissionController::class, 'submitFullPaper'])->middleware('throttle:6,1')->name('submissions.full-paper');
+            Route::get('submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaper'])->name('submissions.full-paper.download');
 
             // Registrasi & pembayaran
             Route::get('registration/create', [RegistrationController::class, 'create'])->name('registration.create');

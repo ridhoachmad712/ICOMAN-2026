@@ -50,14 +50,50 @@ class SubmissionController extends Controller
         return redirect()->to(PaperResource::getUrl('view', ['record' => $submission], panel: 'author'));
     }
 
-    public function loa(Submission $submission): View
+    public function loa(Submission $submission): Response
     {
         $this->authorizeOwner($submission);
         abort_unless($submission->status === 'accepted' && $submission->isLoaIssued(), 404);
 
         $submission->load(['authors' => fn ($query) => $query->orderBy('order'), 'edition']);
 
-        return view('author.submissions.loa', compact('submission'));
+        // LOA di-generate otomatis sebagai PDF resmi.
+        return Pdf::loadView('pdf.loa', compact('submission'))
+            ->setPaper('a4')
+            ->stream($submission->submission_number.'-LOA.pdf');
+    }
+
+    /** Presenter mengunggah naskah lengkap (full paper) setelah pembayaran terverifikasi. */
+    public function submitFullPaper(Request $request, Submission $submission): RedirectResponse
+    {
+        $this->authorizeOwner($submission);
+
+        abort_unless($submission->canSubmitFullPaper(), 403, app()->getLocale() === 'id'
+            ? 'Full paper hanya dapat dikirim setelah LOA terbit dan pembayaran registrasi terverifikasi.'
+            : 'The full paper can only be submitted after the LOA is issued and the registration payment is verified.');
+
+        $request->validate([
+            'full_paper' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
+        ]);
+
+        $submission->clearMediaCollection('camera_ready');
+        $submission->addMediaFromRequest('full_paper')->toMediaCollection('camera_ready');
+        $submission->forceFill(['full_paper_submitted_at' => now()])->save();
+
+        return back()->with('status', app()->getLocale() === 'id'
+            ? 'Naskah lengkap (full paper) berhasil dikirim.'
+            : 'Your full paper has been submitted successfully.');
+    }
+
+    /** Unduh full paper milik sendiri. */
+    public function downloadFullPaper(Submission $submission): Response
+    {
+        $this->authorizeOwner($submission);
+
+        $media = $submission->fullPaperMedia();
+        abort_unless($media, 404);
+
+        return response()->download($media->getPath(), $media->file_name);
     }
 
     public function previewExtendedAbstract(Submission $submission): Response

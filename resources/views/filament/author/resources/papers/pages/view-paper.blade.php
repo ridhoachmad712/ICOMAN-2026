@@ -101,6 +101,44 @@
             </x-filament::section>
         @endif
 
+        @if($record->status === 'accepted' && $record->isLoaIssued())
+            @php $paidForPaper = $record->registrations->firstWhere('status', 'paid'); @endphp
+            <x-filament::section icon="heroicon-o-document-arrow-up" icon-color="primary">
+                <x-slot name="heading">{{ $id ? 'Naskah lengkap (Full Paper)' : 'Full paper' }}</x-slot>
+                <x-slot name="description">
+                    {{ $id ? 'Setelah pembayaran terverifikasi, unggah naskah lengkap sesuai template & tenggat panitia (PDF/DOC/DOCX, maks 20 MB).' : 'After your payment is verified, upload the full manuscript per the committee template & deadline (PDF/DOC/DOCX, max 20 MB).' }}
+                </x-slot>
+
+                @if(! $paidForPaper)
+                    <div class="author-policy-note">
+                        <x-filament::icon icon="heroicon-o-lock-closed" class="h-5 w-5 shrink-0" />
+                        <span>{{ $id ? 'Pengiriman full paper akan terbuka setelah pembayaran registrasi Anda terverifikasi.' : 'Full paper submission unlocks once your registration payment is verified.' }}</span>
+                    </div>
+                @else
+                    @if($record->hasFullPaper())
+                        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm">
+                            <x-filament::icon icon="heroicon-o-check-circle" class="h-5 w-5 shrink-0 text-success-600" />
+                            <span class="text-success-800">
+                                {{ $id ? 'Terkirim' : 'Submitted' }}: <strong>{{ $record->fullPaperMedia()?->file_name }}</strong>
+                                @if($record->full_paper_submitted_at)· {{ $record->full_paper_submitted_at->format('d M Y, H:i') }}@endif
+                            </span>
+                            <a class="ml-auto text-primary-600 hover:underline" href="{{ route('author.submissions.full-paper.download', $record) }}">{{ $id ? 'Unduh' : 'Download' }}</a>
+                        </div>
+                    @endif
+
+                    <form method="POST" action="{{ route('author.submissions.full-paper', $record) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
+                        @csrf
+                        <input type="file" name="full_paper" required accept=".pdf,.doc,.docx"
+                               class="block text-sm text-gray-700 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-600 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-primary-500" />
+                        <x-filament::button type="submit" icon="heroicon-o-arrow-up-tray">
+                            {{ $record->hasFullPaper() ? ($id ? 'Ganti file' : 'Replace file') : ($id ? 'Kirim full paper' : 'Submit full paper') }}
+                        </x-filament::button>
+                    </form>
+                    @error('full_paper')<p class="mt-2 text-sm text-danger-600">{{ $message }}</p>@enderror
+                @endif
+            </x-filament::section>
+        @endif
+
         @if($record->status === 'rejected')
             <x-filament::section icon="heroicon-o-x-circle" icon-color="danger">
                 <x-slot name="heading">{{ $id ? 'Belum lolos' : 'Not approved' }}</x-slot>
