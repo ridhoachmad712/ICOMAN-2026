@@ -33,6 +33,13 @@ class PaperResource extends Resource
 
     protected static ?int $navigationSort = 1;
 
+    // Seluruh alur author dijalankan dari Dashboard (satu tempat). Halaman paper
+    // tetap dapat diakses via tautan dashboard, tapi tidak muncul sebagai menu.
+    public static function shouldRegisterNavigation(): bool
+    {
+        return false;
+    }
+
     public static function getNavigationLabel(): string
     {
         return app()->getLocale() === 'id' ? 'Abstract Saya' : 'My Abstract';

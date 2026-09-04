@@ -40,27 +40,11 @@ class RegistrationResource extends Resource
         return app()->getLocale() === 'id' ? 'registrasi' : 'registration';
     }
 
+    // Seluruh alur author dijalankan dari Dashboard (satu tempat). Halaman ini
+    // tetap bisa diakses via tautan dashboard, tapi tidak muncul sebagai menu.
     public static function shouldRegisterNavigation(): bool
     {
-        $author = Filament::auth()->user();
-        $edition = currentEdition();
-
-        if (! $author) {
-            return false;
-        }
-
-        if ($author->isParticipant()) {
-            return true;
-        }
-
-        if (! $edition) {
-            return false;
-        }
-
-        // Presenter dapat membayar registrasi setelah abstract-nya accepted DAN
-        // LOA diterbitkan admin. Registrasi lama tetap dapat dilihat.
-        return $author->registrations()->where('edition_id', $edition->id)->exists()
-            || $author->submissions()->where('edition_id', $edition->id)->where('status', 'accepted')->whereNotNull('loa_issued_at')->exists();
+        return false;
     }
 
     public static function form(Schema $schema): Schema

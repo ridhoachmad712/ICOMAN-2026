@@ -77,11 +77,21 @@ class AuthorJourney
         if ($accepted) {
             $paidRegistration = $registrations->contains(fn (Registration $item) => $item->status === 'paid');
             if ($paidRegistration) {
+                // Setelah pembayaran terverifikasi: kirim naskah lengkap (full paper).
+                if (! $accepted->hasFullPaper()) {
+                    return $this->paperAction(
+                        $accepted, 'full_paper', 'Kirim full paper', 'Submit your full paper',
+                        'Pembayaran terverifikasi. Unggah naskah lengkap (full paper) sesuai template & tenggat panitia.',
+                        'Your payment is verified. Upload your full manuscript per the committee template & deadline.',
+                        'Kirim full paper', 'Submit full paper', 90, 'author'
+                    );
+                }
+
                 return $this->paperAction(
-                    $accepted, 'complete', 'Registrasi presenter selesai', 'Your presenter registration is complete',
-                    'Abstract accepted dan pembayaran telah terverifikasi. Slot presentasi Anda terkunci.',
-                    'Your abstract is accepted and payment is verified. Your presentation slot is secured.',
-                    'Lihat registrasi', 'View registration', 100, 'complete'
+                    $accepted, 'complete', 'Semua tahap selesai', 'All steps complete',
+                    'Abstract accepted, pembayaran terverifikasi, dan full paper sudah terkirim. Slot presentasi Anda terkunci.',
+                    'Your abstract is accepted, payment is verified, and your full paper has been submitted. Your presentation slot is secured.',
+                    'Lihat paper', 'View paper', 100, 'complete'
                 );
             }
 
