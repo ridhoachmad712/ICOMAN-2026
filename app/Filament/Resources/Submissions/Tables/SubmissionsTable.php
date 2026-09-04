@@ -7,6 +7,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Notifications\LoaIssued;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -24,9 +25,9 @@ use Illuminate\Support\HtmlString;
 class SubmissionsTable
 {
     private const STATUS_OPTIONS = [
-        'extended_abstract_draft' => 'Draft Extended Abstract',
-        'extended_abstract_submitted' => 'Extended Abstract Terkirim',
-        'extended_abstract_under_review' => 'Verifikasi Extended Abstract',
+        'extended_abstract_draft' => 'Draft Abstract',
+        'extended_abstract_submitted' => 'Abstract Terkirim',
+        'extended_abstract_under_review' => 'Sedang Direview',
         'revision_required' => 'Perlu Revisi',
         'accepted' => 'Accepted',
         'rejected' => 'Tidak Lolos',
@@ -63,16 +64,8 @@ class SubmissionsTable
                 SelectFilter::make('edition_id')->relationship('edition', 'name')->label('Edition'),
             ])
             ->recordActions([
-                EditAction::make()->label('Detail'),
-
-                Action::make('previewExtendedAbstract')
-                    ->label('Preview PDF')
-                    ->icon('heroicon-o-document-magnifying-glass')
-                    ->color('gray')
-                    ->visible(fn ($record) => $record->extended_abstract_draft_saved_at || filled($record->abstract))
-                    ->url(fn ($record): string => route('admin.submissions.extended-abstract.preview', $record))
-                    ->openUrlInNewTab(),
-
+                // LANGKAH BERIKUTNYA — hanya satu yang tampil (kondisinya saling eksklusif),
+                // sehingga admin selalu melihat tepat satu tombol aksi utama per baris.
                 Action::make('assignReviewer')
                     ->label('Assign Reviewer')
                     ->icon('heroicon-o-user-plus')
@@ -125,78 +118,11 @@ class SubmissionsTable
                         Notification::make()->title('Reviewer berhasil ditugaskan & status diperbarui.')->success()->send();
                     }),
 
-                Action::make('reviewDirectly')
-                    ->label('Review Langsung')
-                    ->icon('heroicon-o-pencil-square')
-                    ->color('warning')
-                    ->visible(fn ($record) => $record->currentReviewPhase() !== null
-                        && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
-                    ->modalHeading('Review Abstract (langsung oleh admin)')
-                    ->schema([
-                        Placeholder::make('abstract_preview')
-                            ->label('Abstract')
-                            ->content(fn ($record): HtmlString => new HtmlString(
-                                '<div class="whitespace-pre-line text-xs leading-6 text-gray-700">'.e($record->abstract ?: '—').'</div>'
-                            )),
-                        TextInput::make('score')->label('Skor (1–100)')->numeric()->minValue(1)->maxValue(100),
-                        Select::make('recommendation')->label('Rekomendasi')->options([
-                            'accept' => 'Accept',
-                            'minor_revision' => 'Minor Revision',
-                            'major_revision' => 'Major Revision',
-                            'reject' => 'Reject',
-                        ])->required(),
-                        Textarea::make('comments_for_author')->label('Komentar untuk Author')->rows(4),
-                        Textarea::make('comments_for_committee')->label('Komentar untuk Panitia (internal)')->rows(3),
-                    ])
-                    ->fillForm(function ($record): array {
-                        $review = $record->reviewAssignments()
-                            ->where('reviewer_id', auth()->id())
-                            ->where('phase', $record->currentReviewPhase())
-                            ->first()?->review;
-
-                        return [
-                            'score' => $review?->score,
-                            'recommendation' => $review?->recommendation,
-                            'comments_for_author' => $review?->comments_for_author,
-                            'comments_for_committee' => $review?->comments_for_committee,
-                        ];
-                    })
-                    ->action(function (array $data, $record): void {
-                        $phase = $record->currentReviewPhase();
-                        if (! $phase) {
-                            return;
-                        }
-
-                        $assignment = $record->reviewAssignments()->firstOrCreate(
-                            ['reviewer_id' => auth()->id(), 'phase' => $phase],
-                            ['assigned_at' => now(), 'status' => 'pending'],
-                        );
-
-                        Review::updateOrCreate(
-                            ['review_assignment_id' => $assignment->id],
-                            [
-                                'score' => $data['score'] ?? null,
-                                'recommendation' => $data['recommendation'],
-                                'comments_for_author' => $data['comments_for_author'] ?? null,
-                                'comments_for_committee' => $data['comments_for_committee'] ?? null,
-                                'submitted_at' => now(),
-                            ],
-                        );
-
-                        $assignment->update(['status' => 'completed']);
-
-                        if ($record->status === 'extended_abstract_submitted') {
-                            $record->changeStatus('extended_abstract_under_review');
-                        }
-
-                        Notification::make()->title('Review admin tersimpan. Lanjutkan ke Keputusan Review.')->success()->send();
-                    }),
-
                 Action::make('decision')
                     ->label('Keputusan Review')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
-                    ->modalHeading('Tentukan Hasil Verifikasi Extended Abstract')
+                    ->modalHeading('Keputusan Panitia atas Abstract')
                     ->visible(fn ($record) => $record->currentReviewPhase() !== null
                         && $record->reviewAssignments()
                             ->where('phase', $record->currentReviewPhase())
@@ -277,36 +203,117 @@ class SubmissionsTable
                         Notification::make()->title('LOA diterbitkan & tersedia di akun author.')->success()->send();
                     }),
 
-                Action::make('downloadFullPaper')
-                    ->label('Full Paper')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->color('gray')
-                    ->visible(fn ($record) => $record->hasFullPaper())
-                    ->url(fn ($record) => $record->fullPaperMedia()?->getUrl())
-                    ->openUrlInNewTab(),
+                // Aksi pendukung dikelompokkan agar baris tabel tidak penuh tombol.
+                ActionGroup::make([
+                    EditAction::make()->label('Detail'),
+                    Action::make('previewExtendedAbstract')
+                        ->label('Preview PDF')
+                        ->icon('heroicon-o-document-magnifying-glass')
+                        ->color('gray')
+                        ->visible(fn ($record) => $record->extended_abstract_draft_saved_at || filled($record->abstract))
+                        ->url(fn ($record): string => route('admin.submissions.extended-abstract.preview', $record))
+                        ->openUrlInNewTab(),
+                    Action::make('reviewDirectly')
+                        ->label('Review Langsung')
+                        ->icon('heroicon-o-pencil-square')
+                        ->color('warning')
+                        ->visible(fn ($record) => $record->currentReviewPhase() !== null
+                            && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
+                        ->modalHeading('Review Abstract (langsung oleh admin)')
+                        ->schema([
+                            Placeholder::make('abstract_preview')
+                                ->label('Abstract')
+                                ->content(fn ($record): HtmlString => new HtmlString(
+                                    '<div class="whitespace-pre-line text-xs leading-6 text-gray-700">'.e($record->abstract ?: '—').'</div>'
+                                )),
+                            TextInput::make('score')->label('Skor (1–100)')->numeric()->minValue(1)->maxValue(100),
+                            Select::make('recommendation')->label('Rekomendasi')->options([
+                                'accept' => 'Accept',
+                                'minor_revision' => 'Minor Revision',
+                                'major_revision' => 'Major Revision',
+                                'reject' => 'Reject',
+                            ])->required(),
+                            Textarea::make('comments_for_author')->label('Komentar untuk Author')->rows(4),
+                            Textarea::make('comments_for_committee')->label('Komentar untuk Panitia (internal)')->rows(3),
+                        ])
+                        ->fillForm(function ($record): array {
+                            $review = $record->reviewAssignments()
+                                ->where('reviewer_id', auth()->id())
+                                ->where('phase', $record->currentReviewPhase())
+                                ->first()?->review;
 
-                Action::make('changeStatus')
-                    ->label('Ubah Status')
-                    ->icon('heroicon-o-arrow-path')
-                    ->color('gray')
-                    ->visible(fn ($record) => ! ($record->currentReviewPhase() !== null
-                        && $record->reviewAssignments()
-                            ->where('phase', $record->currentReviewPhase())
-                            ->where('status', 'completed')
-                            ->exists()
-                        && ! $record->reviewAssignments()
-                            ->where('phase', $record->currentReviewPhase())
-                            ->where('status', 'pending')
-                            ->exists()))
-                    ->schema([
-                        Select::make('status')->options(self::STATUS_OPTIONS)->required(),
-                    ])
-                    ->fillForm(fn ($record) => ['status' => $record->status])
-                    ->action(function (array $data, $record): void {
-                        $record->changeStatus($data['status']);
+                            return [
+                                'score' => $review?->score,
+                                'recommendation' => $review?->recommendation,
+                                'comments_for_author' => $review?->comments_for_author,
+                                'comments_for_committee' => $review?->comments_for_committee,
+                            ];
+                        })
+                        ->action(function (array $data, $record): void {
+                            $phase = $record->currentReviewPhase();
+                            if (! $phase) {
+                                return;
+                            }
 
-                        Notification::make()->title('Status diperbarui, email dikirim ke author.')->success()->send();
-                    }),
+                            $assignment = $record->reviewAssignments()->firstOrCreate(
+                                ['reviewer_id' => auth()->id(), 'phase' => $phase],
+                                ['assigned_at' => now(), 'status' => 'pending'],
+                            );
+
+                            Review::updateOrCreate(
+                                ['review_assignment_id' => $assignment->id],
+                                [
+                                    'score' => $data['score'] ?? null,
+                                    'recommendation' => $data['recommendation'],
+                                    'comments_for_author' => $data['comments_for_author'] ?? null,
+                                    'comments_for_committee' => $data['comments_for_committee'] ?? null,
+                                    'submitted_at' => now(),
+                                ],
+                            );
+
+                            $assignment->update(['status' => 'completed']);
+
+                            if ($record->status === 'extended_abstract_submitted') {
+                                $record->changeStatus('extended_abstract_under_review');
+                            }
+
+                            Notification::make()->title('Review admin tersimpan. Lanjutkan ke Keputusan Review.')->success()->send();
+                        }),
+                    Action::make('downloadFullPaper')
+                        ->label('Full Paper')
+                        ->icon('heroicon-o-arrow-down-tray')
+                        ->color('gray')
+                        ->visible(fn ($record) => $record->hasFullPaper())
+                        ->url(fn ($record) => $record->fullPaperMedia()?->getUrl())
+                        ->openUrlInNewTab(),
+                    Action::make('changeStatus')
+                        ->label('Ubah Status')
+                        ->icon('heroicon-o-arrow-path')
+                        ->color('gray')
+                        ->visible(fn ($record) => ! ($record->currentReviewPhase() !== null
+                            && $record->reviewAssignments()
+                                ->where('phase', $record->currentReviewPhase())
+                                ->where('status', 'completed')
+                                ->exists()
+                            && ! $record->reviewAssignments()
+                                ->where('phase', $record->currentReviewPhase())
+                                ->where('status', 'pending')
+                                ->exists()))
+                        ->schema([
+                            Select::make('status')->options(self::STATUS_OPTIONS)->required(),
+                        ])
+                        ->fillForm(fn ($record) => ['status' => $record->status])
+                        ->action(function (array $data, $record): void {
+                            $record->changeStatus($data['status']);
+
+                            Notification::make()->title('Status diperbarui, email dikirim ke author.')->success()->send();
+                        }),
+                ])
+                    ->label('Lainnya')
+                    ->icon('heroicon-m-ellipsis-vertical')
+                    ->color('gray')
+                    ->button()
+                    ->hiddenLabel(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

@@ -29,9 +29,6 @@ class Submission extends Model implements HasMedia
 
     public const STATUSES = [
         'extended_abstract_draft',
-        'abstract_submitted',
-        'abstract_under_review',
-        'abstract_approved',
         'extended_abstract_submitted',
         'extended_abstract_under_review',
         'revision_required',
@@ -41,9 +38,6 @@ class Submission extends Model implements HasMedia
 
     public const STATUS_LABELS = [
         'extended_abstract_draft' => 'Draft abstract',
-        'abstract_submitted' => 'Abstract terkirim',
-        'abstract_under_review' => 'Abstract direview',
-        'abstract_approved' => 'Lolos review',
         'extended_abstract_submitted' => 'Abstract terkirim',
         'extended_abstract_under_review' => 'Verifikasi reviewer',
         'revision_required' => 'Perlu revisi',
@@ -67,7 +61,6 @@ class Submission extends Model implements HasMedia
         'submission_number',
         'title',
         'abstract',
-        'abstract_id',
         'keywords',
         'extended_abstract_draft_saved_at',
         'extended_abstract_submitted_at',
@@ -226,8 +219,6 @@ class Submission extends Model implements HasMedia
     {
         return match ($this->status) {
             'extended_abstract_submitted', 'extended_abstract_under_review' => 'extended_abstract',
-            // Status lama tetap dapat dibuka selama masa transisi data.
-            'abstract_under_review' => 'abstract',
             default => null,
         };
     }
@@ -240,8 +231,6 @@ class Submission extends Model implements HasMedia
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ];
 
-        $this->addMediaCollection('paper')->singleFile()->acceptsMimeTypes($mimes);
-        $this->addMediaCollection('revisions')->acceptsMimeTypes($mimes);
         $this->addMediaCollection('camera_ready')->singleFile()->acceptsMimeTypes($mimes);
     }
 

@@ -132,14 +132,14 @@ class AuthorPortalFlowTest extends TestCase
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
-        $submission = $this->submission($edition, $author, 'abstract_submitted');
+        $submission = $this->submission($edition, $author, 'extended_abstract_submitted');
 
         $this->actingAs($author, 'author')
             ->get(route('author.submissions.create'))
             ->assertRedirect(PaperResource::getUrl('view', ['record' => $submission], panel: 'author'));
 
         $this->expectException(QueryException::class);
-        $this->submission($edition, $author, 'abstract_submitted');
+        $this->submission($edition, $author, 'extended_abstract_submitted');
     }
 
     public function test_paid_presenter_registration_includes_seminar_access(): void

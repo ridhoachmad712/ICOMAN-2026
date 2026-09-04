@@ -27,7 +27,7 @@ class ReviewAssignmentsTable
                 TextColumn::make('phase')
                     ->label('Tahap')
                     ->badge()
-                    ->formatStateUsing(fn (string $state) => $state === 'abstract' ? 'Review Abstrak' : 'Verifikasi Extended Abstract')
+                    ->formatStateUsing(fn (string $state) => $state === 'abstract' ? 'Review Abstrak' : 'Review Abstract')
                     ->color(fn (string $state) => $state === 'abstract' ? 'info' : 'primary'),
                 TextColumn::make('reviewer.name')
                     ->label('Reviewer')
@@ -54,7 +54,7 @@ class ReviewAssignmentsTable
                 Action::make('review')
                     ->label('Review')
                     ->icon('heroicon-o-pencil-square')
-                    ->modalHeading('Verifikasi Extended Abstract')
+                    ->modalHeading('Review Abstract')
                     ->visible(fn ($record) => auth()->user()?->id === $record->reviewer_id || (auth()->user()?->isSuperadmin() ?? false))
                     ->schema([
                         Placeholder::make('paper_info')

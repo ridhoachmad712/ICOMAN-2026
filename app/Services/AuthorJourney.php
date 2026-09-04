@@ -170,7 +170,7 @@ class AuthorJourney
 
         $existing = $submissions->first();
 
-        if (in_array($existing->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true)) {
+        if (in_array($existing->status, ['extended_abstract_draft'], true)) {
             return $this->action(
                 'extended', 'Lanjutkan abstract', 'Continue your abstract',
                 'Tulis abstract '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. Anda dapat menyimpan draft dan memeriksa PDF sebelum mengirim ke reviewer.',
@@ -247,7 +247,7 @@ class AuthorJourney
                     $submission->extended_abstract_submitted_at ?? $submission->updated_at,
                     'info', 'heroicon-o-document-check', $route
                 ));
-            } elseif (in_array($submission->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true)) {
+            } elseif (in_array($submission->status, ['extended_abstract_draft'], true)) {
                 $updates->push($this->update(
                     $id ? 'Draft abstract tersedia' : 'Abstract draft available',
                     $id ? 'Lanjutkan penulisan abstract sebelum mengirimkannya ke reviewer.' : 'Continue writing your abstract before submitting it to the reviewer.',

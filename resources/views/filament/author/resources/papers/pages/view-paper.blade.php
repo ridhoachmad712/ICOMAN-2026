@@ -37,7 +37,7 @@
             @include('filament.author.components.journey-timeline', ['steps' => $steps])
         </x-filament::section>
 
-        @if(in_array($record->status, ['extended_abstract_draft', 'abstract_submitted', 'abstract_approved'], true))
+        @if(in_array($record->status, ['extended_abstract_draft'], true))
             <x-filament::section icon="heroicon-o-document-text" icon-color="primary">
                 <x-slot name="heading">{{ $id ? 'Edit submission' : 'Edit submission' }}</x-slot>
                 <x-slot name="description">{{ $id ? 'Judul, topik, keywords, daftar penulis, dan seluruh isi naskah masih dapat diubah sebelum dikirim ke reviewer.' : 'The title, topic, keywords, author list, and all manuscript sections remain editable before reviewer submission.' }}</x-slot>

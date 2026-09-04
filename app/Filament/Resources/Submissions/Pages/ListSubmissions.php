@@ -42,47 +42,54 @@ class ListSubmissions extends ListRecords
         ];
     }
 
+    /**
+     * Tab mengikuti ALUR KERJA, bukan daftar status mentah, dan dibuat tidak
+     * saling tumpang tindih supaya satu paper hanya "menunggu" di satu antrean.
+     * Status lain (draft, perlu revisi) tetap dapat dicari lewat filter Status.
+     */
     public function getTabs(): array
     {
         return [
-            'all' => Tab::make('Semua Submission')
-                ->badge(Submission::count())
-                ->badgeColor('gray'),
-
-            'unassigned' => Tab::make('Belum Ditugaskan')
-                ->badge(Submission::where('status', 'extended_abstract_submitted')->whereDoesntHave('reviewAssignments', fn ($query) => $query->where('phase', 'extended_abstract'))->count())
+            'action' => Tab::make('Perlu Tindakan')
+                ->badge(self::needsActionQuery(Submission::query())->count())
                 ->badgeColor('danger')
-                ->modifyQueryUsing(fn ($query) => $query->where('status', 'extended_abstract_submitted')->whereDoesntHave('reviewAssignments', fn ($reviewQuery) => $reviewQuery->where('phase', 'extended_abstract'))),
-
-            'draft' => Tab::make('Draft Author')
-                ->badge(Submission::where('status', 'extended_abstract_draft')->count())
-                ->badgeColor('gray')
-                ->modifyQueryUsing(fn ($query) => $query->where('status', 'extended_abstract_draft')),
+                ->modifyQueryUsing(fn ($query) => self::needsActionQuery($query)),
 
             'under_review' => Tab::make('Sedang Direview')
                 ->badge(Submission::whereHas('reviewAssignments', fn ($q) => $q->where('status', 'pending'))->count())
                 ->badgeColor('info')
                 ->modifyQueryUsing(fn ($query) => $query->whereHas('reviewAssignments', fn ($q) => $q->where('status', 'pending'))),
 
-            'review_completed' => Tab::make('Review Selesai')
-                ->badge(Submission::whereHas('reviewAssignments', fn ($q) => $q->where('status', 'completed'))->count())
-                ->badgeColor('primary')
-                ->modifyQueryUsing(fn ($query) => $query->whereHas('reviewAssignments', fn ($q) => $q->where('status', 'completed'))),
-
-            'extended' => Tab::make('Verifikasi Extended Abstract')
-                ->badge(Submission::whereIn('status', ['extended_abstract_submitted', 'extended_abstract_under_review'])->count())
-                ->badgeColor('info')
-                ->modifyQueryUsing(fn ($query) => $query->whereIn('status', ['extended_abstract_submitted', 'extended_abstract_under_review'])),
-
-            'accepted' => Tab::make('Accepted (LoA)')
+            'accepted' => Tab::make('Accepted')
                 ->badge(Submission::where('status', 'accepted')->count())
                 ->badgeColor('success')
                 ->modifyQueryUsing(fn ($query) => $query->where('status', 'accepted')),
 
             'rejected' => Tab::make('Ditolak')
                 ->badge(Submission::where('status', 'rejected')->count())
-                ->badgeColor('danger')
+                ->badgeColor('gray')
                 ->modifyQueryUsing(fn ($query) => $query->where('status', 'rejected')),
+
+            'all' => Tab::make('Semua')
+                ->badge(Submission::count())
+                ->badgeColor('gray'),
         ];
+    }
+
+    /** Paper yang bolanya ada di panitia: belum di-assign, menunggu keputusan, atau LOA belum terbit. */
+    private static function needsActionQuery($query)
+    {
+        return $query->where(function ($outer) {
+            $outer
+                // Sudah dikirim author, reviewer belum ditugaskan.
+                ->where(fn ($q) => $q->where('status', 'extended_abstract_submitted')
+                    ->whereDoesntHave('reviewAssignments', fn ($ra) => $ra->where('phase', 'extended_abstract')))
+                // Semua reviewer selesai menilai, menunggu keputusan panitia.
+                ->orWhere(fn ($q) => $q->whereIn('status', ['extended_abstract_submitted', 'extended_abstract_under_review'])
+                    ->whereHas('reviewAssignments', fn ($ra) => $ra->where('status', 'completed'))
+                    ->whereDoesntHave('reviewAssignments', fn ($ra) => $ra->where('status', 'pending')))
+                // Sudah accepted tetapi LOA belum terbit (mis. data lama).
+                ->orWhere(fn ($q) => $q->where('status', 'accepted')->whereNull('loa_issued_at'));
+        });
     }
 }
