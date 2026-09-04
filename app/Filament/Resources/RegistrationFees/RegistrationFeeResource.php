@@ -16,9 +16,13 @@ use Filament\Tables\Table;
 
 class RegistrationFeeResource extends Resource
 {
+    /**
+     * Tarif menentukan nominal yang ditagihkan ke peserta, jadi hanya superadmin
+     * yang boleh membukanya — admin lain cukup melihat invoice di Registrations.
+     */
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin']) ?? false;
+        return auth()->user()?->isSuperadmin() ?? false;
     }
 
     protected static ?string $model = RegistrationFee::class;
