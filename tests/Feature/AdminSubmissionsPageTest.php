@@ -109,4 +109,23 @@ class AdminSubmissionsPageTest extends TestCase
             ->assertCanSeeTableRecords([$wanted])
             ->assertCanNotSeeTableRecords([$other]);
     }
+
+    /**
+     * "Koreksi Status" hanya menawarkan koreksi. 'accepted' sengaja TIDAK ada di sini
+     * karena menerima paper harus lewat "Keputusan Review" agar LOA terbit; memilihnya
+     * dari dropdown generik akan diam-diam menerbitkan LOA + mengirim email.
+     */
+    public function test_manual_status_correction_excludes_accepted_and_machine_states(): void
+    {
+        $reflection = new \ReflectionClass(\App\Filament\Resources\Submissions\Tables\SubmissionsTable::class);
+        $options = $reflection->getConstant('MANUAL_STATUS_OPTIONS');
+
+        $this->assertSame(
+            ['extended_abstract_submitted', 'revision_required', 'rejected'],
+            array_keys($options),
+        );
+        $this->assertArrayNotHasKey('accepted', $options);
+        $this->assertArrayNotHasKey('extended_abstract_draft', $options);
+        $this->assertArrayNotHasKey('extended_abstract_under_review', $options);
+    }
 }

@@ -34,6 +34,19 @@ class SubmissionsTable
         'rejected' => 'Tidak Lolos',
     ];
 
+    /**
+     * Opsi untuk KOREKSI manual saja. Status lain sengaja tidak ditawarkan karena
+     * sudah ditulis otomatis oleh alur kerja:
+     * - Draft/Terkirim/Sedang Direview  -> otomatis dari aksi author & "Assign Reviewer".
+     * - Accepted                        -> lewat "Keputusan Review", supaya LOA terbit
+     *                                      dan email dikirim dengan konteks hasil review.
+     */
+    private const MANUAL_STATUS_OPTIONS = [
+        'extended_abstract_submitted' => 'Kembalikan ke antrean review',
+        'revision_required' => 'Minta revisi ke author',
+        'rejected' => 'Tandai tidak lolos',
+    ];
+
     public static function configure(Table $table): Table
     {
         return $table
@@ -308,9 +321,11 @@ class SubmissionsTable
                         ->url(fn ($record) => $record->fullPaperMedia()?->getUrl())
                         ->openUrlInNewTab(),
                     Action::make('changeStatus')
-                        ->label('Ubah Status')
+                        ->label('Koreksi Status')
                         ->icon('heroicon-o-arrow-path')
                         ->color('gray')
+                        ->modalHeading('Koreksi Status Paper')
+                        ->modalDescription('Status berubah otomatis lewat "Assign Reviewer" dan "Keputusan Review". Gunakan ini hanya untuk memperbaiki kekeliruan — author menerima email setiap kali status berubah.')
                         ->visible(fn ($record) => ! ($record->currentReviewPhase() !== null
                             && $record->reviewAssignments()
                                 ->where('phase', $record->currentReviewPhase())
@@ -321,9 +336,13 @@ class SubmissionsTable
                                 ->where('status', 'pending')
                                 ->exists()))
                         ->schema([
-                            Select::make('status')->options(self::STATUS_OPTIONS)->required(),
+                            Select::make('status')
+                                ->label('Ubah status menjadi')
+                                ->options(self::MANUAL_STATUS_OPTIONS)
+                                ->helperText('Untuk menerima paper, gunakan "Keputusan Review" agar LOA ikut terbit.')
+                                ->native(false)
+                                ->required(),
                         ])
-                        ->fillForm(fn ($record) => ['status' => $record->status])
                         ->action(function (array $data, $record): void {
                             $record->changeStatus($data['status']);
 
