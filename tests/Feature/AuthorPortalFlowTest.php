@@ -451,6 +451,58 @@ class AuthorPortalFlowTest extends TestCase
             ->assertSee('300.000');
     }
 
+    public function test_checkout_auto_creates_a_pending_registration_from_category_without_a_form(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('participant', 'student_s1');
+        $fee = $this->fee($edition, 'participant', 'student_s1', 450000);
+
+        // Tanpa mengisi form apa pun: checkout membuat invoice dari kategori.
+        $this->actingAs($author, 'author')->get(route('author.registration.checkout'))->assertRedirect();
+
+        $this->assertDatabaseHas('registrations', [
+            'author_id' => $author->id,
+            'registration_fee_id' => $fee->id,
+            'status' => 'pending',
+        ]);
+        $this->assertSame(450000.0, (float) Registration::firstOrFail()->amount);
+
+        // Idempotent: checkout kedua tidak menduplikasi.
+        $this->actingAs($author, 'author')->get(route('author.registration.checkout'))->assertRedirect();
+        $this->assertSame(1, Registration::where('author_id', $author->id)->count());
+    }
+
+    public function test_presenter_can_choose_sinta3_on_the_payment_page(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter', 'general');
+        $submission = $this->submission($edition, $author, 'accepted');
+        $submission->forceFill(['loa_issued_at' => now(), 'sinta3_offered' => true])->save();
+        $fee = $this->fee($edition, 'presenter', 'general', 750000);
+
+        $settings = app(\App\Settings\SiteSettings::class);
+        $settings->sinta3_fee = 300000;
+        $settings->save();
+
+        // Checkout membuat invoice presenter dengan harga dasar (reguler).
+        $this->actingAs($author, 'author')->get(route('author.registration.checkout'))->assertRedirect();
+        $registration = $author->registrations()->latest()->firstOrFail();
+        $this->assertSame(750000.0, (float) $registration->amount);
+
+        // Pilih SINTA 3 di halaman pembayaran → total +300.000.
+        $this->actingAs($author, 'author')
+            ->patch(route('author.registration.journal', $registration), ['journal_target' => 'sinta3'])
+            ->assertRedirect();
+        $this->assertSame(1050000.0, (float) $registration->refresh()->amount);
+        $this->assertSame('sinta3', $submission->refresh()->journal_target);
+
+        // Kembali ke reguler → total kembali ke harga dasar.
+        $this->actingAs($author, 'author')
+            ->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular'])
+            ->assertRedirect();
+        $this->assertSame(750000.0, (float) $registration->refresh()->amount);
+    }
+
     public function test_recent_updates_are_targeted_to_review_and_payment_status(): void
     {
         app()->setLocale('id');

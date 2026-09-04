@@ -71,9 +71,11 @@ Route::middleware('setlocale')->group(function () {
             Route::get('submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaper'])->name('submissions.full-paper.download');
 
             // Registrasi & pembayaran
+            Route::get('registration/checkout', [RegistrationController::class, 'checkout'])->middleware('throttle:20,1')->name('registration.checkout');
             Route::get('registration/create', [RegistrationController::class, 'create'])->name('registration.create');
             Route::post('registration', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('registration.store');
             Route::get('registration/{registration}', [RegistrationController::class, 'show'])->name('registration.show');
+            Route::patch('registration/{registration}/journal', [RegistrationController::class, 'changeJournalTarget'])->name('registration.journal');
             Route::post('registration/{registration}/proof', [RegistrationController::class, 'uploadProof'])->middleware('throttle:6,1')->name('registration.proof');
             Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
             Route::patch('registration/{registration}/payment-method', [RegistrationController::class, 'changePaymentMethod'])->name('registration.payment-method');

@@ -38,10 +38,10 @@ class AuthorJourney
 
         if (! $registration) {
             return $this->action(
-                'registration', 'Daftar sebagai peserta seminar', 'Register as a seminar participant',
-                'Pilih paket peserta, periksa biayanya, lalu tentukan metode pembayaran.',
-                'Choose an attendee package, review the fee, then select a payment method.',
-                RegistrationResource::getUrl('create', panel: 'author'), 'Mulai registrasi', 'Start registration', 25
+                'registration', 'Lanjutkan ke pembayaran', 'Continue to payment',
+                'Invoice registrasi dibuat otomatis sesuai kategori yang Anda pilih saat mendaftar. Lanjutkan untuk memilih metode dan membayar.',
+                'Your registration invoice is created automatically from the category you chose at sign-up. Continue to pick a method and pay.',
+                route('author.registration.checkout'), 'Lanjutkan pembayaran', 'Continue to payment', 40
             );
         }
 
@@ -131,9 +131,9 @@ class AuthorJourney
 
             return $this->action(
                 'payment', 'Bayar registrasi presenter', 'Pay your presenter registration',
-                'LOA sudah terbit. Lakukan pembayaran untuk mengunci slot presentasi dan akses seminar.'.$sintaId,
-                'Your LOA has been issued. Complete the payment to secure your presentation slot and seminar access.'.$sintaEn,
-                RegistrationResource::getUrl('create', ['submission' => $accepted->id], panel: 'author'),
+                'LOA sudah terbit. Invoice dibuat otomatis sesuai kategori Anda — lanjutkan untuk membayar dan mengunci slot presentasi.'.$sintaId,
+                'Your LOA has been issued. The invoice is created automatically from your category — continue to pay and secure your presentation slot.'.$sintaEn,
+                route('author.registration.checkout'),
                 'Bayar sekarang', 'Pay now', 80
             );
         }
