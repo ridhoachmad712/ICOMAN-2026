@@ -126,10 +126,13 @@ class AuthorJourney
                 );
             }
 
+            $sintaId = $accepted->sinta3_offered ? ' Paper Anda direkomendasikan untuk Jurnal SINTA 3 — tersedia opsi penerbitan dengan biaya tambahan Rp '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').' yang dapat Anda pilih saat pembayaran.' : '';
+            $sintaEn = $accepted->sinta3_offered ? ' Your paper is recommended for a SINTA 3 journal — an optional publication upgrade (extra IDR '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').') is available to choose at payment.' : '';
+
             return $this->action(
                 'payment', 'Bayar registrasi presenter', 'Pay your presenter registration',
-                'LOA sudah terbit. Lakukan pembayaran untuk mengunci slot presentasi dan akses seminar.',
-                'Your LOA has been issued. Complete the payment to secure your presentation slot and seminar access.',
+                'LOA sudah terbit. Lakukan pembayaran untuk mengunci slot presentasi dan akses seminar.'.$sintaId,
+                'Your LOA has been issued. Complete the payment to secure your presentation slot and seminar access.'.$sintaEn,
                 RegistrationResource::getUrl('create', ['submission' => $accepted->id], panel: 'author'),
                 'Bayar sekarang', 'Pay now', 80
             );

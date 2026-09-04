@@ -429,6 +429,28 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertNotNull($submission->full_paper_submitted_at);
     }
 
+    public function test_registration_form_shows_sinta3_option_and_additional_fee_when_offered(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('author'));
+
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'accepted');
+        $submission->forceFill(['loa_issued_at' => now(), 'sinta3_offered' => true])->save();
+        $this->fee($edition, 'presenter', 'general', 750000);
+
+        $settings = app(\App\Settings\SiteSettings::class);
+        $settings->sinta3_fee = 300000;
+        $settings->save();
+
+        $this->actingAs($author, 'author');
+
+        Livewire::test(\App\Filament\Author\Resources\Registrations\Pages\CreateRegistration::class)
+            ->assertOk()
+            ->assertSee('SINTA 3')
+            ->assertSee('300.000');
+    }
+
     public function test_recent_updates_are_targeted_to_review_and_payment_status(): void
     {
         app()->setLocale('id');
