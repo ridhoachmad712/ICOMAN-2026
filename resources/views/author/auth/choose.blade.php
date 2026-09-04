@@ -1,11 +1,11 @@
 <x-author-layout :title="app()->getLocale() === 'id' ? 'Pilih Jenis Registrasi' : 'Choose Registration Type'">
     @php
         $isId = app()->getLocale() === 'id';
-        $groups = [
+        $roles = [
             'presenter' => [
                 'icon' => 'document',
                 'title' => 'Presenter',
-                'sub' => $isId ? 'Pemakalah — kirim abstrak & presentasi' : 'Author — submit an abstract & present',
+                'sub' => $isId ? 'Kirim abstrak & presentasikan penelitian Anda' : 'Submit an abstract & present your research',
             ],
             'non_presenter' => [
                 'icon' => 'users',
@@ -13,13 +13,9 @@
                 'sub' => $isId ? 'Ikuti seminar tanpa mengirim paper' : 'Join the seminar without submitting a paper',
             ],
         ];
-        $cats = [
-            'student_s1' => $isId ? 'Mahasiswa S1' : 'Undergraduate (S1)',
-            'general' => $isId ? 'Dosen / Umum' : 'Lecturer / General',
-        ];
     @endphp
 
-    <div class="mx-auto max-w-2xl">
+    <div class="mx-auto max-w-xl">
         <div class="card p-6 sm:p-8">
             {{-- Header --}}
             <div class="mb-7 text-center">
@@ -30,43 +26,28 @@
                     {{ $isId ? 'Pilih Jenis Registrasi' : 'Choose Registration Type' }}
                 </h1>
                 <p class="mx-auto mt-1.5 max-w-md text-sm leading-relaxed text-slate-500">
-                    {{ $isId ? 'Pilih peran dan kategori Anda untuk melanjutkan ke pendaftaran akun.' : 'Select your role and category to continue to account registration.' }}
+                    {{ $isId ? 'Pilih peran Anda untuk melanjutkan. Kategori peserta dipilih pada langkah berikutnya.' : 'Choose your role to continue. Your participant category is selected in the next step.' }}
                 </p>
             </div>
 
-            <div class="space-y-6">
-                @foreach($groups as $role => $group)
-                    <div>
-                        <div class="mb-3 flex items-center gap-3">
-                            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--brand)]/10 text-[var(--brand)]">
-                                <x-ui-icon :name="$group['icon']" class="h-5 w-5" />
-                            </span>
-                            <div>
-                                <h2 class="text-sm font-bold text-slate-900">{{ $group['title'] }}</h2>
-                                <p class="text-xs text-slate-500">{{ $group['sub'] }}</p>
-                            </div>
-                        </div>
-                        <div class="grid gap-3 sm:grid-cols-2">
-                            @foreach($cats as $catKey => $catLabel)
-                                <a href="{{ route('author.register.start', ['role' => $role, 'category' => $catKey]) }}"
-                                   class="group flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 transition hover:border-[var(--brand)] hover:bg-[var(--brand)]/5">
-                                    <span class="text-sm font-semibold text-slate-800 group-hover:text-[var(--brand-2)]">{{ $catLabel }}</span>
-                                    <x-ui-icon name="arrow-right" class="h-4 w-4 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[var(--brand)]" />
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
+            <div class="grid gap-4">
+                @foreach($roles as $role => $meta)
+                    <a href="{{ route('author.register.start', ['role' => $role]) }}"
+                       class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 transition hover:border-[var(--brand)] hover:bg-[var(--brand)]/5">
+                        <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                            <x-ui-icon :name="$meta['icon']" class="h-6 w-6" />
+                        </span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-base font-bold text-slate-900 group-hover:text-[var(--brand-2)]">{{ $meta['title'] }}</span>
+                            <span class="mt-0.5 block text-sm leading-relaxed text-slate-500">{{ $meta['sub'] }}</span>
+                        </span>
+                        <x-ui-icon name="arrow-right" class="h-5 w-5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-[var(--brand)]" />
+                    </a>
                 @endforeach
             </div>
 
-            {{-- S1 note --}}
-            <div class="mt-6 flex items-start gap-2.5 rounded-lg bg-slate-50 px-4 py-3 text-xs leading-relaxed text-slate-500">
-                <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-slate-400" />
-                <span>{{ $isId ? 'Opsi Mahasiswa hanya berlaku untuk program S1. Mahasiswa S2/S3 silakan memilih Dosen / Umum.' : 'The student option applies to undergraduate (S1) programs only. Master’s (S2) and doctoral (S3) students should choose Lecturer / General.' }}</span>
-            </div>
-
             {{-- Login switch --}}
-            <p class="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
+            <p class="mt-7 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
                 {{ __('author.have_account') }}
                 <a href="{{ route('filament.author.auth.login') }}" class="ml-1 font-semibold text-[var(--brand)] hover:underline">{{ __('author.login') }} →</a>
             </p>

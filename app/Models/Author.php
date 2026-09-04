@@ -22,6 +22,7 @@ class Author extends Authenticatable implements FilamentUser
     public const CATEGORIES = [
         'student_s1' => 'Mahasiswa S1',
         'general' => 'Dosen / Umum',
+        'international' => 'International',
     ];
 
     protected $fillable = [
@@ -82,7 +83,9 @@ class Author extends Authenticatable implements FilamentUser
     /** Kategori efektif untuk filter tarif (default 'general'). */
     public function feeCategory(): string
     {
-        return $this->registrant_category === 'student_s1' ? 'student_s1' : 'general';
+        return array_key_exists((string) $this->registrant_category, self::CATEGORIES)
+            ? $this->registrant_category
+            : 'general';
     }
 
     public function registrantCategoryLabel(): string

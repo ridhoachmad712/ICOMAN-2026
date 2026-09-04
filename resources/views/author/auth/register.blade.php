@@ -3,9 +3,8 @@
         $isId = app()->getLocale() === 'id';
         $input = 'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 transition focus:border-[var(--brand)] focus:outline-none focus:ring-2 focus:ring-[var(--brand)]/20';
         $label = 'mb-1.5 block text-sm font-medium text-slate-700';
-        // $role & $category disediakan controller (sudah tervalidasi).
+        // $role disediakan controller (sudah tervalidasi). Kategori dipilih via dropdown.
         $roleLabel = $role === 'presenter' ? 'Presenter' : ($isId ? 'Peserta Seminar' : 'Seminar Attendee');
-        $catLabel = $category === 'student_s1' ? ($isId ? 'Mahasiswa S1' : 'Undergraduate (S1)') : ($isId ? 'Dosen / Umum' : 'Lecturer / General');
     @endphp
 
     <div class="mx-auto max-w-lg">
@@ -27,7 +26,7 @@
             <div class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand)]/5 px-4 py-3">
                 <div class="min-w-0">
                     <span class="block text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)]">{{ $isId ? 'Jenis registrasi' : 'Registration type' }}</span>
-                    <span class="mt-0.5 block truncate text-sm font-semibold text-slate-900">{{ $roleLabel }} · {{ $catLabel }}</span>
+                    <span class="mt-0.5 block truncate text-sm font-semibold text-slate-900">{{ $roleLabel }}</span>
                 </div>
                 <a href="{{ route('author.register') }}" class="shrink-0 text-xs font-semibold text-[var(--brand)] hover:underline">{{ $isId ? 'Ubah' : 'Change' }}</a>
             </div>
@@ -35,7 +34,19 @@
             <form method="POST" action="{{ route('author.register') }}" class="space-y-5" x-data="{ showPass: false, showPassConf: false }">
                 @csrf
                 <input type="hidden" name="participation_type" value="{{ $role }}">
-                <input type="hidden" name="registrant_category" value="{{ $category }}">
+
+                {{-- Participant category --}}
+                <div>
+                    <label class="{{ $label }}">{{ $isId ? 'Kategori peserta' : 'Participant category' }} <span class="text-[var(--brand)]">*</span></label>
+                    <select name="registrant_category" required class="{{ $input }}">
+                        <option value="" disabled @selected(! old('registrant_category'))>{{ $isId ? 'Pilih kategori…' : 'Select a category…' }}</option>
+                        @foreach(\App\Models\Author::CATEGORIES as $key => $lbl)
+                            <option value="{{ $key }}" @selected(old('registrant_category') === $key)>{{ $lbl }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1.5 text-xs leading-relaxed text-slate-400">{{ $isId ? 'Mahasiswa hanya untuk program S1 (S2/S3 pilih Dosen/Umum). Peserta dari luar negeri pilih International.' : 'Student applies to undergraduate (S1) only (S2/S3 choose Lecturer/General). Overseas participants choose International.' }}</p>
+                    @error('registrant_category')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
+                </div>
 
                 {{-- Full name --}}
                 <div>
@@ -93,12 +104,6 @@
                         </div>
                     </div>
                 </div>
-
-                @if($category === 'student_s1')
-                    <p class="text-xs leading-relaxed text-slate-400">
-                        {{ $isId ? 'Dengan memilih Mahasiswa S1, Anda menyatakan sedang menempuh program sarjana (S1).' : 'By choosing Undergraduate (S1), you confirm you are currently enrolled in an undergraduate program.' }}
-                    </p>
-                @endif
 
                 <button type="submit" class="btn btn-primary w-full">{{ __('author.register') }}</button>
             </form>

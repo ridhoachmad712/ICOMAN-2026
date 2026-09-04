@@ -77,7 +77,7 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('registration') }}" class="btn btn-accent">{{ $isId ? 'Registrasi' : 'Register' }}</a>
+                <a href="{{ route('author.register') }}" class="btn btn-accent">{{ $isId ? 'Registrasi' : 'Register' }}</a>
                 <a href="{{ route('about') }}" class="btn btn-ghost">{{ $isId ? 'Tentang ICOMAN' : 'About ICOMAN' }}</a>
             </div>
         </div>

@@ -60,7 +60,7 @@
                     <span>{{ $isId ? 'Akses seminar dan sertifikat presenter sudah termasuk.' : 'Seminar access and presenter certificate are included.' }}</span>
                 </div>
 
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary mt-7 w-full justify-center py-3 text-center">
+                <a href="{{ route('author.register.start', ['role' => 'presenter']) }}" class="btn btn-primary mt-7 w-full justify-center py-3 text-center">
                     {{ $isId ? 'Daftar sebagai Presenter' : 'Register as Presenter' }} →
                 </a>
             </article>
@@ -100,7 +100,7 @@
                     <span>{{ $isId ? 'Tidak perlu menyiapkan atau mengirim naskah.' : 'No manuscript preparation or submission is required.' }}</span>
                 </div>
 
-                <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost mt-7 w-full justify-center bg-slate-900 py-3 text-center text-white hover:bg-slate-800">
+                <a href="{{ route('author.register.start', ['role' => 'non_presenter']) }}" class="btn btn-ghost mt-7 w-full justify-center bg-slate-900 py-3 text-center text-white hover:bg-slate-800">
                     {{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }} →
                 </a>
             </article>
@@ -155,7 +155,7 @@
                                 @endforelse
                             </div>
                             <div class="border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
-                                <a href="{{ route('author.register', ['role' => $group['role']]) }}" class="inline-flex items-center text-sm font-semibold text-[var(--brand)] hover:underline">
+                                <a href="{{ route('author.register.start', ['role' => $group['role']]) }}" class="inline-flex items-center text-sm font-semibold text-[var(--brand)] hover:underline">
                                     {{ $group['role'] === 'presenter'
                                         ? ($isId ? 'Daftar sebagai Presenter' : 'Register as Presenter')
                                         : ($isId ? 'Daftar sebagai Peserta' : 'Register as Attendee') }} →

@@ -15,24 +15,22 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    /** Langkah 1: pilih jenis registrasi (4 opsi: peran × kategori). */
+    /** Langkah 1: pilih peran (Presenter / Peserta Seminar). Kategori dipilih di form. */
     public function showChoose(): View
     {
         return view('author.auth.choose');
     }
 
-    /** Langkah 2: form isian data, dengan jenis registrasi yang sudah dipilih. */
+    /** Langkah 2: form isian data. Kategori (mahasiswa/dosen/international) dipilih di sini. */
     public function showRegister(Request $request): View|RedirectResponse
     {
         $role = $request->query('role');
-        $category = $request->query('category');
 
-        if (! in_array($role, ['presenter', 'non_presenter'], true)
-            || ! in_array($category, ['student_s1', 'general'], true)) {
+        if (! in_array($role, ['presenter', 'non_presenter'], true)) {
             return redirect()->route('author.register');
         }
 
-        return view('author.auth.register', compact('role', 'category'));
+        return view('author.auth.register', compact('role'));
     }
 
     public function register(Request $request): RedirectResponse
@@ -44,7 +42,7 @@ class AuthController extends Controller
             'country' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],
             'participation_type' => ['required', 'in:presenter,non_presenter'],
-            'registrant_category' => ['required', 'in:student_s1,general'],
+            'registrant_category' => ['required', 'in:student_s1,general,international'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
