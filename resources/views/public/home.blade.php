@@ -155,7 +155,6 @@
                             </div>
                         @endforeach
                     </div>
-                    <a href="{{ route('registration') }}" class="btn btn-primary mt-6 w-full">{{ __('site.register_now') }}</a>
                 </div>
             </div>
         </section>
@@ -292,7 +291,6 @@
                                                     {{ $benefit }}
                                                 </p>
                                             @endif
-                                            <a href="{{ route('registration') }}" class="btn btn-outline mt-5 w-full">{{ __('site.register_now') }}</a>
                                         </div>
                                     @endforeach
                                 </div>
@@ -435,15 +433,4 @@
         </section>
     @endif
 
-    {{-- CTA BAND --}}
-    <section class="bg-[var(--brand-2)]">
-        <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 text-center text-white">
-            <h2 class="text-2xl sm:text-3xl font-bold">{{ __('site.cta_title') }}</h2>
-            <p class="mt-2 text-slate-300">{{ __('site.cta_subtitle') }}</p>
-            <div class="mt-6 flex flex-wrap justify-center gap-3">
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Mulai Abstract' : 'Start Abstract' }}</a>
-                <a href="{{ route('author.register', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Daftar sebagai Peserta' : 'Register as Attendee' }}</a>
-            </div>
-        </div>
-    </section>
 </x-layout>
