@@ -415,8 +415,14 @@ class AuthorPortalFlowTest extends TestCase
         $registration = app(RegistrationProvisioner::class)->ensureFor($author);
         $this->actingAs($author, 'author');
 
+        app()->setLocale('en');
+
         Livewire::test(\App\Filament\Author\Resources\Registrations\Pages\ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertOk()
+            // Ucapan selamat tampil di atas kedua kolom.
+            ->assertSee('Congratulations')
+            ->assertSee('Journal publication option')
+            ->assertSee('Cost Information')
             ->assertSee('SINTA 3')
             ->assertSee('300.000')
             // Total bila memilih SINTA 3: 750.000 + 300.000
