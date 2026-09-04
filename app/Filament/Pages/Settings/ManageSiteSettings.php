@@ -9,6 +9,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -100,6 +101,32 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('bank_name')->label('Nama Bank'),
                         TextInput::make('bank_account_number')->label('No. Rekening'),
                         TextInput::make('bank_account_holder')->label('Atas Nama'),
+                    ]),
+
+                Section::make('Payment Gateway (Midtrans)')
+                    ->description('Kredensial Midtrans. Gunakan key Sandbox (awalan SB-) untuk uji coba, dan key Production hanya setelah akun bisnis disetujui. Kosongkan untuk memakai nilai dari file .env.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('midtrans_merchant_id')
+                            ->label('Merchant ID')
+                            ->placeholder('M852494862'),
+                        Toggle::make('midtrans_is_production')
+                            ->label('Mode Production')
+                            ->helperText('Nonaktif = Sandbox (uji coba). Aktifkan hanya bila memakai key Production dan akun sudah disetujui.')
+                            ->inline(false),
+                        TextInput::make('midtrans_client_key')
+                            ->label('Client Key')
+                            ->placeholder('SB-Mid-client-xxxxxxxx'),
+                        TextInput::make('midtrans_server_key')
+                            ->label('Server Key')
+                            ->helperText('Rahasia — disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
+                            ->password()
+                            ->revealable()
+                            ->autocomplete(false)
+                            // Jangan pernah render kembali nilai rahasia ke form.
+                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
+                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
+                            ->dehydrated(fn (?string $state): bool => filled($state)),
                     ]),
             ]);
     }

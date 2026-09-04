@@ -12,17 +12,47 @@ use Midtrans\Snap;
 
 class MidtransService
 {
+    private string $serverKey;
+
+    private bool $isProduction;
+
     public function __construct()
     {
-        Config::$serverKey = (string) config('services.midtrans.server_key');
-        Config::$isProduction = (bool) config('services.midtrans.is_production');
+        $credentials = $this->resolveCredentials();
+
+        $this->serverKey = $credentials['server_key'];
+        $this->isProduction = $credentials['is_production'];
+
+        Config::$serverKey = $this->serverKey;
+        Config::$isProduction = $this->isProduction;
         Config::$isSanitized = true;
         Config::$is3ds = true;
     }
 
+    /**
+     * Ambil kredensial dari SiteSettings (dikelola admin) lebih dulu;
+     * jika Server Key di admin kosong, jatuh ke nilai .env.
+     */
+    private function resolveCredentials(): array
+    {
+        $settingsKey = rescue(fn () => siteSettings()->midtrans_server_key, null, false);
+
+        if (filled($settingsKey)) {
+            return [
+                'server_key' => (string) $settingsKey,
+                'is_production' => (bool) rescue(fn () => siteSettings()->midtrans_is_production, false, false),
+            ];
+        }
+
+        return [
+            'server_key' => (string) config('services.midtrans.server_key'),
+            'is_production' => (bool) config('services.midtrans.is_production'),
+        ];
+    }
+
     public function isConfigured(): bool
     {
-        return filled(config('services.midtrans.server_key'));
+        return filled($this->serverKey);
     }
 
     /**
@@ -75,7 +105,7 @@ class MidtransService
      */
     public function verifySignature(array $payload): bool
     {
-        $serverKey = (string) config('services.midtrans.server_key');
+        $serverKey = $this->serverKey;
 
         if ($serverKey === '' || blank($payload['signature_key'] ?? null)) {
             return false;

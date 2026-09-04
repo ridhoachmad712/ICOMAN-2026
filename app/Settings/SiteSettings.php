@@ -54,8 +54,23 @@ class SiteSettings extends Settings
     // Biaya tambahan penerbitan jurnal SINTA 3 (ditambahkan ke registrasi presenter).
     public int $sinta3_fee;
 
+    // Payment gateway Midtrans (dikelola dari admin; fallback ke .env bila dikosongkan).
+    public ?string $midtrans_merchant_id;
+
+    public ?string $midtrans_client_key;
+
+    public ?string $midtrans_server_key;   // disimpan ter-enkripsi (lihat encrypted()).
+
+    public bool $midtrans_is_production;
+
     public static function group(): string
     {
         return 'site';
+    }
+
+    /** Server key adalah rahasia: enkripsi saat disimpan di database. */
+    public static function encrypted(): array
+    {
+        return ['midtrans_server_key'];
     }
 }
