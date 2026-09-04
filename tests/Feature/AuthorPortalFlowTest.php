@@ -23,29 +23,58 @@ class AuthorPortalFlowTest extends TestCase
 {
     public function test_registration_choice_is_persisted_on_the_author_account(): void
     {
-        $this->post(route('author.register'), [
-            'name' => 'Seminar Participant',
-            'email' => 'participant@example.test',
-            'participation_type' => 'non_presenter',
-            'registrant_category' => 'student_s1',
-            'password' => 'StrongPassword123!',
-            'password_confirmation' => 'StrongPassword123!',
-        ])->assertRedirect(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('create', panel: 'author'));
+        // Setelah menyetujui T&C (flag sesi tercatat pada langkah terms).
+        $this->withSession(['author_terms_ok' => 'non_presenter'])
+            ->post(route('author.register'), [
+                'name' => 'Seminar Participant',
+                'email' => 'participant@example.test',
+                'participation_type' => 'non_presenter',
+                'registrant_category' => 'student_s1',
+                'password' => 'StrongPassword123!',
+                'password_confirmation' => 'StrongPassword123!',
+            ])->assertRedirect(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('create', panel: 'author'));
 
         $this->assertDatabaseHas('authors', [
             'email' => 'participant@example.test',
             'participation_type' => 'participant',
             'registrant_category' => 'student_s1',
         ]);
+
+        $this->assertNotNull(Author::firstOrFail()->terms_accepted_at);
     }
 
-    public function test_registration_form_requires_choosing_a_type_first(): void
+    public function test_registration_requires_accepting_terms_first(): void
     {
-        // Tanpa role+category → dialihkan ke halaman pemilihan.
+        // Tanpa persetujuan T&C, POST register dialihkan ke halaman terms.
+        $this->post(route('author.register'), [
+            'name' => 'No Terms',
+            'email' => 'noterms@example.test',
+            'participation_type' => 'presenter',
+            'registrant_category' => 'general',
+            'password' => 'StrongPassword123!',
+            'password_confirmation' => 'StrongPassword123!',
+        ])->assertRedirect(route('author.register.terms', ['role' => 'presenter']));
+
+        $this->assertDatabaseMissing('authors', ['email' => 'noterms@example.test']);
+    }
+
+    public function test_registration_form_requires_choosing_a_type_and_terms_first(): void
+    {
+        // Tanpa role → dialihkan ke halaman pemilihan.
         $this->get(route('author.register.start'))->assertRedirect(route('author.register'));
 
-        // Dengan pilihan valid → form tampil.
-        $this->get(route('author.register.start', ['role' => 'presenter', 'category' => 'student_s1']))->assertOk();
+        // Role valid tapi belum setuju T&C → dialihkan ke halaman terms.
+        $this->get(route('author.register.start', ['role' => 'presenter']))
+            ->assertRedirect(route('author.register.terms', ['role' => 'presenter']));
+
+        // Menyetujui T&C mencatat flag sesi lalu ke form.
+        $this->post(route('author.register.accept-terms'), ['role' => 'presenter'])
+            ->assertRedirect(route('author.register.start', ['role' => 'presenter']))
+            ->assertSessionHas('author_terms_ok', 'presenter');
+
+        // Dengan flag sesi → form tampil.
+        $this->withSession(['author_terms_ok' => 'presenter'])
+            ->get(route('author.register.start', ['role' => 'presenter']))->assertOk();
     }
 
     public function test_registration_fee_is_filtered_by_registrant_category(): void

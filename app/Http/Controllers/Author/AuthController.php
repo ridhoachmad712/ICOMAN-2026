@@ -21,13 +21,42 @@ class AuthController extends Controller
         return view('author.auth.choose');
     }
 
-    /** Langkah 2: form isian data. Kategori (mahasiswa/dosen/international) dipilih di sini. */
+    /** Langkah 2: tampilkan Syarat & Ketentuan sesuai peran untuk disetujui. */
+    public function showTerms(Request $request): View|RedirectResponse
+    {
+        $role = $request->query('role');
+
+        if (! in_array($role, ['presenter', 'non_presenter'], true)) {
+            return redirect()->route('author.register');
+        }
+
+        return view('author.auth.terms', compact('role'));
+    }
+
+    /** Tombol "Setuju" pada halaman T&C → catat persetujuan di sesi, lalu ke form. */
+    public function acceptTerms(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'role' => ['required', 'in:presenter,non_presenter'],
+        ]);
+
+        $request->session()->put('author_terms_ok', $data['role']);
+
+        return redirect()->route('author.register.start', ['role' => $data['role']]);
+    }
+
+    /** Langkah 3: form isian data. Kategori (mahasiswa/dosen/international) dipilih di sini. */
     public function showRegister(Request $request): View|RedirectResponse
     {
         $role = $request->query('role');
 
         if (! in_array($role, ['presenter', 'non_presenter'], true)) {
             return redirect()->route('author.register');
+        }
+
+        // Syarat & Ketentuan wajib disetujui lebih dulu.
+        if ($request->session()->get('author_terms_ok') !== $role) {
+            return redirect()->route('author.register.terms', ['role' => $role]);
         }
 
         return view('author.auth.register', compact('role'));
@@ -46,6 +75,11 @@ class AuthController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
+        // Syarat & Ketentuan wajib disetujui (dicatat di sesi pada langkah T&C).
+        if ($request->session()->get('author_terms_ok') !== $data['participation_type']) {
+            return redirect()->route('author.register.terms', ['role' => $data['participation_type']]);
+        }
+
         $author = Author::create([
             'name' => $data['name'],
             'email' => $data['email'],
@@ -54,8 +88,11 @@ class AuthController extends Controller
             'phone' => $data['phone'] ?? null,
             'participation_type' => $data['participation_type'] === 'non_presenter' ? 'participant' : 'presenter',
             'registrant_category' => $data['registrant_category'],
+            'terms_accepted_at' => now(),
             'password' => Hash::make($data['password']),
         ]);
+
+        $request->session()->forget('author_terms_ok');
 
         Auth::guard('author')->login($author);
 

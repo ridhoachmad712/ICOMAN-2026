@@ -46,6 +46,8 @@ Route::middleware('setlocale')->group(function () {
         // Guest (belum login sebagai author)
         Route::middleware('guest:author')->group(function () {
             Route::get('register', [AuthController::class, 'showChoose'])->name('register');
+            Route::get('register/terms', [AuthController::class, 'showTerms'])->name('register.terms');
+            Route::post('register/terms', [AuthController::class, 'acceptTerms'])->name('register.accept-terms');
             Route::get('register/start', [AuthController::class, 'showRegister'])->name('register.start');
             Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
 

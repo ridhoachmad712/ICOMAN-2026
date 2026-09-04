@@ -34,6 +34,7 @@ class Author extends Authenticatable implements FilamentUser
         'phone',
         'participation_type',
         'registrant_category',
+        'terms_accepted_at',
     ];
 
     protected $hidden = [
@@ -45,6 +46,7 @@ class Author extends Authenticatable implements FilamentUser
     {
         return [
             'email_verified_at' => 'datetime',
+            'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

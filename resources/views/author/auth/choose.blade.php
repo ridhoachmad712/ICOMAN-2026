@@ -32,7 +32,7 @@
 
             <div class="grid gap-4">
                 @foreach($roles as $role => $meta)
-                    <a href="{{ route('author.register.start', ['role' => $role]) }}"
+                    <a href="{{ route('author.register.terms', ['role' => $role]) }}"
                        class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 transition hover:border-[var(--brand)] hover:bg-[var(--brand)]/5">
                         <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
                             <x-ui-icon :name="$meta['icon']" class="h-6 w-6" />
