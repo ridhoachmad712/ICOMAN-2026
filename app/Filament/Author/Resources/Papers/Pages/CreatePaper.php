@@ -155,4 +155,13 @@ class CreatePaper extends CreateRecord
     {
         return PaperResource::getUrl('extended-abstract', ['record' => $this->record]);
     }
+
+    /** Resource ini tidak punya halaman index; breadcrumb mengarah ke Dashboard. */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            \App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
+            $this->getTitle(),
+        ];
+    }
 }

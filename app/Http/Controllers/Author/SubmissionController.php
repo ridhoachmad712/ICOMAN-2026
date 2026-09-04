@@ -16,13 +16,6 @@ use Symfony\Component\HttpFoundation\Response;
 
 class SubmissionController extends Controller
 {
-    public function index(): RedirectResponse
-    {
-        abort_unless(Auth::guard('author')->user()->isPresenter(), 403);
-
-        return redirect()->to(PaperResource::getUrl(panel: 'author'));
-    }
-
     public function create(): RedirectResponse
     {
         $author = Auth::guard('author')->user();

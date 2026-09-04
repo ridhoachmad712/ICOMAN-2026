@@ -14,6 +14,7 @@ use App\Models\Submission;
 use App\Models\Topic;
 use App\Models\User;
 use App\Services\AuthorJourney;
+use App\Services\RegistrationProvisioner;
 use App\Settings\SiteSettings;
 use Illuminate\Database\QueryException;
 use Livewire\Livewire;
@@ -32,7 +33,7 @@ class AuthorPortalFlowTest extends TestCase
                 'registrant_category' => 'student_s1',
                 'password' => 'StrongPassword123!',
                 'password_confirmation' => 'StrongPassword123!',
-            ])->assertRedirect(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('create', panel: 'author'));
+            ])->assertRedirect(route('author.registration.checkout'));
 
         $this->assertDatabaseHas('authors', [
             'email' => 'participant@example.test',
@@ -77,95 +78,54 @@ class AuthorPortalFlowTest extends TestCase
             ->get(route('author.register.start', ['role' => 'presenter']))->assertOk();
     }
 
-    public function test_registration_fee_is_filtered_by_registrant_category(): void
+    public function test_auto_invoice_uses_the_fee_of_the_authors_own_category(): void
     {
         $edition = $this->edition();
         $author = $this->author('participant', 'student_s1');
-        $generalFee = $this->fee($edition, 'participant', 'general', 750000);
+        $this->fee($edition, 'participant', 'general', 750000);
         $studentFee = $this->fee($edition, 'participant', 'student_s1', 450000);
 
-        // Mahasiswa S1 tidak boleh memilih tarif Dosen/Umum.
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $generalFee->id,
-            'payment_method' => 'manual',
-        ])->assertSessionHasErrors('registration_fee_id');
-        $this->assertDatabaseCount('registrations', 0);
+        // Tanpa input apa pun: tarif mengikuti kategori author (bukan Dosen/Umum).
+        $registration = app(RegistrationProvisioner::class)->ensureFor($author);
 
-        // Tarif mahasiswa S1 berhasil.
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $studentFee->id,
-            'payment_method' => 'manual',
-        ])->assertRedirect();
-        $this->assertSame((float) 450000, (float) Registration::firstOrFail()->amount);
+        $this->assertNotNull($registration);
+        $this->assertSame($studentFee->id, $registration->registration_fee_id);
+        $this->assertSame(450000.0, (float) $registration->amount);
     }
 
-    public function test_participant_cannot_select_a_presenter_fee(): void
+    public function test_auto_invoice_never_uses_a_fee_from_another_audience(): void
     {
         $edition = $this->edition();
         $author = $this->author('participant');
-        $presenterFee = $this->fee($edition, 'presenter');
+        $this->fee($edition, 'presenter'); // hanya tarif presenter yang tersedia
 
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $presenterFee->id,
-            'payment_method' => 'manual',
-        ])->assertSessionHasErrors('registration_fee_id');
-
+        // Peserta tidak boleh dibuatkan invoice dari tarif presenter.
+        $this->assertNull(app(RegistrationProvisioner::class)->ensureFor($author));
         $this->assertDatabaseCount('registrations', 0);
     }
 
-    public function test_presenter_registration_requires_an_issued_loa(): void
+    public function test_presenter_auto_invoice_requires_an_issued_loa_and_is_not_duplicated(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
-        $fee = $this->fee($edition, 'presenter');
+        $this->fee($edition, 'presenter');
         $submission = $this->submission($edition, $author, 'accepted');
 
-        $payload = [
-            'registration_fee_id' => $fee->id,
-            'submission_id' => $submission->id,
-            'payment_method' => 'manual',
-        ];
+        $provisioner = app(RegistrationProvisioner::class);
 
-        // Accepted tetapi LOA belum terbit → registrasi ditolak.
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), $payload)
-            ->assertSessionHasErrors('submission_id');
+        // Accepted tetapi LOA belum terbit → belum boleh dibuatkan invoice.
+        $this->assertNull($provisioner->ensureFor($author));
         $this->assertDatabaseCount('registrations', 0);
 
-        // LOA diterbitkan → registrasi berhasil dan terhubung ke paper.
+        // LOA terbit → invoice dibuat dan terhubung ke paper.
         $submission->update(['loa_issued_at' => now()]);
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), $payload)->assertRedirect();
-        $registration = Registration::firstOrFail();
+        $registration = $provisioner->ensureFor($author);
+        $this->assertNotNull($registration);
         $this->assertSame($submission->id, $registration->submission_id);
 
-        // Registrasi kedua untuk jalur yang sama tidak boleh terduplikasi.
-        $this->actingAs($author, 'author')
-            ->post(route('author.registration.store'), $payload)
-            ->assertRedirect(route('author.registration.show', $registration));
+        // Idempotent: pemanggilan kedua mengembalikan invoice yang sama.
+        $this->assertSame($registration->id, $provisioner->ensureFor($author)?->id);
         $this->assertDatabaseCount('registrations', 1);
-    }
-
-    public function test_sinta3_option_adds_a_surcharge_to_the_registration(): void
-    {
-        $settings = app(SiteSettings::class);
-        $settings->sinta3_fee = 250_000;
-        $settings->save();
-
-        $edition = $this->edition();
-        $author = $this->author('presenter');
-        $fee = $this->fee($edition, 'presenter'); // price_regular = 500_000
-        $submission = $this->submission($edition, $author, 'accepted');
-        $submission->update(['loa_issued_at' => now(), 'sinta3_offered' => true]);
-
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $fee->id,
-            'submission_id' => $submission->id,
-            'payment_method' => 'manual',
-            'journal_target' => 'sinta3',
-        ])->assertRedirect();
-
-        $registration = Registration::firstOrFail();
-        $this->assertEqualsWithDelta(750_000.0, (float) $registration->amount, 0.01);
-        $this->assertSame('sinta3', $submission->refresh()->journal_target);
     }
 
     public function test_presenter_can_submit_only_one_abstract_per_edition(): void
@@ -182,19 +142,12 @@ class AuthorPortalFlowTest extends TestCase
         $this->submission($edition, $author, 'abstract_submitted');
     }
 
-    public function test_paid_presenter_registration_includes_seminar_access_and_rejects_participant_fee(): void
+    public function test_paid_presenter_registration_includes_seminar_access(): void
     {
         $edition = $this->edition();
         $author = $this->author('presenter');
         $presenterFee = $this->fee($edition, 'presenter');
-        $participantFee = $this->fee($edition, 'participant');
         $submission = $this->submission($edition, $author, 'accepted');
-
-        $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $participantFee->id,
-            'submission_id' => $submission->id,
-            'payment_method' => 'manual',
-        ])->assertSessionHasErrors('registration_fee_id');
 
         Registration::create([
             'edition_id' => $edition->id,
@@ -429,7 +382,7 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertNotNull($submission->full_paper_submitted_at);
     }
 
-    public function test_registration_form_shows_sinta3_option_and_additional_fee_when_offered(): void
+    public function test_payment_page_shows_the_sinta3_option_and_additional_fee_when_offered(): void
     {
         \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('author'));
 
@@ -439,16 +392,19 @@ class AuthorPortalFlowTest extends TestCase
         $submission->forceFill(['loa_issued_at' => now(), 'sinta3_offered' => true])->save();
         $this->fee($edition, 'presenter', 'general', 750000);
 
-        $settings = app(\App\Settings\SiteSettings::class);
+        $settings = app(SiteSettings::class);
         $settings->sinta3_fee = 300000;
         $settings->save();
 
+        $registration = app(RegistrationProvisioner::class)->ensureFor($author);
         $this->actingAs($author, 'author');
 
-        Livewire::test(\App\Filament\Author\Resources\Registrations\Pages\CreateRegistration::class)
+        Livewire::test(\App\Filament\Author\Resources\Registrations\Pages\ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertOk()
             ->assertSee('SINTA 3')
-            ->assertSee('300.000');
+            ->assertSee('300.000')
+            // Total bila memilih SINTA 3: 750.000 + 300.000
+            ->assertSee('1.050.000');
     }
 
     public function test_checkout_auto_creates_a_pending_registration_from_category_without_a_form(): void
@@ -501,6 +457,29 @@ class AuthorPortalFlowTest extends TestCase
             ->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular'])
             ->assertRedirect();
         $this->assertSame(750000.0, (float) $registration->refresh()->amount);
+    }
+
+    public function test_paper_and_invoice_pages_render_and_old_list_urls_are_gone(): void
+    {
+        $edition = $this->edition();
+        $author = $this->author('presenter');
+        $submission = $this->submission($edition, $author, 'accepted');
+        $submission->forceFill(['loa_issued_at' => now()])->save();
+        $this->fee($edition, 'presenter');
+        $registration = app(RegistrationProvisioner::class)->ensureFor($author);
+
+        // Halaman detail tetap render meski resource tidak lagi punya halaman index.
+        $this->actingAs($author, 'author')
+            ->get(PaperResource::getUrl('view', ['record' => $submission], panel: 'author'))
+            ->assertOk();
+        $this->actingAs($author, 'author')
+            ->get(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->assertOk();
+
+        // Halaman daftar & form registrasi lama sudah tidak ada.
+        $this->actingAs($author, 'author')->get('/author/papers')->assertNotFound();
+        $this->actingAs($author, 'author')->get('/author/registrations')->assertNotFound();
+        $this->actingAs($author, 'author')->get('/author/registrations/create')->assertNotFound();
     }
 
     public function test_recent_updates_are_targeted_to_review_and_payment_status(): void

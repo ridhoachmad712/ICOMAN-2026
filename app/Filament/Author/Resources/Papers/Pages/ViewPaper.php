@@ -23,4 +23,13 @@ class ViewPaper extends ViewRecord
             ? 'Lanjutkan penulisan atau pantau verifikasi reviewer.'
             : 'Continue writing or track reviewer verification.';
     }
+
+    /** Resource ini tidak punya halaman index; breadcrumb mengarah ke Dashboard. */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            \App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
+            $this->getTitle(),
+        ];
+    }
 }

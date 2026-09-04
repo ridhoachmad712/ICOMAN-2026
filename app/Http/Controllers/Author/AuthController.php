@@ -104,11 +104,12 @@ class AuthController extends Controller
                     : 'Account registered successfully! Complete the paper details to start writing your extended abstract.');
         }
 
+        // Invoice peserta dibuat otomatis dari kategori yang dipilih saat mendaftar.
         return redirect()
-            ->to(RegistrationResource::getUrl('create', panel: 'author'))
+            ->route('author.registration.checkout')
             ->with('status', app()->getLocale() === 'id'
-                ? 'Akun berhasil didaftarkan! Silakan pilih paket kepesertaan Seminar Internasional.'
-                : 'Account registered successfully! Please choose your International Seminar registration package.');
+                ? 'Akun berhasil didaftarkan! Invoice registrasi Anda sudah dibuat — silakan selesaikan pembayaran.'
+                : 'Account registered successfully! Your registration invoice is ready — please complete the payment.');
     }
 
     // Login & logout author ditangani panel Filament (filament.author.auth.*).

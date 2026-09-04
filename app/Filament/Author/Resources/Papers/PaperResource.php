@@ -4,7 +4,6 @@ namespace App\Filament\Author\Resources\Papers;
 
 use App\Filament\Author\Resources\Papers\Pages\CreatePaper;
 use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
-use App\Filament\Author\Resources\Papers\Pages\ListPapers;
 use App\Filament\Author\Resources\Papers\Pages\ViewPaper;
 use App\Models\Submission;
 use App\Models\Topic;
@@ -19,8 +18,6 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 
 class PaperResource extends Resource
@@ -108,45 +105,6 @@ class PaperResource extends Resource
         ]);
     }
 
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns([
-                TextColumn::make('title')
-                    ->label(app()->getLocale() === 'id' ? 'Paper' : 'Paper')
-                    ->description(fn (Submission $record) => 'Paper #'.str_pad((string) $record->id, 5, '0', STR_PAD_LEFT))
-                    ->searchable()
-                    ->wrap()
-                    ->limit(80),
-                TextColumn::make('status')->badge()->formatStateUsing(fn (string $state) => app()->getLocale() === 'id' ? match ($state) {
-                    'extended_abstract_draft' => 'Draft abstract',
-                    'abstract_submitted' => 'Abstrak terkirim', 'abstract_under_review' => 'Abstrak direview',
-                    'abstract_approved' => 'Lolos review', 'extended_abstract_submitted' => 'Abstract terkirim',
-                    'extended_abstract_under_review' => 'Verifikasi reviewer', 'revision_required' => 'Perlu revisi',
-                    'accepted' => 'Accepted',
-                    'rejected' => 'Tidak lolos', default => ucwords(str_replace('_', ' ', $state)),
-                } : ucwords(str_replace('_', ' ', $state)))
-                    ->color(fn (string $state) => match ($state) {
-                        'accepted' => 'success', 'rejected' => 'danger',
-                        'revision_required' => 'warning',
-                        'extended_abstract_submitted' => 'warning', default => 'info',
-                    }),
-                TextColumn::make('submitted_at')->label(app()->getLocale() === 'id' ? 'Tanggal kirim' : 'Submitted')->date('d M Y')->sortable()->visibleFrom('sm'),
-            ])
-            ->recordUrl(fn (Submission $record) => static::getUrl(
-                // Draft baru langsung ke editor; status lain (termasuk revisi)
-                // ke halaman detail dulu agar author membaca catatan reviewer.
-                $record->status === 'extended_abstract_draft' ? 'extended-abstract' : 'view',
-                ['record' => $record],
-            ))
-            ->defaultSort('submitted_at', 'desc')
-            ->emptyStateIcon('heroicon-o-document-text')
-            ->emptyStateHeading(app()->getLocale() === 'id' ? 'Belum ada abstract' : 'No abstract yet')
-            ->emptyStateDescription(app()->getLocale() === 'id'
-                ? 'Mulai abstract untuk masuk ke proses review. Setiap akun memiliki kuota satu paper per edisi.'
-                : 'Start your abstract to begin review. Each account has a one-paper quota per edition.');
-    }
-
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()
@@ -181,7 +139,6 @@ class PaperResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => ListPapers::route('/'),
             'create' => CreatePaper::route('/create'),
             'view' => ViewPaper::route('/{record}'),
             'extended-abstract' => EditExtendedAbstract::route('/{record}/extended-abstract'),

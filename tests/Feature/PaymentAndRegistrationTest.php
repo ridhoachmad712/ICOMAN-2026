@@ -43,7 +43,7 @@ class PaymentAndRegistrationTest extends TestCase
         Carbon::setTestNow();
     }
 
-    public function test_author_cannot_register_with_fee_from_an_inactive_edition(): void
+    public function test_auto_invoice_ignores_fees_from_an_inactive_edition(): void
     {
         $active = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
         $inactive = Edition::create(['name' => 'ICOMAN 2025', 'is_active' => false]);
@@ -53,7 +53,7 @@ class PaymentAndRegistrationTest extends TestCase
             'password' => 'secret-password',
             'participation_type' => 'participant',
         ]);
-        $fee = RegistrationFee::create([
+        RegistrationFee::create([
             'edition_id' => $inactive->id,
             'category' => ['en' => 'Presenter'],
             'audience' => 'participant',
@@ -61,12 +61,8 @@ class PaymentAndRegistrationTest extends TestCase
             'currency' => 'IDR',
         ]);
 
-        $response = $this->actingAs($author, 'author')->post(route('author.registration.store'), [
-            'registration_fee_id' => $fee->id,
-            'payment_method' => 'manual',
-        ]);
-
-        $response->assertSessionHasErrors('registration_fee_id');
+        // Tarif hanya ada di edisi non-aktif → tidak ada invoice yang dibuat.
+        $this->assertNull(app(\App\Services\RegistrationProvisioner::class)->ensureFor($author));
         $this->assertDatabaseCount('registrations', 0);
         $this->assertTrue($active->is_active);
     }

@@ -2,6 +2,7 @@
 
 namespace App\Filament\Author\Resources\Registrations\Pages;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Resources\Registrations\RegistrationResource;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
@@ -22,5 +23,14 @@ class ViewRegistration extends ViewRecord
         return app()->getLocale() === 'id'
             ? 'Periksa tagihan dan selesaikan pembayaran dari halaman ini.'
             : 'Review the invoice and complete payment from this page.';
+    }
+
+    /** Resource ini tidak punya halaman index; breadcrumb mengarah ke Dashboard. */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            AuthorDashboard::getUrl(panel: 'author') => app()->getLocale() === 'id' ? 'Dashboard' : 'Dashboard',
+            $this->getTitle(),
+        ];
     }
 }

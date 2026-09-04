@@ -61,7 +61,6 @@ Route::middleware('setlocale')->group(function () {
         Route::middleware('auth:author')->group(function () {
             Route::redirect('dashboard', '/author')->name('dashboard');
 
-            Route::get('submissions', [SubmissionController::class, 'index'])->name('submissions.index');
             Route::get('submissions/create', [SubmissionController::class, 'create'])->name('submissions.create');
             Route::get('submissions/{submission}', [SubmissionController::class, 'show'])->name('submissions.show');
             Route::get('submissions/{submission}/loa', [SubmissionController::class, 'loa'])->name('submissions.loa');
@@ -72,8 +71,6 @@ Route::middleware('setlocale')->group(function () {
 
             // Registrasi & pembayaran
             Route::get('registration/checkout', [RegistrationController::class, 'checkout'])->middleware('throttle:20,1')->name('registration.checkout');
-            Route::get('registration/create', [RegistrationController::class, 'create'])->name('registration.create');
-            Route::post('registration', [RegistrationController::class, 'store'])->middleware('throttle:10,1')->name('registration.store');
             Route::get('registration/{registration}', [RegistrationController::class, 'show'])->name('registration.show');
             Route::patch('registration/{registration}/journal', [RegistrationController::class, 'changeJournalTarget'])->name('registration.journal');
             Route::post('registration/{registration}/proof', [RegistrationController::class, 'uploadProof'])->middleware('throttle:6,1')->name('registration.proof');

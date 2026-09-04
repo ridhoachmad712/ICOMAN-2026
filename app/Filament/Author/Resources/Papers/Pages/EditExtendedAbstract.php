@@ -257,4 +257,13 @@ class EditExtendedAbstract extends EditRecord
 
         return $count >= Submission::ABSTRACT_MIN_WORDS && $count <= Submission::ABSTRACT_MAX_WORDS;
     }
+
+    /** Resource ini tidak punya halaman index; breadcrumb mengarah ke Dashboard. */
+    public function getBreadcrumbs(): array
+    {
+        return [
+            \App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
+            $this->getTitle(),
+        ];
+    }
 }

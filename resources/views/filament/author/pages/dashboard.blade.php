@@ -107,7 +107,6 @@
                 <x-filament::section>
                     <x-slot name="heading">{{ $id ? 'Registrasi & pembayaran' : 'Registration & payment' }}</x-slot>
                     <x-slot name="description">{{ $id ? 'Invoice dan status pembayaran terbaru.' : 'Your latest invoices and payment status.' }}</x-slot>
-                    <x-slot name="afterHeader"><x-filament::link href="{{ $registrationResource::getUrl(panel: 'author') }}">{{ $id ? 'Lihat semua' : 'View all' }}</x-filament::link></x-slot>
                     <div class="divide-y divide-gray-200">
                         @forelse($registrations->take(3) as $registration)
                             <a href="{{ $registrationResource::getUrl('view', ['record' => $registration], panel: 'author') }}" class="author-record-row -mx-2 flex flex-col gap-3 px-2 py-4 first:pt-1 last:pb-1 sm:flex-row sm:items-center sm:justify-between">
