@@ -103,6 +103,20 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('bank_account_holder')->label('Atas Nama'),
                     ]),
 
+                Section::make('Biaya Tambahan Publikasi')
+                    ->description('Opsi penerbitan lanjutan (Jurnal SINTA 3) yang dapat dipilih presenter saat membayar. Nominal ini ditambahkan ke total invoice mereka.')
+                    ->schema([
+                        TextInput::make('sinta3_fee')
+                            ->label('Biaya tambahan Jurnal SINTA 3')
+                            ->helperText('Isi 0 bila tidak ada biaya tambahan. Perubahan langsung berlaku untuk invoice berikutnya.')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(1000)
+                            ->prefix('Rp')
+                            ->required()
+                            ->dehydrateStateUsing(fn ($state): int => (int) $state),
+                    ]),
+
                 Section::make('Payment Gateway (Midtrans)')
                     ->description('Kredensial Midtrans. Gunakan key Sandbox (awalan SB-) untuk uji coba, dan key Production hanya setelah akun bisnis disetujui. Kosongkan untuk memakai nilai dari file .env.')
                     ->columns(2)
