@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Submissions\Tables;
 use App\Models\Review;
 use App\Models\Submission;
 use App\Models\User;
+use App\Notifications\LoaIssued;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
@@ -247,6 +249,32 @@ class SubmissionsTable
                         $record->changeStatus($data['status']);
 
                         Notification::make()->title('Keputusan disimpan. Bila Accepted, LOA otomatis terbit & email dikirim ke author.')->success()->send();
+                    }),
+
+                Action::make('issueLoa')
+                    ->label('Terbitkan LOA')
+                    ->icon('heroicon-o-document-check')
+                    ->color('success')
+                    ->visible(fn ($record) => $record->status === 'accepted'
+                        && ! $record->isLoaIssued()
+                        && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
+                    ->modalHeading('Terbitkan Letter of Acceptance')
+                    ->modalDescription('LOA otomatis terbit saat status diubah menjadi Accepted. Tombol ini hanya untuk paper yang sudah Accepted tetapi LOA-nya belum terbit (mis. diterima sebelum fitur otomatis aktif).')
+                    ->schema([
+                        Toggle::make('sinta3_offered')
+                            ->label('Tawarkan penerbitan Jurnal SINTA 3 (biaya tambahan)')
+                            ->helperText('Default mengikuti rekomendasi reviewer; masih bisa diubah di sini.')
+                            ->default(fn ($record) => $record->reviewsRecommendSinta3()),
+                    ])
+                    ->action(function (array $data, $record): void {
+                        $record->update([
+                            'loa_issued_at' => now(),
+                            'sinta3_offered' => (bool) ($data['sinta3_offered'] ?? false),
+                        ]);
+
+                        $record->author?->notify(new LoaIssued($record));
+
+                        Notification::make()->title('LOA diterbitkan & tersedia di akun author.')->success()->send();
                     }),
 
                 Action::make('downloadFullPaper')
