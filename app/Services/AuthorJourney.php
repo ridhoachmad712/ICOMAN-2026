@@ -292,6 +292,10 @@ class AuthorJourney
             ->all();
     }
 
+    /**
+     * Peserta seminar: invoice dibuat otomatis dari kategori, jadi tidak ada lagi
+     * langkah "pilih registrasi". Yang tersisa benar-benar hanya bayar lalu hadir.
+     */
     private function participantTimeline(Author $author, Collection $registrations): array
     {
         $registration = $registrations->first(fn (Registration $item) => $item->status !== 'failed');
@@ -299,12 +303,16 @@ class AuthorJourney
         $waiting = $registration?->status === 'pending_verification';
 
         return [
-            $this->step(1, 'Bikin akun', 'Create account', 'complete', $author->created_at),
-            $this->step(2, 'Pilih registrasi', 'Choose registration', $registration ? 'complete' : 'current', $registration?->created_at, $registration ? null : 'author'),
-            $this->step(3, 'Pembayaran', 'Payment', $paid ? 'complete' : ($registration ? 'current' : 'upcoming'), $registration?->paid_at, $waiting ? 'committee' : ($registration ? 'author' : null)),
+            $this->step(1, 'Pembayaran', 'Payment', $paid ? 'complete' : 'current', $registration?->paid_at, $paid ? null : ($waiting ? 'committee' : 'author')),
+            $this->step(2, 'Siap hadir', 'Ready to attend', $paid ? 'complete' : 'upcoming', $paid ? $registration?->paid_at : null),
         ];
     }
 
+    /**
+     * Presenter: 4 tahap saja. "Accepted" dan "Terbit LOA" dulu dipisah, padahal
+     * sejak LOA terbit otomatis keduanya terjadi pada detik yang sama — bersama
+     * hasil review, ketiganya kini menjadi satu tahap.
+     */
     private function presenterTimeline(Author $author, Collection $submissions, Collection $registrations): array
     {
         /** @var Submission|null $submission */
@@ -328,14 +336,18 @@ class AuthorJourney
         $loaIssued = (bool) $submission?->isLoaIssued();
         $fullPaper = (bool) $submission?->hasFullPaper();
 
+        $reviewState = match (true) {
+            $accepted => 'complete',
+            $rejected => 'failed',
+            $inputDone => 'current',
+            default => 'upcoming',
+        };
+
         return [
-            $this->step(1, 'Bikin akun', 'Create account', 'complete', $author->created_at),
-            $this->step(2, 'Input abstract', 'Enter abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
-            $this->step(3, 'Verifikasi reviewer', 'Reviewer verification', $accepted ? 'complete' : ($rejected ? 'failed' : ($inputDone ? 'current' : 'upcoming')), $accepted || $rejected ? $this->phaseDate($submission, 'extended_abstract') : null, $inputDone && ! $accepted && ! $rejected ? 'reviewer' : null),
-            $this->step(4, 'Accepted', 'Accepted', $accepted ? 'complete' : ($rejected ? 'failed' : 'upcoming'), $accepted ? ($this->phaseDate($submission, 'extended_abstract') ?? $submission->updated_at) : null),
-            $this->step(5, 'Terbit LOA', 'LOA issued', $loaIssued ? 'complete' : ($accepted ? 'current' : 'upcoming'), $submission?->loa_issued_at, $accepted && ! $loaIssued ? 'committee' : null),
-            $this->step(6, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($loaIssued ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $loaIssued && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
-            $this->step(7, 'Kirim full paper', 'Submit full paper', $fullPaper ? 'complete' : ($paidRegistration ? 'current' : 'upcoming'), $submission?->full_paper_submitted_at, $paidRegistration && ! $fullPaper ? 'author' : null),
+            $this->step(1, 'Kirim abstract', 'Submit abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
+            $this->step(2, 'Review & LOA', 'Review & LOA', $reviewState, $accepted ? ($submission?->loa_issued_at ?? $this->phaseDate($submission, 'extended_abstract')) : ($rejected ? $this->phaseDate($submission, 'extended_abstract') : null), $reviewState === 'current' ? 'reviewer' : null),
+            $this->step(3, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($loaIssued ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $loaIssued && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
+            $this->step(4, 'Kirim full paper', 'Submit full paper', $fullPaper ? 'complete' : ($paidRegistration ? 'current' : 'upcoming'), $submission?->full_paper_submitted_at, $paidRegistration && ! $fullPaper ? 'author' : null),
         ];
     }
 

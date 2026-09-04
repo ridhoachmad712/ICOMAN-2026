@@ -14,8 +14,7 @@
             </span>
 
             <span class="min-w-0 flex-1">
-                <span class="block text-xs text-gray-500">{{ $id ? 'Tahap' : 'Step' }} {{ $step['number'] }}</span>
-                <span class="block text-sm font-medium {{ $step['state'] === 'current' ? 'text-primary-700' : ($step['state'] === 'failed' ? 'text-danger-700' : ($step['state'] === 'upcoming' ? 'text-gray-500' : 'text-gray-900')) }}">
+                <span class="block text-sm font-semibold {{ $step['state'] === 'current' ? 'text-primary-700' : ($step['state'] === 'failed' ? 'text-danger-700' : ($step['state'] === 'upcoming' ? 'text-gray-500' : 'text-gray-900')) }}">
                     {{ $step['label'] }}
                 </span>
 

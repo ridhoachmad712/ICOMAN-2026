@@ -269,7 +269,7 @@ class AuthorPortalFlowTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_empty_author_dashboard_shows_the_presenter_journey_with_loa_and_payment(): void
+    public function test_empty_author_dashboard_shows_the_condensed_presenter_journey(): void
     {
         $this->edition();
         $author = $this->author('presenter');
@@ -277,14 +277,13 @@ class AuthorPortalFlowTest extends TestCase
         $this->actingAs($author, 'author')
             ->get(\App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author'))
             ->assertOk()
-            ->assertSee('Create account')
-            ->assertSee('Enter abstract')
-            ->assertSee('Reviewer verification')
-            ->assertSee('Accepted')
-            ->assertSee('LOA issued')
+            // 4 tahap ringkas; "Create account" sengaja tidak lagi ditampilkan.
+            ->assertSee('Submit abstract')
+            ->assertSee('Review &amp; LOA', false)
             ->assertSee('Payment')
-            ->assertDontSee('Abstract review')
-            ->assertDontSee('Review passed');
+            ->assertSee('Submit full paper')
+            ->assertDontSee('Create account')
+            ->assertDontSee('Reviewer verification');
     }
 
     public function test_presenter_timeline_reaches_reviewer_after_submission(): void
@@ -309,20 +308,20 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->assertSame('extended', $action['key']);
         $this->assertSame('author', $action['actor']['key']);
-        $this->assertCount(7, $timeline);
-        $this->assertSame('Kirim full paper', $timeline[6]['label']);
-        $this->assertSame('upcoming', $timeline[6]['state']);
-        $this->assertSame('Input abstract', $timeline[1]['label']);
-        $this->assertSame('current', $timeline[1]['state']);
-        $this->assertSame('Verifikasi reviewer', $timeline[2]['label']);
-        $this->assertSame('upcoming', $timeline[2]['state']);
+        // Timeline presenter diringkas jadi 4 tahap (tanpa "bikin akun",
+        // dan Accepted + Terbit LOA dilebur ke tahap review).
+        $this->assertCount(4, $timeline);
+        $this->assertSame(['Kirim abstract', 'Review & LOA', 'Pembayaran', 'Kirim full paper'], array_column($timeline, 'label'));
+        $this->assertSame('current', $timeline[0]['state']);
+        $this->assertSame('upcoming', $timeline[1]['state']);
+        $this->assertSame('upcoming', $timeline[3]['state']);
         $this->assertFalse($journey->shouldShowPayments($author, $submissions, $registrations));
 
         $submission->update(['status' => 'extended_abstract_submitted', 'extended_abstract_submitted_at' => now()]);
         $timeline = $journey->timeline($author, collect([$submission->refresh()]), $registrations);
-        $this->assertSame('complete', $timeline[1]['state']);
-        $this->assertSame('current', $timeline[2]['state']);
-        $this->assertSame('reviewer', $timeline[2]['actor']['key']);
+        $this->assertSame('complete', $timeline[0]['state']);
+        $this->assertSame('current', $timeline[1]['state']);
+        $this->assertSame('reviewer', $timeline[1]['actor']['key']);
     }
 
     public function test_accepting_a_submission_auto_issues_loa_and_reviewer_drives_sinta3_offer(): void
@@ -566,7 +565,8 @@ class AuthorPortalFlowTest extends TestCase
         $timeline = $journey->timeline($author, collect([$submission]), collect());
         $this->assertSame('revision', $action['key']);
         $this->assertSame('author', $action['actor']['key']);
-        $this->assertSame('current', $timeline[1]['state']);
+        // Saat revisi diminta, tahap "Kirim abstract" aktif lagi.
+        $this->assertSame('current', $timeline[0]['state']);
     }
 
     public function test_resubmitting_a_revision_resets_reviewers_and_returns_to_review(): void
