@@ -91,6 +91,22 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertNotNull($registration);
         $this->assertSame($studentFee->id, $registration->registration_fee_id);
         $this->assertSame(450000.0, (float) $registration->amount);
+        // Semua pembayaran kini lewat Midtrans.
+        $this->assertSame('gateway', $registration->payment_method);
+    }
+
+    /** Jalur transfer manual sudah dihapus — routenya tidak boleh ada lagi. */
+    public function test_manual_payment_routes_no_longer_exist(): void
+    {
+        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+            ->map(fn ($route) => $route->getName())
+            ->filter()
+            ->all();
+
+        $this->assertNotContains('author.registration.proof', $routes);
+        $this->assertNotContains('author.registration.payment-method', $routes);
+        // Pembayaran via Midtrans tetap ada.
+        $this->assertContains('author.registration.pay', $routes);
     }
 
     public function test_auto_invoice_never_uses_a_fee_from_another_audience(): void

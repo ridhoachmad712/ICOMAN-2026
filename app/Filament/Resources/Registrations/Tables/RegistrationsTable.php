@@ -54,13 +54,15 @@ class RegistrationsTable
                     ->openUrlInNewTab()
                     ->visible(fn (Registration $record) => (bool) $record->getFirstMediaUrl('payment_proof')),
 
+                // Jaring pengaman: bila notifikasi Midtrans gagal masuk (webhook/queue
+                // bermasalah) admin tetap bisa menandai invoice yang sudah dibayar.
                 Action::make('verify')
-                    ->label('Verifikasi')
+                    ->label('Tandai Lunas')
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->modalDescription('Tandai pembayaran manual ini sebagai LUNAS?')
-                    ->visible(fn (Registration $record) => $record->payment_method === 'manual' && $record->status !== 'paid')
+                    ->modalDescription('Tandai invoice ini LUNAS secara manual? Gunakan hanya bila pembayaran sudah dipastikan diterima tetapi status belum berubah otomatis.')
+                    ->visible(fn (Registration $record) => $record->status !== 'paid')
                     ->action(function (Registration $record): void {
                         $record->update(['status' => 'paid', 'paid_at' => now()]);
                         $record->payments()->create([
@@ -77,7 +79,7 @@ class RegistrationsTable
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn (Registration $record) => $record->payment_method === 'manual' && ! in_array($record->status, ['paid', 'failed'], true))
+                    ->visible(fn (Registration $record) => ! in_array($record->status, ['paid', 'failed'], true))
                     ->action(function (Registration $record): void {
                         $record->update(['status' => 'failed']);
                         $record->payments()->create([

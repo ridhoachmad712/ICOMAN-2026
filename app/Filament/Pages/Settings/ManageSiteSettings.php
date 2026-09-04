@@ -94,15 +94,6 @@ class ManageSiteSettings extends SettingsPage
                             ->rows(2),
                     ]),
 
-                Section::make('Rekening Pembayaran Manual')
-                    ->description('Ditampilkan ke peserta yang memilih transfer manual.')
-                    ->columns(3)
-                    ->schema([
-                        TextInput::make('bank_name')->label('Nama Bank'),
-                        TextInput::make('bank_account_number')->label('No. Rekening'),
-                        TextInput::make('bank_account_holder')->label('Atas Nama'),
-                    ]),
-
                 Section::make('Biaya Tambahan Publikasi')
                     ->description('Opsi penerbitan lanjutan (Jurnal SINTA 3) yang dapat dipilih presenter saat membayar. Nominal ini ditambahkan ke total invoice mereka.')
                     ->schema([

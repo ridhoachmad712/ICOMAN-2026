@@ -76,57 +76,13 @@ class RegistrationController extends Controller
             : 'Journal choice updated and your total has been adjusted.');
     }
 
-    public function uploadProof(Request $request, Registration $registration): RedirectResponse
-    {
-        $this->authorizeOwner($registration);
-
-        abort_unless($registration->payment_method === 'manual', 403);
-        abort_if($registration->status === 'paid', 403);
-
-        $request->validate([
-            'proof' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:5120'],
-        ]);
-
-        $registration->clearMediaCollection('payment_proof');
-        $registration->addMediaFromRequest('proof')->toMediaCollection('payment_proof');
-
-        $registration->update(['status' => 'pending_verification']);
-
-        $payment = $registration->payments()->where('method', 'manual')->where('status', 'initiated')->latest()->first();
-        $payment
-            ? $payment->update(['amount' => $registration->amount])
-            : $registration->payments()->create(['method' => 'manual', 'amount' => $registration->amount, 'status' => 'initiated']);
-
-        return back()->with('status', __('Bukti transfer terunggah. Menunggu verifikasi admin.'));
-    }
-
     public function payGateway(Registration $registration): RedirectResponse
     {
         $this->authorizeOwner($registration);
 
         abort_if($registration->status === 'paid', 403);
-        abort_unless($registration->payment_method === 'gateway', 403);
 
         return $this->startGateway($registration);
-    }
-
-    public function changePaymentMethod(Request $request, Registration $registration): RedirectResponse
-    {
-        $this->authorizeOwner($registration);
-        abort_unless(in_array($registration->status, ['pending', 'failed'], true), 403);
-
-        $data = $request->validate(['payment_method' => ['required', 'in:manual,gateway']]);
-
-        $registration->update([
-            'payment_method' => $data['payment_method'],
-            'status' => 'pending',
-            'gateway_transaction_id' => null,
-            'gateway_payload' => null,
-        ]);
-
-        return back()->with('status', app()->getLocale() === 'id'
-            ? 'Metode pembayaran berhasil diubah.'
-            : 'Payment method updated successfully.');
     }
 
     private function startGateway(Registration $registration): RedirectResponse
@@ -136,7 +92,7 @@ class RegistrationController extends Controller
         if (! $midtrans->isConfigured()) {
             return redirect()
                 ->route('author.registration.show', $registration)
-                ->with('error', __('Payment gateway belum dikonfigurasi. Silakan pilih transfer manual atau hubungi panitia.'));
+                ->with('error', __('Pembayaran online belum dapat digunakan saat ini. Silakan coba beberapa saat lagi atau hubungi panitia.'));
         }
 
         try {
@@ -146,7 +102,7 @@ class RegistrationController extends Controller
 
             return redirect()
                 ->route('author.registration.show', $registration)
-                ->with('error', __('Gagal memulai pembayaran gateway. Coba lagi atau gunakan transfer manual.'));
+                ->with('error', __('Gagal memulai pembayaran. Silakan coba lagi; bila tetap gagal, hubungi panitia.'));
         }
 
         return redirect()->away($url);

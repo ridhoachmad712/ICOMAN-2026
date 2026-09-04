@@ -73,9 +73,7 @@ Route::middleware('setlocale')->group(function () {
             Route::get('registration/checkout', [RegistrationController::class, 'checkout'])->middleware('throttle:20,1')->name('registration.checkout');
             Route::get('registration/{registration}', [RegistrationController::class, 'show'])->name('registration.show');
             Route::patch('registration/{registration}/journal', [RegistrationController::class, 'changeJournalTarget'])->name('registration.journal');
-            Route::post('registration/{registration}/proof', [RegistrationController::class, 'uploadProof'])->middleware('throttle:6,1')->name('registration.proof');
             Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
-            Route::patch('registration/{registration}/payment-method', [RegistrationController::class, 'changePaymentMethod'])->name('registration.payment-method');
         });
     });
 });

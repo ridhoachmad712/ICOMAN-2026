@@ -72,7 +72,8 @@ class RegistrationProvisioner
             'author_id' => $author->id,
             'registration_fee_id' => $fee->id,
             'submission_id' => $submission?->id,
-            'payment_method' => 'manual',
+            // Semua pembayaran melalui Midtrans.
+            'payment_method' => 'gateway',
             'amount' => (float) $fee->currentPrice(),
             'status' => 'pending',
         ]);
