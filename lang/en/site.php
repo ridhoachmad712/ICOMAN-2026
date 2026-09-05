@@ -45,9 +45,6 @@ return [
         'reviewer' => 'Reviewers',
     ],
 
-    'speakers_count' => 'Speakers',
-    'topics_count' => 'Topics',
-    'countries_count' => 'Countries',
     'next_deadline' => 'Next deadline',
     'publication_indexing' => 'Publication & Indexing',
     'view_topics' => 'See all topics',

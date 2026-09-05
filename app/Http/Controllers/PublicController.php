@@ -43,11 +43,6 @@ class PublicController extends Controller
             'faqs' => Faq::where('edition_id', $editionId)->orWhereNull('edition_id')->orderBy('order')->limit(5)->get(),
             'aboutPage' => $this->publishedPage('about'),
             'publicationPage' => $this->publishedPage('publication'),
-            'stats' => [
-                'speakers' => $speakers->count(),
-                'topics' => Topic::where('edition_id', $editionId)->count(),
-                'countries' => $speakers->pluck('country')->map(fn ($c) => countryCode($c))->filter()->unique()->count(),
-            ],
             'latestNews' => News::publiclyVisible()->with('media')
                 ->where('is_published', true)
                 ->orderByDesc('published_at')

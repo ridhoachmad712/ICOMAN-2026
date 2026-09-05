@@ -80,27 +80,6 @@
         </div>
     </section>
 
-    {{-- STATS STRIP (banner, mengangkat dari hero) --}}
-    @php
-        $statItems = collect([['speakers','speakers_count'],['topics','topics_count'],['countries','countries_count']])
-            ->filter(fn ($item) => (int) ($stats[$item[0]] ?? 0) > 0)
-            ->values();
-    @endphp
-    @if($statItems->isNotEmpty())
-        <section class="relative z-10 -mt-10">
-            <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                <div data-reveal class="grid divide-white/15 rounded-2xl bg-gradient-to-r from-[var(--brand)] to-[var(--brand-2)] py-7 text-white shadow-[0_24px_60px_-24px_rgba(15,23,42,0.55)] sm:divide-x" style="grid-template-columns: repeat({{ $statItems->count() }}, minmax(0, 1fr));">
-                    @foreach($statItems as [$key,$label])
-                        <div class="px-2 text-center">
-                            <div class="font-display text-4xl font-bold tabular-nums sm:text-5xl">{{ $stats[$key] }}</div>
-                            <div class="mt-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">{{ __('site.'.$label) }}</div>
-                        </div>
-                    @endforeach
-                </div>
-            </div>
-        </section>
-    @endif
-
     {{-- ORGANIZED BY --}}
     @if($s->organizer_name || $s->organizer_logo)
         @php $orgLogo = $s->organizer_logo ? \Illuminate\Support\Facades\Storage::disk('public')->url($s->organizer_logo) : null; @endphp

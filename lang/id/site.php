@@ -45,9 +45,6 @@ return [
         'reviewer' => 'Reviewer',
     ],
 
-    'speakers_count' => 'Pembicara',
-    'topics_count' => 'Topik',
-    'countries_count' => 'Negara',
     'next_deadline' => 'Deadline berikutnya',
     'publication_indexing' => 'Publikasi & Indexing',
     'view_topics' => 'Lihat semua topik',
