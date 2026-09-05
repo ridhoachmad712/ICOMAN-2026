@@ -33,6 +33,7 @@ class CommitteeForm
                         TextInput::make('affiliation')->maxLength(255),
                         TextInput::make('role_title.en')->label('Role Title (EN)')->maxLength(255),
                         TextInput::make('role_title.id')->label('Role Title (ID)')->maxLength(255),
+                        \Filament\Forms\Components\Toggle::make('is_published')->label('Confirmed / Published')->default(false),
                         TextInput::make('order')->numeric()->default(0),
                     ]),
 

@@ -24,6 +24,7 @@ class Registration extends Model implements HasMedia
         'gateway_transaction_id',
         'gateway_payload',
         'paid_at',
+        'pricing_snapshot',
     ];
 
     protected function casts(): array
@@ -32,7 +33,41 @@ class Registration extends Model implements HasMedia
             'amount' => 'decimal:2',
             'gateway_payload' => 'array',
             'paid_at' => 'datetime',
+            'pricing_snapshot' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Registration $registration): void {
+            if ($registration->pricing_snapshot !== null) {
+                return;
+            }
+            $fee = $registration->registrationFee;
+            $registration->pricing_snapshot = [
+                'base_amount' => $registration->amount,
+                'addon_amount' => 0,
+                'quoted_addon_amount' => (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false),
+                'currency' => $fee?->currency ?? 'IDR',
+                'category' => $fee?->getTranslations('category') ?? ['en' => 'Registration', 'id' => 'Registrasi'],
+                'journal_target' => 'regular',
+                'legacy' => false,
+            ];
+        });
+    }
+
+    public function priceDetails(): array
+    {
+        return $this->pricing_snapshot ?? [
+            'base_amount' => $this->amount, 'addon_amount' => 0, 'quoted_addon_amount' => 0,
+            'currency' => 'IDR', 'category' => ['en' => 'Registration', 'id' => 'Registrasi'],
+            'journal_target' => 'regular', 'legacy' => true,
+        ];
+    }
+
+    public function hasUnresolvedPayment(): bool
+    {
+        return $this->payments()->whereIn('status', ['initiated', 'success'])->exists();
     }
 
     public function registerMediaCollections(): void

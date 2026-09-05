@@ -30,7 +30,6 @@ return [
     'contact_us' => 'Contact Us',
     'related_news' => 'Related News',
 
-    'early_bird' => 'Early Bird',
     'regular' => 'Regular',
     'download' => 'Download',
     'website' => 'Website',

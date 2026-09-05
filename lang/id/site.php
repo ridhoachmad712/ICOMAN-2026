@@ -30,7 +30,6 @@ return [
     'contact_us' => 'Hubungi Kami',
     'related_news' => 'Berita Terkait',
 
-    'early_bird' => 'Early Bird',
     'regular' => 'Reguler',
     'download' => 'Unduh',
     'website' => 'Situs',

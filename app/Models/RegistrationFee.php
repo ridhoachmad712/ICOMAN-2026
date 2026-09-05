@@ -17,10 +17,9 @@ class RegistrationFee extends Model
         'category',
         'audience',
         'registrant_category',
-        'price_early_bird',
         'price_regular',
-        'early_bird_deadline',
         'currency',
+        'idr_exchange_rate',
         'notes',
         'order',
     ];
@@ -30,27 +29,38 @@ class RegistrationFee extends Model
     protected function casts(): array
     {
         return [
-            'price_early_bird' => 'decimal:2',
             'price_regular' => 'decimal:2',
-            'early_bird_deadline' => 'date',
+            'idr_exchange_rate' => 'decimal:4',
             'order' => 'integer',
         ];
     }
 
     public function currentPrice(): string
     {
-        if ($this->price_early_bird !== null
-            && $this->early_bird_deadline !== null
-            && today()->lte($this->early_bird_deadline)) {
-            return $this->price_early_bird;
-        }
-
         return $this->price_regular;
     }
 
     public function edition(): BelongsTo
     {
         return $this->belongsTo(Edition::class);
+    }
+
+    public function quote(): array
+    {
+        $rate = $this->currency === 'IDR' ? 1 : (float) $this->idr_exchange_rate;
+        if (! in_array($this->currency, ['IDR', 'USD'], true) || $rate <= 0) {
+            throw \Illuminate\Validation\ValidationException::withMessages(['currency' => app()->getLocale() === 'id'
+                ? 'Kurs penagihan belum ditetapkan panitia. Hubungi panitia untuk melanjutkan pembayaran.'
+                : 'The committee has not set the billing exchange rate yet. Contact the committee to continue payment.']);
+        }
+
+        return [
+            'base_amount' => (int) round((float) $this->price_regular * $rate),
+            'addon_amount' => 0, 'quoted_addon_amount' => (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false),
+            'currency' => 'IDR', 'category' => $this->getTranslations('category'),
+            'source_amount' => $this->price_regular, 'source_currency' => $this->currency,
+            'exchange_rate' => $rate, 'journal_target' => 'regular', 'legacy' => false,
+        ];
     }
 
     public function registrations(): HasMany

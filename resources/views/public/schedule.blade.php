@@ -1,6 +1,7 @@
 <x-layout :title="__('nav.program')">
     <x-page-header :title="__('site.program_schedule')" />
 
+    <p class="mx-auto mt-6 max-w-6xl px-4 text-sm text-slate-600">{{ app()->getLocale() === 'id' ? 'Semua waktu dalam WITA (UTC+8).' : 'All times are in Central Indonesia Time (UTC+8).' }}</p>
     <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 space-y-12">
         @forelse($schedules as $day => $sessions)
             <div>

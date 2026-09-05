@@ -69,7 +69,8 @@ class SubmissionController extends Controller
             'full_paper' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
         ]);
 
-        $submission->clearMediaCollection('camera_ready');
+        app(\App\Services\ConferenceDeadlines::class)->assertOpen('full_paper', $submission->edition_id, 'full_paper');
+        // Retain previous private versions. A failed upload leaves the old file intact.
         $submission->addMediaFromRequest('full_paper')->toMediaCollection('camera_ready');
         $submission->forceFill(['full_paper_submitted_at' => now()])->save();
 
@@ -96,6 +97,17 @@ class SubmissionController extends Controller
         return $this->extendedAbstractPdf($submission);
     }
 
+    public function downloadFullPaperForAdmin(Submission $submission): Response
+    {
+        $user = Auth::guard('web')->user();
+        abort_unless($user && ($user->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin'])
+            || $submission->reviewAssignments()->where('reviewer_id', $user->id)->exists()), 403);
+        $media = $submission->fullPaperMedia();
+        abort_unless($media, 404);
+
+        return response()->download($media->getPath(), $media->file_name)->header('Cache-Control', 'private, no-store');
+    }
+
     public function previewExtendedAbstractForAdmin(Submission $submission): Response
     {
         $user = Auth::guard('web')->user();
@@ -112,6 +124,7 @@ class SubmissionController extends Controller
     {
         $this->authorizeOwner($submission);
         abort_unless(in_array($submission->status, Submission::AUTHOR_EDITABLE_STATUSES, true), 403, 'Abstract tidak dapat diubah setelah dikirim ke reviewer.');
+        app(\App\Services\ConferenceDeadlines::class)->assertOpen($submission->status === 'revision_required' ? 'revision' : 'abstract', $submission->edition_id, 'abstract');
 
         $validated = $request->validate([
             'abstract' => ['required', 'string', 'max:6000'],
@@ -127,6 +140,7 @@ class SubmissionController extends Controller
         }
 
         DB::transaction(function () use ($submission, $validated): void {
+            $submission->snapshot('abstract_submitted');
             $submission->update([
                 'abstract' => $validated['abstract'],
                 'extended_abstract_submitted_at' => now(),

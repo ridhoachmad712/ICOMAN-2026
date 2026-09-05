@@ -11,5 +11,5 @@ return [
     'registration' => 'Registration',
     'news' => 'News',
     'contact' => 'Contact',
-    'venue' => 'Venue',
+    'venue' => 'Event Platform',
 ];

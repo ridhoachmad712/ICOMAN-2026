@@ -11,5 +11,5 @@ return [
     'registration' => 'Registrasi',
     'news' => 'Berita',
     'contact' => 'Kontak',
-    'venue' => 'Lokasi',
+    'venue' => 'Platform Acara',
 ];

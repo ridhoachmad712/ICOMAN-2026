@@ -37,6 +37,7 @@ class SpeakerForm
                             ->searchable()
                             ->native(false)
                             ->placeholder('Pilih negara'),
+                        \Filament\Forms\Components\Toggle::make('is_published')->label('Confirmed / Published')->default(false),
                         TextInput::make('order')->numeric()->default(0),
                     ]),
 

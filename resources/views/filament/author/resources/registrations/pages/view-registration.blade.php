@@ -3,7 +3,8 @@
         $id = app()->getLocale() === 'id';
         $record->loadMissing(['registrationFee', 'submission', 'payments']);
 
-        $currency = $record->registrationFee?->currency ?: 'IDR';
+        $price = $record->priceDetails();
+        $currency = $price['currency'];
         $money = fn ($value) => $currency.' '.number_format((float) $value, 0, ',', '.');
 
         $statusColor = match($record->status) {'paid'=>'success','failed'=>'danger','pending_verification'=>'warning',default=>'gray'};
@@ -13,13 +14,28 @@
         } : ucwords(str_replace('_', ' ', $record->status));
 
         // Opsi jurnal hanya relevan selama tagihan belum lunas.
-        $canChooseJournal = (bool) ($record->submission?->sinta3_offered && in_array($record->status, ['pending', 'failed'], true));
-        $sinta3Fee = (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false);
-        $basePrice = (float) ($record->registrationFee?->currentPrice() ?? $record->amount);
-        $isSinta = $record->submission?->journal_target === 'sinta3';
+        $canChooseJournal = (bool) ($record->submission?->sinta3_offered && ! ($price['legacy'] ?? false) && ! $record->hasUnresolvedPayment() && in_array($record->status, ['pending', 'failed'], true));
+        $sinta3Fee = (int) $price['quoted_addon_amount'];
+        $basePrice = (float) $price['base_amount'];
+        $isSinta = $price['journal_target'] === 'sinta3';
     @endphp
 
     <div class="space-y-6">
+        @if(session('error'))<div role="alert" class="rounded-xl bg-red-50 p-4 text-red-800">{{ session('error') }}</div>@endif
+        @if(session('status'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-emerald-800">{{ session('status') }}</div>@endif
+        @if($errors->any())<div role="alert" class="rounded-xl bg-red-50 p-4 text-red-800">{{ $errors->first() }}</div>@endif
+        @if(($price['source_currency'] ?? 'IDR') === 'USD')
+            <p class="text-sm">{{ $id ? 'Harga asal' : 'Listed price' }}: USD {{ number_format((float) $price['source_amount'], 2) }}.
+                {{ $id ? 'Kurs tetap pada invoice ini' : 'Exchange rate fixed for this invoice' }}: IDR {{ number_format((float) $price['exchange_rate'], 0, ',', '.') }} / USD.</p>
+        @endif
+        @if($record->status === 'pending_verification')
+            <div role="status" class="rounded-xl bg-amber-50 p-4 text-amber-900">{{ $id ? 'Pembayaran memerlukan rekonsiliasi panitia. Jangan membayar ulang. Hubungi panitia dengan nomor invoice ini.' : 'Your payment requires committee reconciliation. Do not pay again. Contact the committee with this invoice number.' }}</div>
+        @endif
+        @if($record->payments->isNotEmpty() && $record->status !== 'paid')
+            <form method="POST" action="{{ route('author.registration.sync', $record) }}">@csrf
+                <x-filament::button type="submit" color="gray">{{ $id ? 'Periksa Status Pembayaran' : 'Check Payment Status' }}</x-filament::button>
+            </form>
+        @endif
         {{-- Kabar baik lebih dulu: paper direkomendasikan ke SINTA 3. --}}
         @if($canChooseJournal)
             <div class="rounded-xl border border-warning-300 bg-warning-50 p-5 dark:border-warning-500/30 dark:bg-warning-500/10">
@@ -79,14 +95,14 @@
 
                 <dl class="space-y-3 text-sm">
                     <div class="flex items-start justify-between gap-4">
-                        <dt class="text-gray-500">{{ $record->registrationFee?->category ?: ($id ? 'Paket registrasi' : 'Registration package') }}</dt>
+                        <dt class="text-gray-500">{{ $price['category'][app()->getLocale()] ?? $price['category']['en'] ?? 'Registration' }}</dt>
                         <dd class="shrink-0 font-medium text-gray-950 dark:text-white">{{ $money($basePrice) }}</dd>
                     </div>
 
                     @if($isSinta)
                         <div class="flex items-start justify-between gap-4 text-warning-700 dark:text-warning-400">
                             <dt>{{ $id ? 'Tambahan penerbitan Jurnal SINTA 3' : 'SINTA 3 journal publication add-on' }}</dt>
-                            <dd class="shrink-0 font-semibold">+ {{ $money($sinta3Fee) }}</dd>
+                            <dd class="shrink-0 font-semibold">+ {{ $money($price['addon_amount']) }}</dd>
                         </div>
                     @endif
 
@@ -121,14 +137,14 @@
                             @if($record->paid_at) · {{ $record->paid_at->format('d M Y, H:i') }} @endif
                         </p>
                     </div>
-                @else
+                @elseif($record->status !== 'pending_verification')
                     <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10">
                         <p class="mb-3 text-xs leading-relaxed text-gray-500">
                             {{ $id ? 'Anda akan diarahkan ke halaman pembayaran aman Midtrans untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.' : 'You will be redirected to Midtrans secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.' }}
                         </p>
-                        <form method="POST" action="{{ route('author.registration.pay', $record) }}">
+                        <form method="POST" action="{{ route('author.registration.pay', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
-                            <x-filament::button type="submit" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
+                            <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
                                 {{ $id ? 'Lanjutkan Pembayaran' : 'Continue to Payment' }}
                             </x-filament::button>
                         </form>

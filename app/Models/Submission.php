@@ -141,7 +141,7 @@ class Submission extends Model implements HasMedia
     /** Naskah lengkap (full paper) yang diunggah penulis. */
     public function fullPaperMedia(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
     {
-        return $this->getFirstMedia('camera_ready');
+        return $this->getMedia('camera_ready')->sortByDesc('id')->first();
     }
 
     public function hasFullPaper(): bool
@@ -193,6 +193,7 @@ class Submission extends Model implements HasMedia
             return $this;
         }
 
+        $this->snapshot('status:'.$this->status.'->'.$status);
         $this->status = $status;
 
         // LOA terbit OTOMATIS saat naskah diterima: stamp waktu terbit + tawaran SINTA 3
@@ -223,6 +224,20 @@ class Submission extends Model implements HasMedia
         };
     }
 
+    public function snapshot(string $event): void
+    {
+        \Illuminate\Support\Facades\DB::table('submission_versions')->insert([
+            'submission_id' => $this->id, 'event' => $event,
+            'snapshot' => json_encode([
+                'title' => $this->title, 'abstract' => $this->abstract, 'status' => $this->status,
+                'keywords' => $this->keywords, 'authors' => $this->authors()->get()->toArray(),
+                'reviews' => $this->reviewAssignments()->with('review')->get()->toArray(),
+                'actor_id' => auth('web')->id() ?? auth('author')->id(),
+                'actor_guard' => auth('web')->check() ? 'web' : 'author',
+            ]), 'created_at' => now(), 'updated_at' => now(),
+        ]);
+    }
+
     public function registerMediaCollections(): void
     {
         $mimes = [
@@ -231,7 +246,7 @@ class Submission extends Model implements HasMedia
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         ];
 
-        $this->addMediaCollection('camera_ready')->singleFile()->acceptsMimeTypes($mimes);
+        $this->addMediaCollection('camera_ready')->useDisk('papers')->acceptsMimeTypes($mimes);
     }
 
     public function edition(): BelongsTo

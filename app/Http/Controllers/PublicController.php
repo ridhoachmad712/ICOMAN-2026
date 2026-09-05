@@ -28,17 +28,17 @@ class PublicController extends Controller
         $editionId = $this->editionId();
 
         // Eager-load media untuk hindari N+1 (konversi WebP dipakai di blade).
-        $speakers = Speaker::with('media')->where('edition_id', $editionId)->orderBy('order')->get();
+        $speakers = Speaker::where('is_published', true)->with('media')->where('edition_id', $editionId)->orderBy('order')->get();
         $importantDates = ImportantDate::where('edition_id', $editionId)->orderBy('order')->get();
 
         return view('public.home', [
             'edition' => currentEdition(),
             'speakers' => $speakers->take(8),
             'importantDates' => $importantDates,
-            'nextDeadline' => $importantDates->filter(fn ($d) => $d->date && $d->date->isFuture())->sortBy('date')->first(),
+            'nextDeadline' => $importantDates->filter(fn ($d) => $d->date && $d->date->copy()->endOfDay()->isFuture())->sortBy('date')->first(),
             'topics' => Topic::where('edition_id', $editionId)->orderBy('order')->get(),
             'fees' => RegistrationFee::where('edition_id', $editionId)->orderBy('order')->get(),
-            'sponsors' => Sponsor::with('media')->where('edition_id', $editionId)->orderBy('order')->get()->groupBy('tier'),
+            'sponsors' => Sponsor::where('is_published', true)->with('media')->where('edition_id', $editionId)->orderBy('order')->get()->groupBy('tier'),
             'galleries' => Gallery::with('media')->where('edition_id', $editionId)->orderBy('order')->limit(6)->get(),
             'faqs' => Faq::where('edition_id', $editionId)->orWhereNull('edition_id')->orderBy('order')->limit(5)->get(),
             'aboutPage' => $this->publishedPage('about'),
@@ -48,7 +48,7 @@ class PublicController extends Controller
                 'topics' => Topic::where('edition_id', $editionId)->count(),
                 'countries' => $speakers->pluck('country')->map(fn ($c) => countryCode($c))->filter()->unique()->count(),
             ],
-            'latestNews' => News::with('media')
+            'latestNews' => News::publiclyVisible()->with('media')
                 ->where('is_published', true)
                 ->orderByDesc('published_at')
                 ->limit(3)
@@ -59,13 +59,13 @@ class PublicController extends Controller
     public function speakers(): View
     {
         return view('public.speakers', [
-            'speakers' => Speaker::with('media')->where('edition_id', $this->editionId())->orderBy('order')->get(),
+            'speakers' => Speaker::where('is_published', true)->with('media')->where('edition_id', $this->editionId())->orderBy('order')->get(),
         ]);
     }
 
     public function committee(): View
     {
-        $committees = Committee::where('edition_id', $this->editionId())
+        $committees = Committee::where('is_published', true)->where('edition_id', $this->editionId())
             ->orderBy('order')
             ->get()
             ->groupBy('category');
@@ -137,7 +137,8 @@ class PublicController extends Controller
     /** Halaman CMS dinamis (About, Venue, dsb.) by slug — degrade halus jika belum ada. */
     public function page(string $slug): View
     {
-        $page = Page::where('slug', $slug)->where('is_published', true)->first();
+        $page = $this->publishedPage($slug);
+        abort_unless($page, 404);
 
         return view('public.page', [
             'page' => $page,
@@ -147,6 +148,6 @@ class PublicController extends Controller
 
     private function publishedPage(string $slug): ?Page
     {
-        return Page::where('slug', $slug)->where('is_published', true)->first();
+        return Page::publiclyVisible()->where('slug', $slug)->first();
     }
 }

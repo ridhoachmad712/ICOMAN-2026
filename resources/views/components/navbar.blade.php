@@ -13,6 +13,7 @@
             ['route' => 'call-for-papers', 'label' => __('nav.cfp')],
             ['route' => 'important-dates', 'label' => __('nav.dates')],
             ['route' => 'program', 'label' => __('nav.program')],
+            ['route' => 'author-guidelines', 'label' => __('site.templates')],
         ]],
         ['type' => 'link', 'route' => 'registration', 'label' => __('nav.registration')],
         ['type' => 'link', 'route' => 'news.index', 'label' => __('nav.news')],

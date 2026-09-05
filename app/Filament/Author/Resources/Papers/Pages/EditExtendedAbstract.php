@@ -158,7 +158,9 @@ class EditExtendedAbstract extends EditRecord
 
     public function submitForReview(): void
     {
+        $this->record->refresh();
         $this->authorizeAccess();
+        app(\App\Services\ConferenceDeadlines::class)->assertOpen($this->record->status === 'revision_required' ? 'revision' : 'abstract', $this->record->edition_id, 'data.abstract');
 
         // Simpan draft lengkap dulu (judul, penulis, abstract) agar PDF & review
         // selalu mencerminkan tampilan terbaru.
@@ -177,6 +179,7 @@ class EditExtendedAbstract extends EditRecord
         }
 
         DB::transaction(function (): void {
+            $this->record->snapshot('abstract_submitted');
             // Siklus revisi: reviewer yang sudah ditugaskan direset ke `pending`
             // agar menilai ulang versi terbaru. Keputusan panitia otomatis
             // tersembunyi sampai seluruh review baru selesai. Pada kiriman
@@ -205,6 +208,9 @@ class EditExtendedAbstract extends EditRecord
         if ($key !== 'abstract') {
             return;
         }
+        $this->record->refresh();
+        abort_unless(PaperResource::canEdit($this->record), 403);
+        validator(['abstract' => $value], ['abstract' => ['nullable', 'string', 'max:6000']])->validate();
 
         $this->record->update([
             'abstract' => $value,
@@ -221,6 +227,8 @@ class EditExtendedAbstract extends EditRecord
 
     protected function beforeSave(): void
     {
+        $this->record->refresh();
+        abort_unless(PaperResource::canEdit($this->record), 403);
         $correspondingAuthors = collect($this->data['authors'] ?? [])
             ->where('is_corresponding', true)
             ->count();

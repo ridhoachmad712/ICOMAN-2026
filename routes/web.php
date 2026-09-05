@@ -28,6 +28,8 @@ Route::middleware('setlocale')->group(function () {
     Route::get('/program', [PublicController::class, 'schedule'])->name('program');
     Route::get('/faq', [PublicController::class, 'faq'])->name('faq');
     Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
+    Route::view('/privacy', 'public.privacy')->name('privacy');
+    Route::get('/author-guidelines/manuscript-template', fn () => response()->download(resource_path('documents/manuscript-template.docx'), 'ICOMAN-manuscript-template.docx'))->name('manuscript-template');
 
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
     Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.show');
@@ -74,6 +76,7 @@ Route::middleware('setlocale')->group(function () {
             Route::get('registration/{registration}', [RegistrationController::class, 'show'])->name('registration.show');
             Route::patch('registration/{registration}/journal', [RegistrationController::class, 'changeJournalTarget'])->name('registration.journal');
             Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
+            Route::post('registration/{registration}/sync', [RegistrationController::class, 'synchronize'])->middleware('throttle:6,1')->name('registration.sync');
         });
     });
 });
@@ -82,6 +85,8 @@ Route::middleware(['auth'])->get(
     'admin/submissions/{submission}/extended-abstract/preview',
     [SubmissionController::class, 'previewExtendedAbstractForAdmin'],
 )->name('admin.submissions.extended-abstract.preview');
+
+Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaperForAdmin'])->name('admin.submissions.full-paper.download');
 
 /*
 |--------------------------------------------------------------------------

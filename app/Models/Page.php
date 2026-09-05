@@ -49,6 +49,12 @@ class Page extends Model
         return (string) (collect($title)->filter()->first() ?? 'page');
     }
 
+    public function scopePubliclyVisible(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->where('is_published', true)
+            ->where(fn ($query) => $query->where('edition_id', currentEdition()?->id)->orWhereNull('edition_id'));
+    }
+
     public function edition(): BelongsTo
     {
         return $this->belongsTo(Edition::class);

@@ -63,7 +63,8 @@
     <div class="border-t border-white/10">
         <div class="mx-auto flex max-w-7xl flex-col justify-between gap-2 px-4 py-4 text-xs text-slate-400 sm:flex-row sm:px-6 lg:px-8">
             <span>&copy; {{ date('Y') }} {{ $name }}. All rights reserved.</span>
-            <span>Powered by Laravel &amp; Filament</span>
+            <span></span>
         </div>
     </div>
+    <div class="mx-auto max-w-7xl px-4 pb-6 text-sm"><a href="{{ route('privacy', ['lang' => app()->getLocale()]) }}" class="underline">{{ app()->getLocale() === 'id' ? 'Privasi dan penggunaan data' : 'Privacy and data use' }}</a></div>
 </footer>

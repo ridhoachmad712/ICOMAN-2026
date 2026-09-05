@@ -4,11 +4,6 @@
         $isId = app()->getLocale() === 'id';
         $heroImage = $s->hero_image ? \Illuminate\Support\Facades\Storage::disk('public')->url($s->hero_image) : null;
         $tierOrder = ['platinum' => 'Platinum', 'gold' => 'Gold', 'silver' => 'Silver', 'partner' => 'Partner', 'media_partner' => 'Media Partner'];
-        $deadlineLabel = fn ($label) => str_ireplace(
-            ['Abstract & Full Paper Submission Deadline', 'Batas Pengumpulan Abstrak & Full Paper', 'Camera-Ready Paper & Registration Payment Deadline', 'Batas Pengumpulan Camera-Ready & Pembayaran'],
-            ['Abstract Submission Deadline', 'Batas Pengumpulan Abstrak', 'Abstract & Registration Payment Deadline', 'Batas Input Abstract & Pembayaran'],
-            (string) $label,
-        );
 
         // JSON-LD Event (structured data untuk Google).
         $mode = strtolower((string) $s->event_mode);
@@ -26,13 +21,14 @@
             'image' => $heroImage ?: asset('images/hero-pattern.svg'),
             'description' => \Illuminate\Support\Str::limit(strip_tags((string) $aboutPage?->content), 300, ''),
             'location' => $s->event_location ? [
-                '@type' => 'Place',
+                '@type' => str_contains($mode, 'online') ? 'VirtualLocation' : 'Place',
+                'url' => route('venue'),
                 'name' => $s->event_location,
                 'address' => $s->contact_address ?: $s->event_location,
             ] : null,
             'organizer' => [
                 '@type' => 'Organization',
-                'name' => $s->conference_name ?: 'ICOMAN 2026',
+                'name' => $s->organizer_name ?: $s->conference_name,
                 'email' => $s->contact_email,
             ],
         ]);
@@ -57,13 +53,14 @@
         <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[var(--accent)] opacity-[0.14] blur-[130px]"></div>
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 
-        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20 sm:py-28">
+        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
             <p class="eyebrow">
                 {{ $edition?->name ?? 'ICOMAN 2026' }}
             </p>
             <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight max-w-4xl">
-                {{ $edition?->theme ?: 'International Conference on Management' }}
+                {{ $edition?->name ?: $s->conference_name }}
             </h1>
+            <p class="mt-4 max-w-3xl text-lg leading-relaxed text-white/90 sm:text-2xl">{{ $edition?->theme }}</p>
 
             {{-- Info chips --}}
             <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm text-white">
@@ -72,13 +69,13 @@
                         {{ $edition->start_date->translatedFormat('d M Y') }}@if($edition->end_date && ! $edition->end_date->equalTo($edition->start_date)) – {{ $edition->end_date->translatedFormat('d M Y') }}@endif
                     </span>
                 @endif
-                @if($s->event_location)<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_location }}</span>@endif
+                @if($s->event_location && ! str_contains(strtolower((string) $s->event_mode), 'online'))<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_location }}</span>@endif
                 @if($s->event_mode)<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_mode }}</span>@endif
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register') }}" class="btn btn-accent">{{ $isId ? 'Registrasi' : 'Register' }}</a>
-                <a href="{{ route('about') }}" class="btn btn-ghost">{{ $isId ? 'Tentang ICOMAN' : 'About ICOMAN' }}</a>
+                <a href="{{ route('author.register.terms', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+                <a href="{{ route('author.register.terms', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Ikuti Seminar' : 'Attend Seminar' }}</a>
             </div>
         </div>
     </section>
@@ -129,7 +126,7 @@
                         if ($edition?->theme && \Illuminate\Support\Str::startsWith($aboutText, $edition->theme)) {
                             $aboutText = trim(substr($aboutText, strlen($edition->theme)));
                         }
-                        $aboutExcerpt = trim(preg_split('/\s+\d+[\.\)]\s/', $aboutText)[0]);
+                        $aboutExcerpt = \Illuminate\Support\Str::limit(trim(strip_tags(explode('</p>', (string) $aboutPage->content)[0])), 420);
                     @endphp
                     <p class="text-base leading-relaxed text-slate-600">{{ $aboutExcerpt }}</p>
                     <a href="{{ route('about') }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
@@ -269,8 +266,7 @@
                                 <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                     @foreach($group as $fee)
                                         @php
-                                            $hasEarly = (bool) $fee->price_early_bird;
-                                            $mainPrice = $hasEarly ? $fee->price_early_bird : $fee->price_regular;
+                                            $mainPrice = $fee->currentPrice();
                                             $benefit = $fee->notes ? trim(strip_tags((string) $fee->notes)) : null;
                                         @endphp
                                         <div class="flex flex-col rounded-2xl bg-white p-6 shadow-[inset_0_0_0_1px_rgba(15,23,42,0.08),0_12px_28px_-16px_rgba(15,23,42,0.18)] transition hover:-translate-y-1">
@@ -279,12 +275,7 @@
                                                 <span class="text-sm font-semibold text-slate-500">{{ $fee->currency }}</span>
                                                 <span class="font-display text-3xl font-bold tracking-tight text-[var(--brand-2)]">{{ number_format((float) $mainPrice, 0, ',', '.') }}</span>
                                             </div>
-                                            @if($hasEarly)
-                                                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                                                    <span class="chip"><x-ui-icon name="sparkles" class="h-3.5 w-3.5" /> {{ __('site.early_bird') }}</span>
-                                                    <span class="text-slate-400 line-through">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</span>
-                                                </div>
-                                            @endif
+                                            
                                             @if($benefit)
                                                 <p class="mt-3 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
                                                     <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
@@ -315,7 +306,7 @@
                     <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-6 py-4 shadow-lg">
                         <div>
                             <div class="text-xs uppercase tracking-widest text-white/80">{{ __('site.next_deadline') }}</div>
-                            <div class="font-semibold">{{ $deadlineLabel($nextDeadline->label) }}</div>
+                            <div class="font-semibold">{{ $nextDeadline->label }}</div>
                         </div>
                         <div class="text-lg font-bold">{{ $nextDeadline->date->translatedFormat('d M Y') }}</div>
                     </div>
@@ -324,7 +315,7 @@
                 <ul class="divide-y divide-slate-200 rounded-xl border border-slate-200 bg-white overflow-hidden">
                     @foreach($importantDates as $d)
                         <li class="flex items-center justify-between gap-4 px-5 py-4 {{ $d->is_highlighted ? 'bg-[var(--brand)]/5' : '' }}">
-                            <span class="font-medium text-slate-700">{{ $deadlineLabel($d->label) }}</span>
+                            <span class="font-medium text-slate-700">{{ $d->label }}</span>
                             <span class="text-sm font-semibold text-[var(--brand-2)] whitespace-nowrap">
                                 {{ $d->date?->translatedFormat('d M Y') ?? 'TBA' }}
                             </span>

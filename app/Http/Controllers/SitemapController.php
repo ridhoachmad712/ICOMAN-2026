@@ -15,28 +15,29 @@ class SitemapController extends Controller
         // Halaman statis utama.
         foreach ([
             'home', 'about', 'venue', 'committee', 'speakers', 'call-for-papers',
-            'important-dates', 'registration', 'author-guidelines', 'program', 'faq', 'contact', 'news.index',
+            'important-dates', 'registration', 'author-guidelines', 'program', 'faq', 'contact', 'news.index', 'privacy',
         ] as $name) {
             $urls[] = ['loc' => route($name), 'priority' => $name === 'home' ? '1.0' : '0.7'];
         }
 
         // Halaman CMS dinamis (kecuali yang sudah punya route sendiri).
-        Page::where('is_published', true)
-            ->whereNotIn('slug', ['about', 'venue', 'publication'])
-            ->get()
-            ->each(fn (Page $p) => $urls[] = [
+        foreach (Page::publiclyVisible()->whereNotIn('slug', ['about', 'venue', 'call-for-papers'])->get() as $p) {
+            $urls[] = [
                 'loc' => route('page', $p->slug),
                 'lastmod' => $p->updated_at?->toAtomString(),
                 'priority' => '0.5',
-            ]);
+            ];
+        }
 
         // Berita.
-        News::where('is_published', true)->get()
-            ->each(fn (News $n) => $urls[] = [
+        foreach (News::publiclyVisible()->get() as $n) {
+            $urls[] = [
                 'loc' => route('news.show', $n->slug),
                 'lastmod' => $n->updated_at?->toAtomString(),
                 'priority' => '0.6',
-            ]);
+            ];
+        }
+        $urls = collect($urls)->flatMap(fn (array $url) => collect(['en', 'id'])->map(fn ($locale) => [...$url, 'loc' => $url['loc'].'?lang='.$locale]))->all();
 
         return response()
             ->view('sitemap', ['urls' => $urls])

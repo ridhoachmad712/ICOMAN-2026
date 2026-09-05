@@ -9,7 +9,7 @@ class NewsController extends Controller
 {
     public function index(): View
     {
-        $news = News::where('is_published', true)
+        $news = News::publiclyVisible()->with('media')
             ->orderByDesc('published_at')
             ->paginate(9);
 
@@ -18,11 +18,11 @@ class NewsController extends Controller
 
     public function show(string $slug): View
     {
-        $item = News::where('slug', $slug)
+        $item = News::publiclyVisible()->with('media')->where('slug', $slug)
             ->where('is_published', true)
             ->firstOrFail();
 
-        $related = News::where('is_published', true)
+        $related = News::publiclyVisible()->with('media')
             ->where('id', '!=', $item->id)
             ->orderByDesc('published_at')
             ->limit(3)

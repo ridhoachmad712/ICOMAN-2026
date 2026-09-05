@@ -25,6 +25,7 @@ class Speaker extends Model implements HasMedia
         'topic',
         'bio',
         'order',
+        'is_published',
     ];
 
     public array $translatable = ['topic', 'bio'];
@@ -33,6 +34,7 @@ class Speaker extends Model implements HasMedia
     {
         return [
             'order' => 'integer',
+            'is_published' => 'boolean',
         ];
     }
 

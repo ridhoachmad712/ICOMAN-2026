@@ -16,8 +16,12 @@ use Illuminate\View\View;
 class AuthController extends Controller
 {
     /** Langkah 1: pilih peran (Presenter / Peserta Seminar). Kategori dipilih di form. */
-    public function showChoose(): View
+    public function showChoose(Request $request): View|RedirectResponse
     {
+        if (in_array($request->query('role'), ['presenter', 'non_presenter'], true)) {
+            return redirect()->route('author.register.terms', ['role' => $request->query('role')]);
+        }
+
         return view('author.auth.choose');
     }
 
@@ -89,6 +93,8 @@ class AuthController extends Controller
             'participation_type' => $data['participation_type'] === 'non_presenter' ? 'participant' : 'presenter',
             'registrant_category' => $data['registrant_category'],
             'terms_accepted_at' => now(),
+            'terms_version' => '2026-09-05',
+            'terms_locale' => app()->getLocale(),
             'password' => Hash::make($data['password']),
         ]);
 
@@ -100,8 +106,8 @@ class AuthController extends Controller
             return redirect()
                 ->to(PaperResource::getUrl('create', panel: 'author'))
                 ->with('status', app()->getLocale() === 'id'
-                    ? 'Akun berhasil didaftarkan! Lengkapi data paper untuk mulai menulis extended abstract.'
-                    : 'Account registered successfully! Complete the paper details to start writing your extended abstract.');
+                    ? 'Akun berhasil didaftarkan! Lengkapi data paper untuk mulai menulis abstract.'
+                    : 'Account registered successfully! Complete the paper details to start writing your abstract.');
         }
 
         // Invoice peserta dibuat otomatis dari kategori yang dipilih saat mendaftar.

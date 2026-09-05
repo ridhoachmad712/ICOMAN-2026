@@ -35,6 +35,8 @@ class Author extends Authenticatable implements FilamentUser
         'participation_type',
         'registrant_category',
         'terms_accepted_at',
+        'terms_version',
+        'terms_locale',
     ];
 
     protected $hidden = [

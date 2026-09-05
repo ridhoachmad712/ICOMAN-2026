@@ -318,7 +318,7 @@ class SubmissionsTable
                         ->icon('heroicon-o-arrow-down-tray')
                         ->color('gray')
                         ->visible(fn ($record) => $record->hasFullPaper())
-                        ->url(fn ($record) => $record->fullPaperMedia()?->getUrl())
+                        ->url(fn ($record) => route('admin.submissions.full-paper.download', $record))
                         ->openUrlInNewTab(),
                     Action::make('changeStatus')
                         ->label('Koreksi Status')

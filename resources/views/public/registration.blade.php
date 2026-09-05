@@ -5,7 +5,6 @@
         $isId = app()->getLocale() === 'id';
         $presenterFees = $fees->where('audience', 'presenter')->values();
         $participantFees = $fees->where('audience', 'participant')->values();
-        $earlyBirdDeadline = $fees->pluck('early_bird_deadline')->filter()->sort()->first();
     @endphp
 
     <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
@@ -46,7 +45,9 @@
                         $isId ? 'Buat akun presenter' : 'Create a presenter account',
                         $isId ? 'Tulis abstract' : 'Write the abstract',
                         $isId ? 'Verifikasi reviewer' : 'Reviewer verification',
-                        'Accepted',
+                        $isId ? 'Accepted dan LOA otomatis' : 'Accepted and automatic LOA',
+                        $isId ? 'Bayar registrasi' : 'Pay registration',
+                        $isId ? 'Kirim full paper' : 'Submit full paper',
                     ] as $step)
                         <li class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
                             <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[var(--brand)] shadow-sm">{{ $loop->iteration }}</span>
@@ -85,7 +86,7 @@
                 <ol class="mt-6 space-y-3">
                     @foreach([
                         $isId ? 'Buat akun peserta' : 'Create an attendee account',
-                        $isId ? 'Pilih kategori registrasi' : 'Choose a registration category',
+                        $isId ? 'Terima invoice sesuai kategori' : 'Receive your category invoice',
                         $isId ? 'Selesaikan pembayaran' : 'Complete payment',
                     ] as $step)
                         <li class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
@@ -113,12 +114,6 @@
                     <h2 class="mt-2 font-display text-2xl font-bold text-[var(--brand-2)] sm:text-3xl">{{ $isId ? 'Pilih kategori yang sesuai' : 'Choose the applicable category' }}</h2>
                     <p class="mt-2 text-sm text-slate-600">{{ $isId ? 'Harga ditampilkan per peserta.' : 'Prices are shown per participant.' }}</p>
                 </div>
-                @if($earlyBirdDeadline)
-                    <div class="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                        <span class="font-semibold">Early bird</span>
-                        <span class="ml-1">· {{ $isId ? 'hingga' : 'until' }} {{ $earlyBirdDeadline->format('d M Y') }}</span>
-                    </div>
-                @endif
             </div>
 
             @if($fees->isNotEmpty())
@@ -140,13 +135,7 @@
                                                 @if($fee->notes)<p class="mt-1 max-w-md text-xs leading-5 text-slate-500">{{ $fee->notes }}</p>@endif
                                             </div>
                                             <div class="shrink-0 text-left sm:text-right">
-                                                @if($fee->price_early_bird)
-                                                    <p class="text-xs font-semibold uppercase tracking-wide text-emerald-700">{{ __('site.early_bird') }}</p>
-                                                    <p class="mt-0.5 font-display text-xl font-bold text-slate-950">{{ $fee->currency }} {{ number_format((float) $fee->price_early_bird, 0, ',', '.') }}</p>
-                                                    <p class="mt-1 text-xs text-slate-500">{{ __('site.regular') }}: {{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</p>
-                                                @else
-                                                    <p class="font-display text-xl font-bold text-slate-950">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</p>
-                                                @endif
+                                                <p class="font-display text-xl font-bold text-slate-950">{{ $fee->currency }} {{ number_format((float) $fee->price_regular, 0, ',', '.') }}</p>
                                             </div>
                                         </div>
                                     </div>

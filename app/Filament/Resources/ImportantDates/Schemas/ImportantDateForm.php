@@ -22,7 +22,9 @@ class ImportantDateForm
                             ->relationship('edition', 'name')
                             ->default(fn () => currentEdition()?->id)
                             ->required(),
+                        Select::make('kind')->options(\App\Services\ConferenceDeadlines::KINDS)->label('Workflow stage')->helperText('Leave empty for an informational date.'),
                         DatePicker::make('date')->native(false),
+                        \Filament\Forms\Components\DateTimePicker::make('closes_at')->label('Exact closing time (WITA / UTC+8)')->seconds(false)->helperText('If empty, a dated deadline closes at 23:59 WITA. Leave both dates empty for To be announced.'),
                         TextInput::make('label.en')->label('Label (EN)')->required()->maxLength(255),
                         TextInput::make('label.id')->label('Label (ID)')->maxLength(255),
                         Toggle::make('is_highlighted')->label('Highlighted'),

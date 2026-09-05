@@ -58,18 +58,21 @@ class RegistrationController extends Controller
 
         $data = $request->validate(['journal_target' => ['required', 'in:regular,sinta3']]);
 
-        $base = (float) ($registration->registrationFee?->currentPrice() ?? $registration->amount);
-        $add = $data['journal_target'] === 'sinta3'
-            ? (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false)
-            : 0;
-
-        $submission->update(['journal_target' => $data['journal_target']]);
-        $registration->update([
-            'amount' => $base + $add,
-            // Nominal berubah → reset percobaan gateway sebelumnya.
-            'gateway_transaction_id' => null,
-            'gateway_payload' => null,
-        ]);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($registration, $data): void {
+            $locked = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
+            abort_unless(in_array($locked->status, ['pending', 'failed'], true), 403);
+            if ($locked->hasUnresolvedPayment()) {
+                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => app()->getLocale() === 'id'
+                    ? 'Pilihan jurnal terkunci selama transaksi aktif atau pembayaran perlu direkonsiliasi. Periksa status pembayaran terlebih dahulu.'
+                    : 'The journal option is locked while a payment is active or requires reconciliation. Check payment status first.']);
+            }
+            $price = $locked->priceDetails();
+            abort_if($price['legacy'] ?? false, 409, 'Contact the committee to amend an archived invoice.');
+            $price['addon_amount'] = $data['journal_target'] === 'sinta3' ? $price['quoted_addon_amount'] : 0;
+            $price['journal_target'] = $data['journal_target'];
+            $locked->submission->update(['journal_target' => $data['journal_target']]);
+            $locked->update(['amount' => $price['base_amount'] + $price['addon_amount'], 'pricing_snapshot' => $price]);
+        });
 
         return back()->with('status', app()->getLocale() === 'id'
             ? 'Pilihan jurnal diperbarui dan total pembayaran disesuaikan.'
@@ -97,6 +100,8 @@ class RegistrationController extends Controller
 
         try {
             $url = $midtrans->createSnapRedirect($registration);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            throw $e;
         } catch (\Throwable $e) {
             report($e);
 
@@ -111,5 +116,21 @@ class RegistrationController extends Controller
     private function authorizeOwner(Registration $registration): void
     {
         abort_unless($registration->author_id === Auth::guard('author')->id(), 403);
+    }
+
+    public function synchronize(Registration $registration): RedirectResponse
+    {
+        $this->authorizeOwner($registration);
+        try {
+            app(MidtransService::class)->synchronize($registration);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', app()->getLocale() === 'id'
+                ? 'Konfirmasi gateway belum tersedia. Jangan membayar ulang; periksa kembali atau hubungi panitia dengan nomor invoice.'
+                : 'Gateway confirmation is not available yet. Do not pay again; check later or contact the committee with your invoice number.');
+        }
+
+        return back()->with('status', app()->getLocale() === 'id' ? 'Status pembayaran diperbarui.' : 'Payment status refreshed.');
     }
 }

@@ -16,6 +16,16 @@ class RegistrationProvisioner
 {
     public function ensureFor(Author $author): ?Registration
     {
+        return \Illuminate\Support\Facades\DB::transaction(function () use ($author) {
+            // Serialize checkout for this author, including concurrent tabs.
+            $locked = Author::whereKey($author->id)->lockForUpdate()->firstOrFail();
+
+            return $this->provision($locked);
+        });
+    }
+
+    private function provision(Author $author): ?Registration
+    {
         $edition = currentEdition();
 
         if (! $edition || ! $author->participation_type) {
@@ -42,7 +52,6 @@ class RegistrationProvisioner
         // Sudah ada registrasi aktif untuk jalur ini → pakai itu (jangan duplikat).
         $existing = $author->registrations()
             ->where('edition_id', $edition->id)
-            ->whereIn('status', ['pending', 'pending_verification', 'paid'])
             ->when(
                 $submission,
                 fn ($query) => $query->where('submission_id', $submission->id),
@@ -55,17 +64,20 @@ class RegistrationProvisioner
             return $existing;
         }
 
+        app(ConferenceDeadlines::class)->assertOpen('payment', $edition->id);
+
         // Tarif mengikuti kategori (registrant_category) yang dipilih saat mendaftar.
         $fee = RegistrationFee::query()
             ->where('edition_id', $edition->id)
             ->where('audience', $audience)
             ->where('registrant_category', $author->feeCategory())
-            ->orderBy('order')
-            ->first();
+            ->get();
 
-        if (! $fee) {
+        if ($fee->count() !== 1) {
             return null;
         }
+        $fee = $fee->first();
+        $quote = $fee->quote();
 
         return Registration::create([
             'edition_id' => $edition->id,
@@ -74,7 +86,8 @@ class RegistrationProvisioner
             'submission_id' => $submission?->id,
             // Semua pembayaran melalui Midtrans.
             'payment_method' => 'gateway',
-            'amount' => (float) $fee->currentPrice(),
+            'amount' => $quote['base_amount'],
+            'pricing_snapshot' => $quote,
             'status' => 'pending',
         ]);
     }

@@ -37,7 +37,7 @@
 
                 {{-- Participant category --}}
                 <div>
-                    <label class="{{ $label }}">{{ $isId ? 'Kategori peserta' : 'Participant category' }} <span class="text-[var(--brand)]">*</span></label>
+                    <label for="field-name" class="{{ $label }}">{{ $isId ? 'Kategori peserta' : 'Participant category' }} <span class="text-[var(--brand)]">*</span></label>
                     <select name="registrant_category" required class="{{ $input }}">
                         <option value="" disabled @selected(! old('registrant_category'))>{{ $isId ? 'Pilih kategori…' : 'Select a category…' }}</option>
                         @foreach(\App\Models\Author::CATEGORIES as $key => $lbl)
@@ -51,33 +51,33 @@
                 {{-- Full name --}}
                 <div>
                     <label class="{{ $label }}">{{ __('author.name') }} <span class="text-[var(--brand)]">*</span></label>
-                    <input type="text" name="name" value="{{ old('name') }}" required class="{{ $input }}" placeholder="Dr. Jane Doe / John Doe, M.M.">
+                    <input id="field-name" type="text" name="name" value="{{ old('name') }}" required class="{{ $input }}" placeholder="Dr. Jane Doe / John Doe, M.M.">
                     @error('name')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 {{-- Email --}}
                 <div>
-                    <label class="{{ $label }}">{{ __('author.email') }} <span class="text-[var(--brand)]">*</span></label>
-                    <input type="email" name="email" value="{{ old('email') }}" required class="{{ $input }}" placeholder="name@university.ac.id">
+                    <label for="field-email" class="{{ $label }}">{{ __('author.email') }} <span class="text-[var(--brand)]">*</span></label>
+                    <input id="field-email" type="email" name="email" value="{{ old('email') }}" required class="{{ $input }}" placeholder="name@university.ac.id">
                     @error('email')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 {{-- Affiliation & country --}}
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="{{ $label }}">{{ __('author.affiliation') }}</label>
-                        <input type="text" name="affiliation" value="{{ old('affiliation') }}" class="{{ $input }}" placeholder="{{ $isId ? 'Universitas / Instansi' : 'University / Institution' }}">
+                        <label for="field-affiliation" class="{{ $label }}">{{ __('author.affiliation') }}</label>
+                        <input id="field-affiliation" type="text" name="affiliation" value="{{ old('affiliation') }}" class="{{ $input }}" placeholder="{{ $isId ? 'Universitas / Instansi' : 'University / Institution' }}">
                     </div>
                     <div>
-                        <label class="{{ $label }}">{{ __('author.country') }}</label>
-                        <input type="text" name="country" value="{{ old('country') }}" class="{{ $input }}" placeholder="Indonesia / Malaysia">
+                        <label for="field-country" class="{{ $label }}">{{ __('author.country') }}</label>
+                        <input id="field-country" type="text" name="country" value="{{ old('country') }}" class="{{ $input }}" placeholder="Indonesia / Malaysia">
                     </div>
                 </div>
 
                 {{-- Phone --}}
                 <div>
-                    <label class="{{ $label }}">{{ __('author.phone') }}</label>
-                    <input type="text" name="phone" value="{{ old('phone') }}" class="{{ $input }}" placeholder="+62 812-3456-7890">
+                    <label for="field-phone" class="{{ $label }}">{{ __('author.phone') }}</label>
+                    <input id="field-phone" type="text" name="phone" value="{{ old('phone') }}" class="{{ $input }}" placeholder="+62 812-3456-7890">
                 </div>
 
                 {{-- Passwords --}}

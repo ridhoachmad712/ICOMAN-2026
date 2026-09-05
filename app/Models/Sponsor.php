@@ -19,12 +19,14 @@ class Sponsor extends Model implements HasMedia
         'tier',
         'website_url',
         'order',
+        'is_published',
     ];
 
     protected function casts(): array
     {
         return [
             'order' => 'integer',
+            'is_published' => 'boolean',
         ];
     }
 

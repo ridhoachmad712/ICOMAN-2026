@@ -435,28 +435,24 @@ class AuthorJourney
             return null;
         }
 
-        $patterns = match ($key) {
-            'profile', 'submission' => ['abstract', 'abstrak', 'submission'],
-            'review', 'closed', 'loa_wait' => ['acceptance', 'penerimaan', 'pengumuman'],
-            'registration', 'payment', 'waiting' => ['payment', 'pembayaran', 'registration', 'registrasi'],
-            'extended', 'verification', 'revision' => ['full paper', 'camera-ready', 'camera ready', 'extended'],
-            'complete' => ['conference', 'konferensi', 'pelaksanaan'],
-            default => [],
+        $kind = match ($key) {
+            'profile', 'submission', 'extended' => 'abstract',
+            'revision' => 'revision',
+            'review', 'verification', 'closed', 'loa_wait' => 'acceptance',
+            'registration', 'payment', 'waiting' => 'payment',
+            'full_paper' => 'full_paper',
+            'complete' => 'conference',
+            default => null,
         };
-
-        $dates = $edition->importantDates()->orderBy('date')->get();
-        $matches = $dates->filter(function ($item) use ($patterns): bool {
-            $labels = Str::lower(implode(' ', $item->getTranslations('label')));
-
-            return collect($patterns)->contains(fn (string $pattern) => Str::contains($labels, $pattern));
-        });
-
-        $deadline = $matches->first(fn ($item) => $item->date->startOfDay()->gte(today())) ?? $matches->last();
+        $deadline = $kind ? $edition->importantDates()->where('kind', $kind)->first() : null;
+        if ($deadline && ! $deadline->date && ! $deadline->closes_at) {
+            return null;
+        }
         if (! $deadline && $key === 'complete' && $edition->start_date) {
             $date = $edition->start_date;
             $label = app()->getLocale() === 'id' ? 'Hari pelaksanaan konferensi' : 'Conference day';
         } elseif ($deadline) {
-            $date = $deadline->date;
+            $date = $deadline->closes_at ?? $deadline->date;
             $label = $deadline->label;
         } else {
             return null;

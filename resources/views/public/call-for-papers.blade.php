@@ -4,9 +4,11 @@
     <section class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-14 space-y-14">
         {{-- CFP intro (dari CMS page opsional) --}}
         @if($page && $page->content)
-            <div class="prose prose-slate max-w-none">{!! str_ireplace(['Full Paper', 'full paper'], ['Abstract', 'abstract'], (string) $page->content) !!}</div>
+            <div class="prose prose-slate max-w-none">{!! $page->content !!}</div>
         @endif
 
+        <x-deadline-summary />
+        @unless($page && $page->content)
         {{-- Topics --}}
         <div>
             <h2 class="font-display text-2xl font-bold text-[var(--brand-2)] mb-6">{{ __('site.topics') }}</h2>
@@ -24,6 +26,8 @@
             @endif
         </div>
 
+        @endunless
+        <p><a class="font-semibold underline" href="{{ route('author-guidelines') }}">{{ __('site.templates') }}</a></p>
         {{-- Templates --}}
         @if($templates->isNotEmpty())
             <div>

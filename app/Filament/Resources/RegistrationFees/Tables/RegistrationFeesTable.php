@@ -18,8 +18,7 @@ class RegistrationFeesTable
             ->defaultSort('order')
             ->columns([
                 TextColumn::make('category')->searchable()->sortable(),
-                TextColumn::make('price_early_bird')->money('IDR')->sortable(),
-                TextColumn::make('price_regular')->money('IDR')->sortable(),
+                TextColumn::make('price_regular')->label('Price')->money(fn ($record) => $record->currency)->sortable(),
                 TextColumn::make('currency')->toggleable(),
                 TextColumn::make('order')->sortable(),
             ])

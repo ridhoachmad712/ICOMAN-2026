@@ -66,6 +66,13 @@ class News extends Model implements HasMedia
         $this->addMediaConversion('card')->fit(Fit::Crop, 800, 450)->format('webp')->nonQueued();
     }
 
+    public function scopePubliclyVisible(\Illuminate\Database\Eloquent\Builder $query): void
+    {
+        $query->where('is_published', true)
+            ->where(fn ($query) => $query->where('edition_id', currentEdition()?->id)->orWhereNull('edition_id'));
+        $query->where(fn ($query) => $query->whereNull('published_at')->orWhere('published_at', '<=', now()));
+    }
+
     public function edition(): BelongsTo
     {
         return $this->belongsTo(Edition::class);

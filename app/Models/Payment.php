@@ -18,6 +18,8 @@ class Payment extends Model
         'amount',
         'status',
         'raw_response',
+        'checkout_url',
+        'notification_history',
     ];
 
     protected function casts(): array
@@ -25,6 +27,7 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'raw_response' => 'array',
+            'notification_history' => 'array',
         ];
     }
 

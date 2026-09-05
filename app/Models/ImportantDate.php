@@ -17,6 +17,8 @@ class ImportantDate extends Model
         'date',
         'is_highlighted',
         'order',
+        'kind',
+        'closes_at',
     ];
 
     public array $translatable = ['label'];
@@ -25,6 +27,7 @@ class ImportantDate extends Model
     {
         return [
             'date' => 'date',
+            'closes_at' => 'datetime',
             'is_highlighted' => 'boolean',
             'order' => 'integer',
         ];

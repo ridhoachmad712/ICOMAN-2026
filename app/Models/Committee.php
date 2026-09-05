@@ -22,6 +22,7 @@ class Committee extends Model implements HasMedia
         'role_title',
         'affiliation',
         'order',
+        'is_published',
     ];
 
     public array $translatable = ['role_title'];
@@ -30,6 +31,7 @@ class Committee extends Model implements HasMedia
     {
         return [
             'order' => 'integer',
+            'is_published' => 'boolean',
         ];
     }
 

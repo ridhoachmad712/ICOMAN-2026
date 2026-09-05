@@ -33,6 +33,7 @@ class SponsorForm
                             ->required(),
                         TextInput::make('name')->required()->maxLength(255),
                         TextInput::make('website_url')->url()->maxLength(255),
+                        \Filament\Forms\Components\Toggle::make('is_published')->label('Confirmed / Published')->default(false),
                         TextInput::make('order')->numeric()->default(0),
                         SpatieMediaLibraryFileUpload::make('logo')
                             ->collection('logo')

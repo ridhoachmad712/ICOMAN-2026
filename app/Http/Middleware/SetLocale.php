@@ -13,7 +13,7 @@ class SetLocale
 
     public function handle(Request $request, Closure $next): Response
     {
-        $locale = $request->session()->get('locale');
+        $locale = $request->query('lang', $request->session()->get('locale'));
 
         if (! in_array($locale, self::SUPPORTED, true)) {
             $default = rescue(fn () => siteSettings()->default_locale, 'en', false);

@@ -128,6 +128,7 @@ class CreatePaper extends CreateRecord
     protected function beforeCreate(): void
     {
         $edition = currentEdition();
+        app(\App\Services\ConferenceDeadlines::class)->assertOpen('abstract', $edition?->id, 'data.title');
         $alreadySubmitted = $edition && Filament::auth()->user()
             ?->submissions()
             ->where('edition_id', $edition->id)

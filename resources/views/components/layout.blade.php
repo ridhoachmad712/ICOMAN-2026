@@ -17,7 +17,7 @@
 
     $description = $metaDescription
         ?: (currentEdition()?->getTranslation('theme', app()->getLocale()) ?: 'International Conference on Management');
-    $canonicalUrl = $canonical ?: url()->current();
+    $canonicalUrl = $canonical ?: url()->current().'?lang='.app()->getLocale();
     $ogImageUrl = $ogImage
         ?: ($settings->hero_image ? $disk->url($settings->hero_image) : ($logoUrl ?: asset('images/hero-pattern.svg')));
 @endphp
@@ -30,6 +30,8 @@
     <title>{{ $pageTitle }}</title>
     <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($description), 160, '') }}">
     <link rel="canonical" href="{{ $canonicalUrl }}">
+    <link rel="alternate" hreflang="en" href="{{ url()->current() }}?lang=en">
+    <link rel="alternate" hreflang="id" href="{{ url()->current() }}?lang=id">
     @if($faviconUrl)<link rel="icon" href="{{ $faviconUrl }}">@endif
 
     {{-- Open Graph / Twitter --}}

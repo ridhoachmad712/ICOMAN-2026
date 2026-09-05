@@ -25,22 +25,11 @@ class PaymentAndRegistrationTest extends TestCase
         ])->assertForbidden();
     }
 
-    public function test_registration_uses_price_for_the_active_period(): void
+    public function test_registration_uses_one_fixed_price(): void
     {
-        Carbon::setTestNow('2026-08-21 12:00:00');
-
-        $fee = new RegistrationFee([
-            'price_early_bird' => 500_000,
-            'price_regular' => 750_000,
-            'early_bird_deadline' => '2026-08-31',
-        ]);
-
-        $this->assertSame('500000.00', $fee->currentPrice());
-
-        $fee->early_bird_deadline = '2026-08-20';
+        $fee = new RegistrationFee(['price_regular' => 750_000]);
         $this->assertSame('750000.00', $fee->currentPrice());
-
-        Carbon::setTestNow();
+        $this->assertFalse(\Illuminate\Support\Facades\Schema::hasColumn('registration_fees', 'price_early_bird'));
     }
 
     public function test_auto_invoice_ignores_fees_from_an_inactive_edition(): void

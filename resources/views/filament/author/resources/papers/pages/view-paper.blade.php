@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    <p class="text-sm"><a href="{{ route('author-guidelines', ['lang' => app()->getLocale()]) }}" class="font-semibold underline">{{ app()->getLocale() === 'id' ? 'Panduan, template, dan deadline' : 'Guidelines, templates, and deadlines' }}</a></p>
     @php
         $id = app()->getLocale() === 'id';
         $record->loadMissing(['topic', 'authors', 'registrations', 'author', 'reviewAssignments.review']);
