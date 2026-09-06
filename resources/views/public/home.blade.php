@@ -53,7 +53,9 @@
         <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[var(--accent)] opacity-[0.14] blur-[130px]"></div>
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 
-        <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-20">
+        {{-- Hero tinggi: konten dipusatkan vertikal agar terasa lapang & formal.
+             svh dipakai supaya tinggi tidak melompat saat bar browser mobile muncul/hilang. --}}
+        <div class="relative mx-auto flex min-h-[68svh] max-w-7xl flex-col justify-center px-4 py-20 sm:min-h-[76svh] sm:px-6 sm:py-28 lg:px-8">
             <p class="eyebrow">
                 {{ $edition?->name ?? 'ICOMAN 2026' }}
             </p>
