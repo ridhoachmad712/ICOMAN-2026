@@ -24,6 +24,8 @@ class ManageSiteSettings extends SettingsPage
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengaturan';
 
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $title = 'Site Settings';
 
     protected static ?string $navigationLabel = 'Site Settings';

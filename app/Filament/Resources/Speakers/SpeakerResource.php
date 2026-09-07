@@ -28,9 +28,9 @@ class SpeakerResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMicrophone;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Narasumber & Panitia';
+    protected static string|UnitEnum|null $navigationGroup = 'Acara & Narasumber';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {

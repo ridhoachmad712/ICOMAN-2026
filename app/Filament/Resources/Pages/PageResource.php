@@ -23,7 +23,9 @@ class PageResource extends Resource
 
     protected static ?string $model = Page::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Halaman & Berita';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
+    protected static ?int $navigationSort = 1;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

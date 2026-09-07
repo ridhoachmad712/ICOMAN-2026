@@ -20,7 +20,9 @@ class RegistrationResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedBanknotes;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Registrasi & Pembayaran';
+    protected static string|UnitEnum|null $navigationGroup = 'Peserta & Pembayaran';
+
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {

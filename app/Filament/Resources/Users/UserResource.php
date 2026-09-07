@@ -23,6 +23,8 @@ class UserResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Pengaturan';
 
+    protected static ?int $navigationSort = 1;
+
     protected static ?string $navigationLabel = 'Users & Roles';
 
     protected static ?string $recordTitleAttribute = 'name';

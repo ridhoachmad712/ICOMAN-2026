@@ -23,7 +23,9 @@ class GalleryResource extends Resource
 
     protected static ?string $model = Gallery::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Program & Acara';
+    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+
+    protected static ?int $navigationSort = 5;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

@@ -25,7 +25,9 @@ class CommitteeResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'name';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Narasumber & Panitia';
+    protected static string|\UnitEnum|null $navigationGroup = 'Acara & Narasumber';
+
+    protected static ?int $navigationSort = 5;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
