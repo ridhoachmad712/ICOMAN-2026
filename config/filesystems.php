@@ -41,7 +41,11 @@ return [
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
-            'serve' => true,
+            // Disk ini menyimpan berkas privat (mis. full paper), jadi tidak
+            // boleh disajikan lewat URL publik; unduhan lewat controller yang
+            // memeriksa hak akses. Mematikannya juga membebaskan path /storage
+            // untuk disk publik.
+            'serve' => false,
             'throw' => false,
             'report' => false,
         ],
@@ -51,6 +55,12 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
+            // Laravel mendaftarkan route /storage/{path} sebagai cadangan. Bila
+            // symlink public/storage hilang (sering terjadi di shared hosting
+            // yang mematikan exec sehingga storage:link gagal), berkas tetap
+            // tersaji lewat PHP alih-alih 404. Saat symlink ada, web server
+            // menyajikan berkas langsung dan route ini tidak pernah tersentuh.
+            'serve' => true,
             'throw' => false,
             'report' => false,
         ],
