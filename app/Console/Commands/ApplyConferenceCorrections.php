@@ -81,7 +81,7 @@ class ApplyConferenceCorrections extends Command
                     $date = $deadline->format('d M Y');
                     $news->update([
                         'title' => ['en' => 'Abstract submission deadline: '.$date, 'id' => 'Batas pengiriman abstrak: '.$date],
-                        'excerpt' => ['en' => 'Submit your English abstract of 150–500 words by '.$date.'.', 'id' => 'Kirim abstrak bahasa Inggris sepanjang 150–500 kata paling lambat '.$date.'.'],
+                        'excerpt' => ['en' => 'Submit your English abstract of 200–250 words by '.$date.'.', 'id' => 'Kirim abstrak bahasa Inggris sepanjang 200–250 kata paling lambat '.$date.'.'],
                         'content' => ['en' => '<p>The abstract submission deadline is '.$date.' at 23:59 WITA (UTC+8). Submit through your presenter account. Accepted abstracts receive an LOA before payment and full paper submission.</p>', 'id' => '<p>Batas pengiriman abstrak adalah '.$date.' pukul 23:59 WITA (UTC+8). Kirim melalui akun presenter. Abstrak yang diterima mendapatkan LOA sebelum pembayaran dan pengiriman full paper.</p>'],
                     ]);
                 }

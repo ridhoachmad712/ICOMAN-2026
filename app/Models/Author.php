@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Notifications\AuthorResetPassword;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -51,12 +50,6 @@ class Author extends Authenticatable implements FilamentUser
             'terms_accepted_at' => 'datetime',
             'password' => 'hashed',
         ];
-    }
-
-    /** Kirim link reset ke route portal author (bukan route admin default). */
-    public function sendPasswordResetNotification($token): void
-    {
-        $this->notify(new AuthorResetPassword($token));
     }
 
     public function submissions(): HasMany

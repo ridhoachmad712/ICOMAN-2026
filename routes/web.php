@@ -1,7 +1,6 @@
 <?php
 
 use App\Http\Controllers\Author\AuthController;
-use App\Http\Controllers\Author\PasswordResetController;
 use App\Http\Controllers\Author\RegistrationController;
 use App\Http\Controllers\Author\SubmissionController;
 use App\Http\Controllers\LocaleController;
@@ -57,11 +56,6 @@ Route::middleware('setlocale')->group(function () {
             Route::post('register/terms', [AuthController::class, 'acceptTerms'])->name('register.accept-terms');
             Route::get('register/start', [AuthController::class, 'showRegister'])->name('register.start');
             Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
-
-            Route::get('forgot-password', [PasswordResetController::class, 'showForgot'])->name('password.request');
-            Route::post('forgot-password', [PasswordResetController::class, 'sendLink'])->middleware('throttle:5,1')->name('password.email');
-            Route::get('reset-password/{token}', [PasswordResetController::class, 'showReset'])->name('password.reset');
-            Route::post('reset-password', [PasswordResetController::class, 'reset'])->middleware('throttle:5,1')->name('password.update');
         });
 
         // Authenticated author

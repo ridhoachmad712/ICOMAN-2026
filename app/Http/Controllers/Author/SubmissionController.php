@@ -9,6 +9,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -167,12 +168,40 @@ class SubmissionController extends Controller
         abort_unless($submission->author_id === Auth::guard('author')->id(), 403);
     }
 
+    /**
+     * Render PDF abstrak. Kegagalan dompdf (mis. batas memori atau direktori
+     * cache font tidak dapat ditulis di server) dulu tampil sebagai layar 500
+     * kosong sehingga tidak bisa didiagnosis; sekarang dicatat ke log dengan
+     * konteks, dan pembaca mendapat pesan yang jelas.
+     */
     private function extendedAbstractPdf(Submission $submission): Response
     {
         $submission->loadMissing(['edition', 'topic', 'authors']);
 
-        return Pdf::loadView('pdf.extended-abstract', compact('submission'))
-            ->setPaper('a4')
-            ->stream($submission->submission_number.'-extended-abstract.pdf');
+        try {
+            return Pdf::loadView('pdf.extended-abstract', compact('submission'))
+                ->setPaper('a4')
+                ->stream($submission->submission_number.'-extended-abstract.pdf');
+        } catch (\Throwable $e) {
+            report($e);
+            Log::error('Gagal membuat PDF abstrak.', [
+                'submission_id' => $submission->id,
+                'submission_number' => $submission->submission_number,
+                'word_count' => $submission->abstractWordCount(),
+                'memory_limit' => ini_get('memory_limit'),
+                'font_dir_writable' => is_writable(storage_path()),
+                'error' => $e->getMessage(),
+            ]);
+
+            $isId = app()->getLocale() === 'id';
+
+            return response(
+                $isId
+                    ? 'PDF abstrak gagal dibuat. Kesalahan sudah dicatat pada log sistem; silakan hubungi admin dan sebutkan nomor '.$submission->submission_number.'.'
+                    : 'The abstract PDF could not be generated. The error has been written to the system log; please contact the administrator quoting '.$submission->submission_number.'.',
+                503,
+                ['Content-Type' => 'text/plain; charset=UTF-8'],
+            );
+        }
     }
 }

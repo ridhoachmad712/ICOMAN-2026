@@ -70,7 +70,12 @@
                     </div>
                     <div>
                         <label for="field-country" class="{{ $label }}">{{ __('author.country') }}</label>
-                        <input id="field-country" type="text" name="country" value="{{ old('country') }}" class="{{ $input }}" placeholder="Indonesia / Malaysia">
+                        <select id="field-country" name="country" class="{{ $input }}">
+                            <option value="">{{ $isId ? '— Pilih negara —' : '— Select country —' }}</option>
+                            @foreach(countryOptions() as $code => $name)
+                                <option value="{{ $code }}" @selected(old('country', 'ID') === $code)>{{ $name }}</option>
+                            @endforeach
+                        </select>
                     </div>
                 </div>
 

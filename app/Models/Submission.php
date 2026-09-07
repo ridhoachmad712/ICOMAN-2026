@@ -17,9 +17,9 @@ class Submission extends Model implements HasMedia
     use HasFactory, InteractsWithMedia;
 
     /** Batas jumlah kata abstract (wajib bahasa Inggris). */
-    public const ABSTRACT_MIN_WORDS = 150;
+    public const ABSTRACT_MIN_WORDS = 200;
 
-    public const ABSTRACT_MAX_WORDS = 500;
+    public const ABSTRACT_MAX_WORDS = 250;
 
     /** Target jurnal penerbitan paper. */
     public const JOURNAL_TARGETS = [

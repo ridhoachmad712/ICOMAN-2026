@@ -82,3 +82,25 @@ if (! function_exists('manuscriptTemplatePath')) {
         return is_file($path) ? $path : null;
     }
 }
+
+if (! function_exists('countryOptions')) {
+    /**
+     * Daftar negara untuk dropdown: Indonesia didahulukan (mayoritas peserta),
+     * sisanya menyusul urut abjad. Kunci = ISO2, nilai = nama negara.
+     *
+     * @return array<string, string>
+     */
+    function countryOptions(): array
+    {
+        $all = countries();
+        asort($all, SORT_NATURAL | SORT_FLAG_CASE);
+
+        $options = [];
+        if (isset($all['ID'])) {
+            $options['ID'] = $all['ID'];
+            unset($all['ID']);
+        }
+
+        return $options + $all;
+    }
+}

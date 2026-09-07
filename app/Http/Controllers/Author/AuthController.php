@@ -72,7 +72,8 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:authors,email'],
             'affiliation' => ['nullable', 'string', 'max:255'],
-            'country' => ['nullable', 'string', 'max:255'],
+            // Negara kini dipilih dari daftar, jadi hanya kode ISO2 yang dikenal yang diterima.
+            'country' => ['nullable', 'string', \Illuminate\Validation\Rule::in(array_keys(countryOptions()))],
             'phone' => ['nullable', 'string', 'max:50'],
             'participation_type' => ['required', 'in:presenter,non_presenter'],
             'registrant_category' => ['required', 'in:student_s1,general,international'],

@@ -1,5 +1,4 @@
 <x-filament-panels::page>
-    <p class="text-sm"><a href="{{ route('author-guidelines', ['lang' => app()->getLocale()]) }}" class="font-semibold underline">{{ app()->getLocale() === 'id' ? 'Panduan, template, dan deadline' : 'Guidelines, templates, and deadlines' }}</a></p>
     @php
         $id = app()->getLocale() === 'id';
         $paperResource = \App\Filament\Author\Resources\Papers\PaperResource::class;
@@ -48,15 +47,6 @@
                     <h3 class="mt-2 text-lg font-semibold text-gray-950 sm:text-xl">{{ $nextAction['title'] }}</h3>
                     <p class="mt-1.5 text-sm leading-6 text-gray-600">{{ $nextAction['description'] }}</p>
 
-                    @if($nextAction['deadline'])
-                        <div class="mt-4 flex items-start gap-2 text-sm">
-                            <x-filament::icon icon="heroicon-o-calendar-days" class="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
-                            <p>
-                                <span class="font-medium text-gray-800">{{ $nextAction['deadline']['label'] }}</span>
-                                <span class="text-gray-500"> · {{ $nextAction['deadline']['date']->format('d M Y') }} · {{ $nextAction['deadline']['relative'] }}</span>
-                            </p>
-                        </div>
-                    @endif
                 </div>
                 <x-filament::button tag="a" href="{{ $nextAction['route'] }}" icon="heroicon-m-arrow-right" icon-position="after" class="shrink-0">
                     {{ $nextAction['label'] }}

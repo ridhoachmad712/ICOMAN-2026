@@ -43,7 +43,7 @@ return json_decode(<<<'JSON'
     },
     {
       "title": "Abstract and review",
-      "body": "The abstract must be in English and contain 150–500 words. Reviewers assess it and make recommendations; the committee decides acceptance, revision, or rejection. Reviewer and committee decisions are final."
+      "body": "The abstract must be in English and contain 200–250 words. Reviewers assess it and make recommendations; the committee decides acceptance, revision, or rejection. Reviewer and committee decisions are final."
     },
     {
       "title": "Publication option",

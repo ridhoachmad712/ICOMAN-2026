@@ -43,7 +43,7 @@ return json_decode(<<<'JSON'
     },
     {
       "title": "Abstrak dan review",
-      "body": "Abstrak wajib bahasa Inggris, 150–500 kata. Reviewer menilai dan memberi rekomendasi; panitia menetapkan keputusan diterima, revisi, atau ditolak. Keputusan reviewer/panitia bersifat final."
+      "body": "Abstrak wajib bahasa Inggris, 200–250 kata. Reviewer menilai dan memberi rekomendasi; panitia menetapkan keputusan diterima, revisi, atau ditolak. Keputusan reviewer/panitia bersifat final."
     },
     {
       "title": "Pilihan publikasi",

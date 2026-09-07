@@ -643,6 +643,7 @@ class AuthorPortalFlowTest extends TestCase
     /** Abstract 160 kata (valid: 150–500). */
     private function validAbstract(): string
     {
-        return implode(' ', array_fill(0, 160, 'management'));
+        // Harus berada dalam rentang Submission::ABSTRACT_MIN_WORDS..MAX_WORDS (200-250).
+        return implode(' ', array_fill(0, 220, 'management'));
     }
 }

@@ -32,7 +32,8 @@ class AuthorPanelProvider extends PanelProvider
             ->id('author')
             ->path('author')
             ->login()
-            ->passwordReset()
+            // Tanpa reset mandiri: author yang lupa password dibantu admin
+            // lewat menu Akun Author di panel admin.
             ->profile(AuthorProfile::class, isSimple: false)
             ->authGuard('author')
             ->authPasswordBroker('authors')
