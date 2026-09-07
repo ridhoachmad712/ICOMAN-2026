@@ -18,7 +18,7 @@ class ReviewAssignmentResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedClipboardDocumentCheck;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Submission & Review';
+    protected static string|UnitEnum|null $navigationGroup = 'Submission';
 
     protected static ?string $navigationLabel = 'My Reviews';
 

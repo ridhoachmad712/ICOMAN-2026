@@ -23,7 +23,7 @@ class PageResource extends Resource
 
     protected static ?string $model = Page::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+    protected static string|\UnitEnum|null $navigationGroup = 'Website';
 
     protected static ?int $navigationSort = 1;
 

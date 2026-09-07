@@ -23,7 +23,7 @@ class FaqResource extends Resource
 
     protected static ?string $model = Faq::class;
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+    protected static string|\UnitEnum|null $navigationGroup = 'Website';
 
     protected static ?int $navigationSort = 3;
 

@@ -8,18 +8,13 @@ use Filament\Widgets\AccountWidget;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-/** Menu admin diringkas jadi 5 kelompok, dan kartu akun di dashboard dihapus. */
+/** Menu admin diringkas jadi 4: Dashboard, Website, Submission, Pengaturan. */
 class AdminNavigationTest extends TestCase
 {
-    private const GROUPS = [
-        'Submission & Review',
-        'Peserta & Pembayaran',
-        'Acara & Narasumber',
-        'Konten Website',
-        'Pengaturan',
-    ];
+    /** Bar navigasi hanya berisi Dashboard + tiga grup ini. */
+    private const GROUPS = ['Website', 'Submission', 'Pengaturan'];
 
-    public function test_admin_navigation_has_exactly_five_groups(): void
+    public function test_admin_navigation_has_exactly_three_groups_beside_dashboard(): void
     {
         $panel = Filament::getPanel('admin');
 
@@ -72,6 +67,18 @@ class AdminNavigationTest extends TestCase
         $this->actingAs($this->superadmin(), 'web')
             ->get('/admin')
             ->assertOk();
+    }
+
+    public function test_key_entries_live_in_the_expected_menu(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->superadmin(), 'web');
+
+        $this->assertSame('Pengaturan', \App\Filament\Resources\Authors\AuthorResource::getNavigationGroup());
+        $this->assertSame('Submission', \App\Filament\Resources\Registrations\RegistrationResource::getNavigationGroup());
+        $this->assertSame('Submission', \App\Filament\Resources\RegistrationFees\RegistrationFeeResource::getNavigationGroup());
+        $this->assertSame('Website', \App\Filament\Resources\Speakers\SpeakerResource::getNavigationGroup());
+        $this->assertSame('Website', \App\Filament\Resources\ImportantDates\ImportantDateResource::getNavigationGroup());
     }
 
     private function superadmin(): User

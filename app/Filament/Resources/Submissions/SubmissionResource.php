@@ -23,7 +23,7 @@ class SubmissionResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocumentText;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Submission & Review';
+    protected static string|UnitEnum|null $navigationGroup = 'Submission';
 
     protected static ?int $navigationSort = 1;
 

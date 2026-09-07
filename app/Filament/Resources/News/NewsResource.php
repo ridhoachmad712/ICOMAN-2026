@@ -25,7 +25,7 @@ class NewsResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'title';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Konten Website';
+    protected static string|\UnitEnum|null $navigationGroup = 'Website';
 
     protected static ?int $navigationSort = 2;
 

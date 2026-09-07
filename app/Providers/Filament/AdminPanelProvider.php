@@ -45,13 +45,11 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->spa()
             ->topNavigation()
-            // Lima kelompok berdasarkan substansi kerja panitia, dari alur inti
-            // (naskah -> peserta -> acara) lalu konten situs dan pengaturan.
+            // Hanya tiga kelompok + Dashboard yang berdiri sendiri, sehingga bar
+            // navigasi berisi empat menu: Dashboard, Website, Submission, Pengaturan.
             ->navigationGroups([
-                'Submission & Review',
-                'Peserta & Pembayaran',
-                'Acara & Narasumber',
-                'Konten Website',
+                'Website',
+                'Submission',
                 'Pengaturan',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
