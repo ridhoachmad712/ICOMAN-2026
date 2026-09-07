@@ -44,6 +44,29 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin']);
     }
 
+    /**
+     * Label & warna badge peran untuk topbar admin. Urutan array = prioritas:
+     * pengguna dengan beberapa peran ditampilkan sebagai peran tertingginya.
+     */
+    public const ROLE_BADGES = [
+        'superadmin' => ['label' => 'Super Admin', 'color' => 'danger'],
+        'admin_registrasi' => ['label' => 'Admin Registrasi', 'color' => 'info'],
+        'content_admin' => ['label' => 'Admin Konten', 'color' => 'warning'],
+        'reviewer' => ['label' => 'Reviewer', 'color' => 'success'],
+    ];
+
+    /** @return array{label: string, color: string} */
+    public function roleBadge(): array
+    {
+        foreach (self::ROLE_BADGES as $role => $badge) {
+            if ($this->hasRole($role)) {
+                return $badge;
+            }
+        }
+
+        return ['label' => 'Tanpa Peran', 'color' => 'gray'];
+    }
+
     public function isSuperadmin(): bool
     {
         return $this->hasRole('superadmin');

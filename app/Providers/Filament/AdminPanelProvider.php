@@ -45,6 +45,12 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->spa()
             ->topNavigation()
+            // Pencarian global tidak dipakai panitia; topbar diisi badge peran.
+            ->globalSearch(false)
+            ->renderHook(
+                \Filament\View\PanelsRenderHook::USER_MENU_BEFORE,
+                fn () => view('filament.admin.role-badge'),
+            )
             // Hanya tiga kelompok + Dashboard yang berdiri sendiri, sehingga bar
             // navigasi berisi empat menu: Dashboard, Website, Submission, Pengaturan.
             ->navigationGroups([
