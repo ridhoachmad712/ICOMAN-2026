@@ -29,7 +29,12 @@ Route::middleware('setlocale')->group(function () {
     Route::get('/faq', [PublicController::class, 'faq'])->name('faq');
     Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
     Route::view('/privacy', 'public.privacy')->name('privacy');
-    Route::get('/author-guidelines/manuscript-template', fn () => response()->download(resource_path('documents/manuscript-template.docx'), 'ICOMAN-manuscript-template.docx'))->name('manuscript-template');
+    // Template naskah belum tentu sudah diunggah panitia; jangan balas 500 bila belum ada.
+    Route::get('/author-guidelines/manuscript-template', function () {
+        abort_unless(manuscriptTemplatePath(), 404);
+
+        return response()->download(manuscriptTemplatePath(), 'ICOMAN-manuscript-template.docx');
+    })->name('manuscript-template');
 
     Route::get('/news', [NewsController::class, 'index'])->name('news.index');
     Route::get('/news/{slug}', [NewsController::class, 'show'])->name('news.show');

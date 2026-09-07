@@ -15,7 +15,9 @@
         <p>{{ $id ? 'Ikuti jadwal dalam WITA (UTC+8). Akses Zoom dan penempatan sesi disampaikan panitia kepada peserta terdaftar. Sertifikat presenter mensyaratkan pembayaran, presentasi, dan pengiriman full paper; sertifikat peserta seminar mensyaratkan kehadiran pada sesi utama.' : 'Follow the schedule in Central Indonesia Time (UTC+8). The committee provides Zoom access and session assignments to registered participants. Presenter certificates require payment, presentation, and full paper submission; seminar attendee certificates require attendance at the main sessions.' }}</p>
     </div>
     <div class="flex flex-wrap gap-3">
-        <a href="{{ route('manuscript-template') }}" class="btn btn-primary">{{ $id ? 'Unduh template naskah DOCX' : 'Download manuscript template DOCX' }}</a>
+        @if(manuscriptTemplatePath())
+            <a href="{{ route('manuscript-template') }}" class="btn btn-primary">{{ $id ? 'Unduh template naskah DOCX' : 'Download manuscript template DOCX' }}</a>
+        @endif
         <a href="{{ route('contact') }}" class="btn btn-outline">{{ $id ? 'Bantuan panitia' : 'Contact the committee' }}</a>
     </div>
 </div>

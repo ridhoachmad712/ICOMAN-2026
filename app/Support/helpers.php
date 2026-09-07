@@ -72,3 +72,13 @@ if (! function_exists('currentEdition')) {
         return once(fn () => Edition::query()->where('is_active', true)->first());
     }
 }
+
+if (! function_exists('manuscriptTemplatePath')) {
+    /** Path template naskah bila panitia sudah menyediakannya, selain itu null. */
+    function manuscriptTemplatePath(): ?string
+    {
+        $path = resource_path('documents/manuscript-template.docx');
+
+        return is_file($path) ? $path : null;
+    }
+}

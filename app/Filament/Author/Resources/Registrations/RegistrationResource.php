@@ -57,6 +57,16 @@ class RegistrationResource extends Resource
         return false;
     }
 
+    /**
+     * Resource ini sengaja tidak punya halaman index (semua alur lewat Dashboard).
+     * Filament tetap butuh URL "index" untuk hal seperti tombol Cancel pada form,
+     * jadi arahkan ke Dashboard - tanpa ini halaman create melempar LogicException.
+     */
+    public static function getIndexUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false): string
+    {
+        return \App\Filament\Author\Pages\AuthorDashboard::getUrl($parameters, $isAbsolute, $panel ?? 'author');
+    }
+
     public static function getPages(): array
     {
         return [
