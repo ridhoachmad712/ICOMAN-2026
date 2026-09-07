@@ -37,6 +37,8 @@ class SponsorForm
                         TextInput::make('order')->numeric()->default(0),
                         SpatieMediaLibraryFileUpload::make('logo')
                             ->collection('logo')
+                            // Tanpa ini Filament memakai disk default (privat) sehingga gambar tidak punya URL publik.
+                            ->disk('public')
                             ->image()
                             ->imageEditor()
                             ->columnSpanFull(),

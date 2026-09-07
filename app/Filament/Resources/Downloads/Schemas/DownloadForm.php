@@ -33,6 +33,8 @@ class DownloadForm
                         TextInput::make('order')->numeric()->default(0),
                         SpatieMediaLibraryFileUpload::make('file')
                             ->collection('file')
+                            // Tanpa ini Filament memakai disk default (privat) sehingga gambar tidak punya URL publik.
+                            ->disk('public')
                             ->acceptedFileTypes([
                                 'application/pdf',
                                 'application/msword',

@@ -54,6 +54,8 @@ class SpeakerForm
                     ->schema([
                         SpatieMediaLibraryFileUpload::make('photo')
                             ->collection('photo')
+                            // Tanpa ini Filament memakai disk default (privat) sehingga gambar tidak punya URL publik.
+                            ->disk('public')
                             ->image()
                             ->imageEditor(),
                     ]),

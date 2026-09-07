@@ -42,6 +42,8 @@ class NewsForm
                         Toggle::make('is_published')->label('Published'),
                         SpatieMediaLibraryFileUpload::make('thumbnail')
                             ->collection('thumbnail')
+                            // Tanpa ini Filament memakai disk default (privat) sehingga gambar tidak punya URL publik.
+                            ->disk('public')
                             ->image()
                             ->imageEditor()
                             ->columnSpanFull(),

@@ -26,6 +26,8 @@ class GalleryForm
                         TextInput::make('caption.id')->label('Caption (ID)')->maxLength(255),
                         SpatieMediaLibraryFileUpload::make('image')
                             ->collection('image')
+                            // Tanpa ini Filament memakai disk default (privat) sehingga gambar tidak punya URL publik.
+                            ->disk('public')
                             ->image()
                             ->imageEditor()
                             ->columnSpanFull(),

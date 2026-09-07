@@ -69,4 +69,45 @@ class MediaAccessTest extends TestCase
         // Ambil lewat HTTP seperti browser pengunjung.
         $this->get(parse_url($url, PHP_URL_PATH))->assertOk();
     }
+
+    /**
+     * Inti bug-nya: Filament memakai disk default untuk unggahan, dan
+     * FILESYSTEM_DISK=local menunjuk penyimpanan privat — sehingga foto speaker
+     * tersimpan tanpa URL publik. Form kini menentukan disk publik eksplisit.
+     */
+    public function test_speaker_photo_uploaded_through_the_admin_form_lands_on_the_public_disk(): void
+    {
+        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('admin'));
+        \Spatie\Permission\Models\Role::findOrCreate('superadmin', 'web');
+        $admin = \App\Models\User::create([
+            'name' => 'Super', 'email' => 'super-media@example.test', 'password' => 'secret-password',
+        ]);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        $edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+
+        $image = imagecreatetruecolor(400, 400);
+        imagefill($image, 0, 0, imagecolorallocate($image, 10, 80, 160));
+        $file = sys_get_temp_dir().'/form-speaker.jpg';
+        imagejpeg($image, $file);
+
+        \Livewire\Livewire::test(\App\Filament\Resources\Speakers\Pages\CreateSpeaker::class)
+            ->fillForm([
+                'edition_id' => $edition->id,
+                'name' => 'Prof Contoh',
+                'type' => 'keynote',
+                'order' => 1,
+                'photo' => [UploadedFile::fake()->createWithContent('foto.jpg', file_get_contents($file))],
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $speaker = Speaker::firstOrFail();
+        $media = $speaker->getFirstMedia('photo');
+
+        $this->assertNotNull($media, 'Foto tidak tersimpan sebagai media.');
+        $this->assertSame('public', $media->disk, 'Foto harus di disk publik agar punya URL.');
+        $this->get(parse_url($speaker->getFirstMediaUrl('photo', 'card'), PHP_URL_PATH))->assertOk();
+    }
 }

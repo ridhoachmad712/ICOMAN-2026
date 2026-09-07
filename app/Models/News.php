@@ -57,7 +57,7 @@ class News extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('thumbnail')->singleFile();
+        $this->addMediaCollection('thumbnail')->singleFile()->useDisk('public');
     }
 
     public function registerMediaConversions(?Media $media = null): void
