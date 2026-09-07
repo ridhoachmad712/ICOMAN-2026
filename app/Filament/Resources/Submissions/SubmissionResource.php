@@ -39,7 +39,7 @@ class SubmissionResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin']) ?? false;
+        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;
     }
 
     public static function canCreate(): bool

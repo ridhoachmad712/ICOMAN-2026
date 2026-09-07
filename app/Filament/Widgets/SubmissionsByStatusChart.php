@@ -13,7 +13,7 @@ class SubmissionsByStatusChart extends ChartWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
+        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;
     }
 
     protected function getData(): array

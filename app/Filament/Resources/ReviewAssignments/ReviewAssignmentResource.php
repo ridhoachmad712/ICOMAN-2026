@@ -29,6 +29,19 @@ class ReviewAssignmentResource extends Resource
         return ReviewAssignmentsTable::configure($table);
     }
 
+    /**
+     * Reviewer hanya punya satu menu; menyembunyikannya di dalam dropdown
+     * "Submission" membuat ia harus dua klik untuk sampai ke pekerjaannya.
+     * Untuk reviewer murni, tampilkan sebagai menu tingkat atas.
+     */
+    public static function getNavigationGroup(): ?string
+    {
+        $user = auth()->user();
+        $pureReviewer = $user?->hasRole('reviewer') && ! $user->hasAnyRole(['superadmin', 'admin_registrasi']);
+
+        return $pureReviewer ? null : 'Submission';
+    }
+
     public static function getNavigationLabel(): string
     {
         return auth()->user()?->hasRole('reviewer') && ! auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi'])
@@ -38,7 +51,7 @@ class ReviewAssignmentResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['reviewer', 'admin_registrasi', 'superadmin']) ?? false;
+        return auth()->user()?->hasAnyRole(['reviewer', 'superadmin']) ?? false;
     }
 
     public static function canCreate(): bool

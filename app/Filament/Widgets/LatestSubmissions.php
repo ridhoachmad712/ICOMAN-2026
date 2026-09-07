@@ -15,7 +15,7 @@ class LatestSubmissions extends BaseWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
+        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;
     }
 
     public function table(Table $table): Table

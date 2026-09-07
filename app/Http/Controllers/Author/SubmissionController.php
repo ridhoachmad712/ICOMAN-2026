@@ -101,7 +101,7 @@ class SubmissionController extends Controller
     public function downloadFullPaperForAdmin(Submission $submission): Response
     {
         $user = Auth::guard('web')->user();
-        abort_unless($user && ($user->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin'])
+        abort_unless($user && ($user->hasAnyRole(['superadmin', 'admin_registrasi'])
             || $submission->reviewAssignments()->where('reviewer_id', $user->id)->exists()), 403);
         $media = $submission->fullPaperMedia();
         abort_unless($media, 404);
@@ -115,7 +115,7 @@ class SubmissionController extends Controller
         abort_unless($user, 403);
 
         $mayReview = $submission->reviewAssignments()->where('reviewer_id', $user->id)->exists();
-        $mayManage = $user->hasAnyRole(['superadmin', 'admin_registrasi', 'content_admin']);
+        $mayManage = $user->hasAnyRole(['superadmin', 'admin_registrasi']);
         abort_unless($mayReview || $mayManage, 403);
 
         return $this->extendedAbstractPdf($submission);

@@ -157,7 +157,10 @@ class SubmissionsTable
                     ->icon('heroicon-o-check-badge')
                     ->color('success')
                     ->modalHeading('Keputusan Panitia atas Abstract')
-                    ->visible(fn ($record) => $record->currentReviewPhase() !== null
+                    // Menerima/menolak paper otomatis menerbitkan LOA dan mengirim
+                    // email ke author, jadi wewenangnya sejajar dengan penerbitan LOA.
+                    ->visible(fn ($record) => (auth()->user()?->isSuperadmin() ?? false)
+                        && $record->currentReviewPhase() !== null
                         && $record->reviewAssignments()
                             ->where('phase', $record->currentReviewPhase())
                             ->where('status', 'completed')
@@ -217,7 +220,7 @@ class SubmissionsTable
                     ->color('success')
                     ->visible(fn ($record) => $record->status === 'accepted'
                         && ! $record->isLoaIssued()
-                        && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
+                        && (auth()->user()?->isSuperadmin() ?? false))
                     ->modalHeading('Terbitkan Letter of Acceptance')
                     ->modalDescription('LOA otomatis terbit saat status diubah menjadi Accepted. Tombol ini hanya untuk paper yang sudah Accepted tetapi LOA-nya belum terbit (mis. diterima sebelum fitur otomatis aktif).')
                     ->schema([
@@ -252,7 +255,7 @@ class SubmissionsTable
                         ->icon('heroicon-o-pencil-square')
                         ->color('warning')
                         ->visible(fn ($record) => $record->currentReviewPhase() !== null
-                            && (auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false))
+                            && (auth()->user()?->isSuperadmin() ?? false))
                         ->modalHeading('Review Abstract (langsung oleh admin)')
                         ->schema([
                             Placeholder::make('abstract_preview')

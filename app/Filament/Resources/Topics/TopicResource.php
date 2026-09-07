@@ -18,7 +18,7 @@ class TopicResource extends Resource
 {
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
+        return auth()->user()?->isSuperadmin() ?? false;
     }
 
     protected static ?string $model = Topic::class;

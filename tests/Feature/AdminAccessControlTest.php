@@ -9,16 +9,20 @@ use Tests\TestCase;
 
 class AdminAccessControlTest extends TestCase
 {
-    /** Tarif registrasi menentukan nominal tagihan — hanya superadmin yang boleh membukanya. */
-    public function test_registration_fees_are_superadmin_only(): void
+    /**
+     * Tarif kini boleh DILIHAT admin registrasi (untuk menjawab pertanyaan
+     * peserta) tetapi hanya superadmin yang boleh mengubah nominalnya.
+     * Rincian per-peran diuji di AdminRoleMatrixTest.
+     */
+    public function test_registration_fees_are_readable_by_registration_admin_but_editable_only_by_superadmin(): void
     {
         foreach (['superadmin', 'admin_registrasi', 'content_admin', 'reviewer'] as $role) {
             Role::findOrCreate($role, 'web');
         }
 
-        $allowed = ['superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false];
+        $canView = ['superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false];
 
-        foreach ($allowed as $role => $expected) {
+        foreach ($canView as $role => $expected) {
             $user = User::create([
                 'name' => ucfirst($role),
                 'email' => $role.'@example.test',
@@ -31,8 +35,11 @@ class AdminAccessControlTest extends TestCase
             $this->assertSame(
                 $expected,
                 RegistrationFeeResource::canAccess(),
-                "Akses Registration Fees untuk role [{$role}] tidak sesuai harapan.",
+                "Akses lihat tarif untuk role [{$role}] tidak sesuai harapan.",
             );
+
+            // Mengubah tarif tetap hanya superadmin.
+            $this->assertSame($role === 'superadmin', RegistrationFeeResource::canCreate());
         }
     }
 
