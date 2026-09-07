@@ -156,47 +156,9 @@
                     <p class="text-lg font-semibold text-[var(--brand-2)]">{{ app()->getLocale() === 'id' ? 'Segera Diumumkan' : 'To Be Announced' }}</p>
                 </div>
             @else
-                @php
-                    $spotlight = $announcedSpeakers->firstWhere('type', 'keynote') ?? $announcedSpeakers->first();
-                    $gridSpeakers = $announcedSpeakers->reject(fn ($sp) => $spotlight && $sp->id === $spotlight->id);
-                @endphp
-
-                {{-- Keynote spotlight --}}
-                @if($spotlight)
-                    @php
-                        $spPhoto = $spotlight->getFirstMediaUrl('photo', 'card');
-                        $spFlag = countryCode($spotlight->country);
-                    @endphp
-                    <div class="mb-10 grid gap-6 sm:grid-cols-3 items-center card p-6 sm:p-8">
-                        <div class="aspect-square sm:aspect-auto sm:h-56 rounded-xl bg-slate-200 overflow-hidden flex items-center justify-center">
-                            @if($spPhoto)
-                                <img src="{{ $spPhoto }}" alt="{{ $spotlight->name }}" class="h-full w-full object-cover">
-                            @else
-                                <span class="text-5xl font-bold text-slate-300">{{ mb_substr($spotlight->name, 0, 1) }}</span>
-                            @endif
-                        </div>
-                        <div class="sm:col-span-2">
-                            <span class="inline-block text-[10px] uppercase tracking-widest font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded">{{ ucfirst($spotlight->type) }}</span>
-                            <h3 class="mt-2 text-2xl font-bold text-[var(--brand-2)]">
-                                {{ $spotlight->title_degree ? $spotlight->title_degree.' ' : '' }}{{ $spotlight->name }}
-                            </h3>
-                            <p class="text-slate-500 inline-flex items-center gap-2">
-                                @if($spFlag)<span class="fi fi-{{ strtolower($spFlag) }} rounded-[2px] ring-1 ring-black/5"></span>@endif
-                                {{ $spotlight->affiliation }}
-                            </p>
-                            @if($spotlight->topic)<p class="mt-3 text-slate-700 font-medium">“{{ $spotlight->topic }}”</p>@endif
-                            @if($spotlight->bio)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ strip_tags($spotlight->bio) }}</p>@endif
-                        </div>
-                    </div>
-                @endif
-
-                @if($gridSpeakers->isNotEmpty())
-                    <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                        @foreach($gridSpeakers as $speaker)
-                            <x-card-speaker :speaker="$speaker" />
-                        @endforeach
-                    </div>
-                @endif
+                {{-- Semua pembicara setara dalam satu carousel (tanpa kartu
+                     spotlight terpisah), 4 kartu per tampilan di desktop. --}}
+                <x-speaker-carousel :speakers="$announcedSpeakers" />
 
                 <div class="text-center mt-8">
                     <a href="{{ route('speakers') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
