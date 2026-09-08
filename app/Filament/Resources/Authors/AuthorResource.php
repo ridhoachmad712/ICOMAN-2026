@@ -12,9 +12,9 @@ use Filament\Tables\Table;
 use UnitEnum;
 
 /**
- * Daftar akun peserta/pemakalah (guard `author`). Read-only, kecuali satu aksi:
- * reset password — portal author tidak lagi punya reset mandiri, jadi bantuan
- * lupa password ditangani dari sini.
+ * Daftar akun peserta/pemakalah (guard `author`). Read-only, kecuali dua aksi:
+ * reset password (portal author tidak punya reset mandiri) dan hapus permanen
+ * agar alamat email yang salah daftar bisa dipakai ulang.
  */
 class AuthorResource extends Resource
 {
@@ -66,9 +66,18 @@ class AuthorResource extends Resource
         return false;
     }
 
+    /**
+     * Hapus permanen. Tabel `authors` tidak memakai soft delete, jadi baris
+     * benar-benar hilang dan alamat emailnya bebas dipakai mendaftar lagi.
+     */
     public static function canDelete($record): bool
     {
-        return false;
+        return auth()->user()?->isSuperadmin() ?? false;
+    }
+
+    public static function canDeleteAny(): bool
+    {
+        return auth()->user()?->isSuperadmin() ?? false;
     }
 
     public static function getPages(): array

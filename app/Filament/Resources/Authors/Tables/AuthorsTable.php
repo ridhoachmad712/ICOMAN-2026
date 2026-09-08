@@ -4,6 +4,9 @@ namespace App\Filament\Resources\Authors\Tables;
 
 use App\Models\Author;
 use Filament\Actions\Action;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -67,9 +70,58 @@ class AuthorsTable
                             ->persistent()
                             ->send();
                     }),
+
+                // Hapus permanen. Tanpa ini akun yang salah daftar terus
+                // menempati alamat emailnya (kolom `email` unik), sehingga
+                // peserta tidak bisa mendaftar ulang dengan email yang sama.
+                DeleteAction::make()
+                    ->label('Hapus')
+                    ->modalHeading(fn (Author $record) => 'Hapus permanen akun '.$record->name.'?')
+                    ->modalDescription(fn (Author $record) => static::deletionWarning($record))
+                    ->modalSubmitActionLabel('Hapus permanen')
+                    ->before(fn (Author $record) => static::purgeRelated($record)),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make()
+                        ->label('Hapus permanen')
+                        ->before(fn ($records) => $records->each(fn (Author $author) => static::purgeRelated($author))),
+                ]),
             ])
             ->emptyStateIcon('heroicon-o-users')
             ->emptyStateHeading('Belum ada akun author')
             ->emptyStateDescription('Akun akan muncul di sini setelah peserta mendaftar melalui portal.');
+    }
+
+    /** Sebutkan apa saja yang ikut hilang, supaya tidak ada kejutan. */
+    private static function deletionWarning(Author $author): string
+    {
+        $abstracts = $author->submissions()->count();
+        $registrations = $author->registrations()->count();
+        $paid = $author->registrations()->where('status', 'paid')->count();
+
+        $lines = ['Baris database akun ini dihapus permanen, sehingga email '.$author->email.' bisa dipakai mendaftar lagi.'];
+
+        if ($abstracts || $registrations) {
+            $lines[] = 'Ikut terhapus: '.$abstracts.' abstrak (beserta penilaian reviewer) dan '.$registrations.' registrasi beserta riwayat pembayarannya.';
+        }
+
+        if ($paid) {
+            $lines[] = 'PERHATIAN: '.$paid.' registrasi berstatus LUNAS. Catatan pembayarannya akan hilang — pastikan sudah dicatat di luar sistem sebelum melanjutkan.';
+        }
+
+        return implode(' ', $lines);
+    }
+
+    /**
+     * Hapus turunan lewat Eloquent lebih dulu. Foreign key di database memang
+     * cascade, tapi cascade tingkat database melewati event model sehingga
+     * berkas media (abstrak, full paper, bukti bayar) akan tertinggal sebagai
+     * sampah di storage.
+     */
+    private static function purgeRelated(Author $author): void
+    {
+        $author->submissions()->cursor()->each(fn ($submission) => $submission->delete());
+        $author->registrations()->cursor()->each(fn ($registration) => $registration->delete());
     }
 }

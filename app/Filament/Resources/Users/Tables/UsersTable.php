@@ -2,7 +2,9 @@
 
 namespace App\Filament\Resources\Users\Tables;
 
+use App\Models\User;
 use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
@@ -38,6 +40,13 @@ class UsersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                // Hapus permanen. Sebelumnya aksi ini hanya ada di halaman edit
+                // sehingga sulit ditemukan, dan akun yang dianggap "sudah
+                // dihapus" sebenarnya masih menempati alamat emailnya.
+                DeleteAction::make()
+                    ->modalHeading(fn (User $record) => 'Hapus akun '.$record->name.'?')
+                    ->modalDescription(fn (User $record) => 'Baris database akun ini dihapus permanen, sehingga alamat email '.$record->email.' bisa dipakai lagi. Penugasan review beserta nilai yang sudah diberikannya juga ikut terhapus.')
+                    ->modalSubmitActionLabel('Hapus permanen'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
