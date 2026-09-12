@@ -5,14 +5,11 @@ namespace App\Http\Controllers;
 use App\Models\Committee;
 use App\Models\Download;
 use App\Models\Faq;
-use App\Models\Gallery;
 use App\Models\ImportantDate;
-use App\Models\News;
 use App\Models\Page;
 use App\Models\RegistrationFee;
 use App\Models\Schedule;
 use App\Models\Speaker;
-use App\Models\Sponsor;
 use App\Models\Topic;
 use Illuminate\Contracts\View\View;
 
@@ -25,29 +22,12 @@ class PublicController extends Controller
 
     public function home(): View
     {
-        $editionId = $this->editionId();
-
-        // Eager-load media untuk hindari N+1 (konversi WebP dipakai di blade).
-        $speakers = Speaker::where('is_published', true)->with('media')->where('edition_id', $editionId)->orderBy('order')->get();
-        $importantDates = ImportantDate::where('edition_id', $editionId)->orderBy('order')->get();
-
+        // Susunan beranda ditentukan blok-blok di Penyusun Halaman, dan tiap
+        // blok menarik datanya sendiri. Yang tersisa di sini hanya bahan
+        // structured data untuk mesin pencari.
         return view('public.home', [
             'edition' => currentEdition(),
-            'speakers' => $speakers->take(8),
-            'importantDates' => $importantDates,
-            'nextDeadline' => $importantDates->filter(fn ($d) => $d->date && $d->date->copy()->endOfDay()->isFuture())->sortBy('date')->first(),
-            'topics' => Topic::where('edition_id', $editionId)->orderBy('order')->get(),
-            'fees' => RegistrationFee::where('edition_id', $editionId)->orderBy('order')->get(),
-            'sponsors' => Sponsor::where('is_published', true)->with('media')->where('edition_id', $editionId)->orderBy('order')->get()->groupBy('tier'),
-            'galleries' => Gallery::with('media')->where('edition_id', $editionId)->orderBy('order')->limit(6)->get(),
-            'faqs' => Faq::where('edition_id', $editionId)->orWhereNull('edition_id')->orderBy('order')->limit(5)->get(),
             'aboutPage' => $this->publishedPage('about'),
-            'publicationPage' => $this->publishedPage('publication'),
-            'latestNews' => News::publiclyVisible()->with('media')
-                ->where('is_published', true)
-                ->orderByDesc('published_at')
-                ->limit(3)
-                ->get(),
         ]);
     }
 

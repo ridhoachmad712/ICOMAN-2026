@@ -9,6 +9,16 @@
         "dev"
       ],
       "port": 5173
+    },
+    {
+      "name": "laravel",
+      "runtimeExecutable": "php",
+      "runtimeArgs": [
+        "artisan",
+        "serve",
+        "--port=8123"
+      ],
+      "port": 8123
     }
   ]
 }

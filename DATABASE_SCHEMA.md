@@ -34,6 +34,23 @@ Untuk halaman CMS bebas: About, Venue, Author Guidelines, dsb.
 | meta_description (T) | json |
 | is_published | boolean |
 
+## page_sections
+Blok penyusun halaman. Satu baris = satu section, urutannya diatur admin. Selama sebuah halaman belum punya baris di sini, halaman itu memakai susunan bawaannya.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| edition_id | fk nullable (kosong = berlaku semua edisi) |
+| target | string(60) index: `home`, atau `page:{slug}` untuk halaman CMS |
+| type | string(30) jenis blok (lihat `PageSection::TYPES`) |
+| eyebrow (T) | json nullable |
+| heading (T) | json nullable |
+| subheading (T) | json nullable |
+| content (T) | json nullable (rich text) |
+| settings | json nullable (opsi per jenis blok: limit, page_slug, layout, tombol) |
+| is_published | boolean default true |
+| order | integer default 0 |
+| image | media nullable (collection `section`) |
+
 ## site_texts
 Suntingan admin atas label bawaan di `lang/`. Hanya kunci yang benar-benar diubah yang tersimpan; berkas bahasa tetap jadi cadangan.
 | Kolom | Tipe |

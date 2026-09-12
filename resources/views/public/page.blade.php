@@ -10,4 +10,9 @@
             <x-empty-state :message="__('site.no_content')" />
         @endif
     </section>
+
+    {{-- Blok tambahan yang disusun admin untuk halaman ini. --}}
+    @if($page)
+        <x-page-sections :target="'page:'.$page->slug" />
+    @endif
 </x-layout>
