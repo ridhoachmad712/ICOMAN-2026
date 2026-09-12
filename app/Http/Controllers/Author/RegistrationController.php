@@ -9,9 +9,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Registration;
 use App\Services\MidtransService;
 use App\Services\RegistrationProvisioner;
+use App\Services\VoucherRedeemer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class RegistrationController extends Controller
 {
@@ -58,11 +61,11 @@ class RegistrationController extends Controller
 
         $data = $request->validate(['journal_target' => ['required', 'in:regular,sinta3']]);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($registration, $data): void {
+        DB::transaction(function () use ($registration, $data): void {
             $locked = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($locked->status, ['pending', 'failed'], true), 403);
             if ($locked->hasUnresolvedPayment()) {
-                throw \Illuminate\Validation\ValidationException::withMessages(['payment' => app()->getLocale() === 'id'
+                throw ValidationException::withMessages(['payment' => app()->getLocale() === 'id'
                     ? 'Pilihan jurnal terkunci selama transaksi aktif atau pembayaran perlu direkonsiliasi. Periksa status pembayaran terlebih dahulu.'
                     : 'The journal option is locked while a payment is active or requires reconciliation. Check payment status first.']);
             }
@@ -77,6 +80,22 @@ class RegistrationController extends Controller
         return back()->with('status', app()->getLocale() === 'id'
             ? 'Pilihan jurnal diperbarui dan total pembayaran disesuaikan.'
             : 'Journal choice updated and your total has been adjusted.');
+    }
+
+    /** Menukarkan kode voucher co-host pada invoice presenter. */
+    public function redeemVoucher(Request $request, Registration $registration): RedirectResponse
+    {
+        $this->authorizeOwner($registration);
+
+        $data = $request->validate([
+            'voucher_code' => ['required', 'string', 'max:40'],
+        ]);
+
+        $voucher = app(VoucherRedeemer::class)->redeem($registration, $data['voucher_code']);
+
+        return back()->with('status', app()->getLocale() === 'id'
+            ? 'Voucher '.$voucher->host_name.' berhasil dipakai. Biaya registrasi dasar Anda dibebaskan.'
+            : 'The '.$voucher->host_name.' voucher was applied. Your base registration fee has been waived.');
     }
 
     public function payGateway(Registration $registration): RedirectResponse
@@ -100,7 +119,7 @@ class RegistrationController extends Controller
 
         try {
             $url = $midtrans->createSnapRedirect($registration);
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
             report($e);

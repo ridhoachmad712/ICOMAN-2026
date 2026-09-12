@@ -18,6 +18,15 @@
         $sinta3Fee = (int) $price['quoted_addon_amount'];
         $basePrice = (float) $price['base_amount'];
         $isSinta = $price['journal_target'] === 'sinta3';
+
+        $discount = (float) ($price['discount_amount'] ?? 0);
+        // Kotak voucher hanya muncul bila memang masih bisa dipakai: jalur
+        // presenter, tagihan belum selesai, dan belum ada voucher terpakai.
+        $canRedeemVoucher = $record->submission_id !== null
+            && $record->voucher_id === null
+            && ! ($price['legacy'] ?? false)
+            && ! $record->hasUnresolvedPayment()
+            && in_array($record->status, ['pending', 'failed'], true);
     @endphp
 
     <div class="space-y-6">
@@ -106,6 +115,13 @@
                         </div>
                     @endif
 
+                    @if($discount > 0)
+                        <div class="flex items-start justify-between gap-4 text-success-700 dark:text-success-400">
+                            <dt>{{ $id ? 'Voucher co-host' : 'Co-host voucher' }} @if(! empty($price['voucher_code']))<span class="font-mono text-xs">({{ $price['voucher_code'] }})</span>@endif</dt>
+                            <dd class="shrink-0 font-semibold">− {{ $money($discount) }}</dd>
+                        </div>
+                    @endif
+
                     <div class="flex items-center justify-between gap-4 border-t border-gray-200 pt-3 dark:border-white/10">
                         <dt class="font-semibold text-gray-950 dark:text-white">{{ $id ? 'Total tagihan' : 'Total amount' }}</dt>
                         <dd class="shrink-0 text-xl font-bold text-gray-950 dark:text-white">{{ $money($record->amount) }}</dd>
@@ -115,7 +131,7 @@
                 <div class="mt-4 grid gap-3 border-t border-gray-200 pt-4 text-sm sm:grid-cols-2 dark:border-white/10">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Metode' : 'Method' }}</p>
-                        <p class="mt-1 font-medium text-gray-950 dark:text-white">Midtrans</p>
+                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'Midtrans' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Abstrak' : 'Abstract' }}</p>
@@ -127,9 +143,43 @@
                     </div>
                 </div>
 
+                @if($canRedeemVoucher)
+                    {{-- Sengaja di bawah pilihan jurnal: begitu voucher menutup
+                         seluruh tagihan, registrasi lunas dan opsi jurnal terkunci. --}}
+                    <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10" x-data="{ open: false }">
+                        <button type="button" x-show="! open" x-on:click="open = true"
+                                class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
+                            {{ $id ? 'Punya kode voucher co-host?' : 'Have a co-host voucher code?' }}
+                        </button>
+
+                        <div x-show="open" x-cloak>
+                            <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Kode voucher co-host' : 'Co-host voucher code' }}</p>
+                            <p class="mt-1 text-xs leading-relaxed text-gray-500">
+                                {{ $id
+                                    ? 'Voucher membebaskan biaya registrasi dasar. Bila Anda memilih penerbitan Jurnal SINTA 3, biaya tambahannya tetap dibayar. Tentukan pilihan jurnal lebih dulu — setelah tagihan lunas, pilihan itu tidak bisa diubah sendiri.'
+                                    : 'The voucher waives your base registration fee. If you choose SINTA 3 publication, its add-on remains payable. Settle your journal choice first — once the invoice is paid you cannot change it yourself.' }}
+                            </p>
+
+                            <form method="POST" action="{{ route('author.registration.voucher', $record) }}" class="mt-3 flex flex-wrap items-start gap-2" x-data="{ submitting: false }" @submit="submitting = true">
+                                @csrf
+                                <input type="text" name="voucher_code" required maxlength="40" autocomplete="off"
+                                       placeholder="{{ $id ? 'Masukkan kode' : 'Enter code' }}"
+                                       class="min-w-0 flex-1 rounded-lg border-gray-300 font-mono text-sm uppercase shadow-sm placeholder:font-sans placeholder:normal-case focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
+                                <x-filament::button type="submit" color="gray" x-bind:disabled="submitting">
+                                    {{ $id ? 'Pakai Voucher' : 'Apply Voucher' }}
+                                </x-filament::button>
+                            </form>
+                        </div>
+                    </div>
+                @endif
+
                 @if($record->status === 'paid')
                     <div class="mt-5 rounded-xl border border-success-200 bg-success-50 p-4 dark:border-success-500/20 dark:bg-success-500/10">
-                        <p class="text-sm font-semibold text-success-800 dark:text-success-300">{{ $id ? 'Pembayaran terverifikasi' : 'Payment verified' }}</p>
+                        <p class="text-sm font-semibold text-success-800 dark:text-success-300">
+                            {{ $record->isWaived()
+                                ? ($id ? 'Registrasi dibebaskan voucher co-host' : 'Registration waived by co-host voucher')
+                                : ($id ? 'Pembayaran terverifikasi' : 'Payment verified') }}
+                        </p>
                         <p class="mt-1 text-xs leading-relaxed text-success-700 dark:text-success-400">
                             {{ $record->submission
                                 ? ($id ? 'Registrasi presenter dan akses seminar Anda sudah aktif.' : 'Your presenter registration and seminar access are active.')

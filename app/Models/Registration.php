@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -18,8 +19,10 @@ class Registration extends Model implements HasMedia
         'author_id',
         'registration_fee_id',
         'submission_id',
+        'voucher_id',
         'payment_method',
         'amount',
+        'discount_amount',
         'status',
         'gateway_transaction_id',
         'gateway_payload',
@@ -31,6 +34,7 @@ class Registration extends Model implements HasMedia
     {
         return [
             'amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
             'gateway_payload' => 'array',
             'paid_at' => 'datetime',
             'pricing_snapshot' => 'array',
@@ -86,6 +90,22 @@ class Registration extends Model implements HasMedia
     public function author(): BelongsTo
     {
         return $this->belongsTo(Author::class);
+    }
+
+    public function voucher(): BelongsTo
+    {
+        return $this->belongsTo(Voucher::class);
+    }
+
+    public function redemption(): HasOne
+    {
+        return $this->hasOne(VoucherRedemption::class);
+    }
+
+    /** Lunas tanpa transaksi apa pun karena seluruh tagihan ditanggung voucher. */
+    public function isWaived(): bool
+    {
+        return $this->payment_method === 'waived';
     }
 
     public function registrationFee(): BelongsTo

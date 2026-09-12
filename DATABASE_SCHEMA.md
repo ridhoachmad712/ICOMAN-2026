@@ -243,14 +243,39 @@ Co-author (bisa lebih dari satu; submitter utama juga tercatat di sini dengan `i
 | edition_id | fk |
 | author_id | fk → authors (peserta bisa juga bukan pemakalah — tetap pakai akun `authors` yang sama, cukup tanpa relasi ke `submissions`) |
 | registration_fee_id | fk → registration_fees |
+| voucher_id | fk nullable → vouchers (voucher co-host yang dipakai) |
 | submission_id | fk nullable (jika registrasi terkait paper tertentu) |
-| payment_method | enum(manual, gateway) |
-| amount | decimal |
+| payment_method | string(20): manual \| gateway \| waived (`waived` = lunas tanpa transaksi karena ditanggung voucher) |
+| amount | decimal (sisa yang harus dibayar, setelah potongan voucher) |
+| discount_amount | decimal default 0 (potongan voucher co-host) |
 | status | enum(pending, pending_verification, paid, failed) default pending |
 | proof_file | media nullable (collection `payment_proof`, khusus payment_method=manual) |
 | gateway_transaction_id | string nullable |
 | gateway_payload | json nullable (simpan raw response terakhir dari gateway untuk audit) |
 | paid_at | timestamp nullable |
+
+## vouchers
+Kode voucher co-host: satu kode per institusi mitra, dipakai berkali-kali sampai kuota habis. Membebaskan biaya registrasi dasar presenter; add-on Jurnal SINTA 3 tetap ditagih.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| edition_id | fk → editions (voucher hanya berlaku pada satu edisi) |
+| code | string(40) unique (selalu disimpan huruf besar) |
+| host_name | string (nama institusi co-host, tampil di invoice author) |
+| quota | smallint unsigned default 4 (jumlah paper gratis) |
+| is_active | boolean default true |
+| expires_at | timestamp nullable |
+
+## voucher_redemptions
+Satu baris = satu slot voucher terpakai. Dipisah dari `vouchers` supaya riwayatnya bisa diaudit dan satu slot bisa dilepas admin tanpa merusak hitungan kuota.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| voucher_id | fk → vouchers |
+| registration_id | fk unique → registrations (satu registrasi hanya boleh memakai satu voucher) |
+| author_id | fk → authors |
+| discount_amount | decimal (nominal yang dibebaskan saat penukaran) |
+| redeemed_at | timestamp |
 
 ## payments
 Log setiap percobaan/transaksi pembayaran (memungkinkan retry pada `registrations` yang sama)
