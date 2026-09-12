@@ -40,7 +40,7 @@ Blok penyusun halaman. Satu baris = satu section, urutannya diatur admin. Selama
 |---|---|
 | id | pk |
 | edition_id | fk nullable (kosong = berlaku semua edisi) |
-| target | string(60) index: `home`, atau `page:{slug}` untuk halaman CMS |
+| target | string(60) index: `home`, salah satu halaman bawaan (`speakers`, `committee`, `call-for-papers`, `important-dates`, `schedule`, `registration`, `faq`, `downloads`), atau `page:{slug}` untuk halaman CMS |
 | type | string(30) jenis blok (lihat `PageSection::TYPES`) |
 | eyebrow (T) | json nullable |
 | heading (T) | json nullable |

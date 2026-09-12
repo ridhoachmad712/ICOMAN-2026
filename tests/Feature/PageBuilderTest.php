@@ -12,6 +12,7 @@ use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
+use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -208,5 +209,68 @@ class PageBuilderTest extends TestCase
         $this->actingAs($reviewer, 'web');
 
         $this->assertFalse(PageSectionResource::canAccess());
+    }
+
+    // --- Halaman terstruktur lain (tahap 3) -------------------------------
+
+    /** @return array<int, array{0: string, 1: string}> */
+    public static function structuredPages(): array
+    {
+        return [
+            ['speakers', 'speakers_full'],
+            ['committee', 'committee_full'],
+            ['faq', 'faq_full'],
+            ['important-dates', 'dates_full'],
+            ['schedule', 'schedule_full'],
+            ['registration', 'registration_full'],
+            ['call-for-papers', 'cfp_full'],
+            ['downloads', 'downloads_full'],
+        ];
+    }
+
+    #[DataProvider('structuredPages')]
+    public function test_each_structured_page_has_a_built_in_block(string $target, string $type): void
+    {
+        $sections = PageSection::forTarget($target);
+
+        $this->assertCount(1, $sections, 'Halaman '.$target.' tidak punya susunan bawaan.');
+        $this->assertSame($type, $sections->first()->type);
+    }
+
+    public function test_a_block_can_be_added_above_a_structured_page(): void
+    {
+        PageSection::create([
+            'target' => 'speakers', 'type' => 'rich_text', 'order' => 0,
+            'heading' => ['id' => 'Catatan Panitia', 'en' => 'Committee Note'],
+            'content' => ['id' => '<p>Isi.</p>', 'en' => '<p>Body.</p>'],
+        ]);
+        PageSection::create(['target' => 'speakers', 'type' => 'speakers_full', 'order' => 1]);
+
+        $this->speaker('Prof Nyata');
+        $html = $this->get(route('speakers'))->assertOk()->getContent();
+
+        $this->assertLessThan(strpos($html, 'Prof Nyata'), strpos($html, 'Committee Note'));
+    }
+
+    /** Halaman terstruktur tetap tampil walau datanya masih kosong. */
+    public function test_a_structured_page_without_data_still_renders(): void
+    {
+        foreach (['speakers', 'committee', 'faq', 'important-dates', 'schedule', 'registration'] as $target) {
+            PageSection::forTarget($target);
+        }
+
+        $this->get(route('speakers'))->assertOk();
+        $this->get(route('committee'))->assertOk();
+        $this->get(route('faq'))->assertOk();
+    }
+
+    public function test_loading_the_defaults_for_one_page_leaves_the_others_alone(): void
+    {
+        PageSection::installDefaults('speakers');
+
+        $this->assertSame(1, PageSection::where('target', 'speakers')->count());
+        $this->assertSame(0, PageSection::where('target', 'home')->count());
+        // Beranda tetap memakai bawaannya.
+        $this->assertGreaterThan(5, PageSection::forTarget('home')->count());
     }
 }

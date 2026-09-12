@@ -118,7 +118,17 @@ class PageSectionForm
     /** @return array<string, string> */
     public static function targetOptions(): array
     {
-        return collect(['home' => 'Beranda'])
+        return collect([
+            'home' => 'Beranda',
+            'speakers' => 'Pembicara',
+            'committee' => 'Komite',
+            'call-for-papers' => 'Call for Papers',
+            'important-dates' => 'Tanggal Penting',
+            'schedule' => 'Jadwal Acara',
+            'registration' => 'Registrasi',
+            'faq' => 'FAQ',
+            'downloads' => 'Unduhan & Panduan',
+        ])
             ->merge(
                 Page::where('is_published', true)->orderBy('slug')->get()
                     ->mapWithKeys(fn (Page $page) => ['page:'.$page->slug => 'Halaman: '.$page->title])

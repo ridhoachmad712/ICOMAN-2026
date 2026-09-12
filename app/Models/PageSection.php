@@ -66,6 +66,17 @@ class PageSection extends Model implements HasMedia
         'faq' => 'FAQ',
         'sponsors' => 'Sponsor',
         'downloads' => 'Unduhan',
+
+        // Blok "halaman penuh": tampilan lengkap seperti halaman aslinya,
+        // dipakai sebagai isi utama halaman bawaan.
+        'speakers_full' => 'Pembicara (halaman penuh)',
+        'committee_full' => 'Komite (halaman penuh)',
+        'faq_full' => 'FAQ (halaman penuh)',
+        'dates_full' => 'Tanggal penting (halaman penuh)',
+        'schedule_full' => 'Jadwal acara (halaman penuh)',
+        'downloads_full' => 'Unduhan & panduan (halaman penuh)',
+        'cfp_full' => 'Call for Papers (halaman penuh)',
+        'registration_full' => 'Registrasi (halaman penuh)',
     ];
 
     /** Blok yang menampilkan daftar dan bisa dibatasi jumlahnya. */
@@ -73,6 +84,21 @@ class PageSection extends Model implements HasMedia
 
     /** Blok yang menarik isi sebuah halaman CMS. */
     public const PAGE_TYPES = ['page_content'];
+
+    /**
+     * Susunan bawaan tiap halaman — dipakai selama admin belum menyusunnya
+     * sendiri, sehingga tampilan website tidak berubah sampai ia mau.
+     */
+    public const DEFAULTS = [
+        'speakers' => [['type' => 'speakers_full']],
+        'committee' => [['type' => 'committee_full']],
+        'faq' => [['type' => 'faq_full']],
+        'important-dates' => [['type' => 'dates_full']],
+        'schedule' => [['type' => 'schedule_full']],
+        'downloads' => [['type' => 'downloads_full']],
+        'call-for-papers' => [['type' => 'cfp_full']],
+        'registration' => [['type' => 'registration_full']],
+    ];
 
     /** Susunan bawaan beranda — dipakai selama admin belum menyusunnya sendiri. */
     public const HOME_DEFAULTS = [
@@ -151,18 +177,21 @@ class PageSection extends Model implements HasMedia
             return $sections->filter(fn (self $section) => $section->view() !== null)->values();
         }
 
-        return $target === 'home' ? static::defaultsFor(self::HOME_DEFAULTS) : collect();
+        return static::defaultsFor(
+            $target === 'home' ? self::HOME_DEFAULTS : (self::DEFAULTS[$target] ?? []),
+            $target,
+        );
     }
 
     /**
      * @param  array<int, array<string, mixed>>  $defaults
      * @return Collection<int, static>
      */
-    public static function defaultsFor(array $defaults): Collection
+    public static function defaultsFor(array $defaults, string $target = 'home'): Collection
     {
-        return collect($defaults)->map(function (array $default, int $index): self {
+        return collect($defaults)->map(function (array $default, int $index) use ($target): self {
             $section = new self([
-                'target' => 'home',
+                'target' => $target,
                 'type' => $default['type'],
                 'settings' => $default['settings'] ?? null,
                 'is_published' => true,
@@ -191,9 +220,10 @@ class PageSection extends Model implements HasMedia
             return 0;
         }
 
+        $defaults = $target === 'home' ? self::HOME_DEFAULTS : (self::DEFAULTS[$target] ?? []);
         $created = 0;
 
-        foreach (static::defaultsFor(self::HOME_DEFAULTS) as $section) {
+        foreach (static::defaultsFor($defaults, $target) as $section) {
             $section->save();
             $created++;
         }
