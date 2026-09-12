@@ -13,7 +13,7 @@
     {{-- SPONSORS (grouped by tier) --}}
             <section class="bg-white py-16">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="__('site.our_sponsors')" />
+                <x-section-heading :title="$heading ?: __('site.our_sponsors')" :eyebrow="$eyebrow" :subtitle="$subheading" />
                 <div class="space-y-8">
                     @foreach($tierOrder as $tierKey => $tierLabel)
                         @if($grouped->has($tierKey))

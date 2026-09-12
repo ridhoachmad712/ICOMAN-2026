@@ -79,6 +79,18 @@ class PageSection extends Model implements HasMedia
         'registration_full' => 'Registrasi (halaman penuh)',
     ];
 
+    /**
+     * Blok yang tidak punya tempat untuk judul sendiri. Hero memakai nama dan
+     * tema edisi; blok "halaman penuh" judulnya dibawa kepala halaman, yang
+     * disunting lewat Teks Website. Isian judul disembunyikan untuk blok ini
+     * supaya tidak ada yang mengetik lalu bertanya-tanya kenapa tak muncul.
+     */
+    public const HEADINGLESS_TYPES = [
+        'hero', 'organizer',
+        'speakers_full', 'committee_full', 'faq_full', 'dates_full',
+        'schedule_full', 'downloads_full', 'cfp_full', 'registration_full',
+    ];
+
     /** Blok yang menampilkan daftar dan bisa dibatasi jumlahnya. */
     public const LIMITED_TYPES = ['speakers', 'gallery', 'news', 'faq', 'important_dates', 'topics'];
 

@@ -10,6 +10,7 @@ use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
 
 class PageSectionForm
@@ -35,11 +36,16 @@ class PageSectionForm
                         ->helperText('Menentukan isi dan tampilan blok.'),
 
                     Toggle::make('is_published')->label('Tampilkan')->default(true)->inline(false),
+
+                    Text::make('Judul blok ini mengikuti data acara atau kepala halaman, jadi tidak disetel di sini. Ubah lewat Pengaturan → Teks Website.')
+                        ->visible(fn ($get) => in_array($get('type'), PageSection::HEADINGLESS_TYPES, true))
+                        ->columnSpanFull(),
                 ]),
 
             Section::make('Judul')
                 ->description('Kosongkan bila blok ini tidak perlu judul.')
                 ->columns(2)
+                ->visible(fn ($get) => ! in_array($get('type'), PageSection::HEADINGLESS_TYPES, true))
                 ->schema([
                     TextInput::make('eyebrow.id')->label('Label kecil (Indonesia)'),
                     TextInput::make('eyebrow.en')->label('Label kecil (English)'),

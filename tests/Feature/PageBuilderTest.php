@@ -273,4 +273,29 @@ class PageBuilderTest extends TestCase
         // Beranda tetap memakai bawaannya.
         $this->assertGreaterThan(5, PageSection::forTarget('home')->count());
     }
+
+    /**
+     * Daftar blok tanpa judul harus cocok dengan kenyataan di berkas tampilan:
+     * kalau sebuah blok memakai $section->heading, isian judulnya tidak boleh
+     * disembunyikan dari admin, dan sebaliknya.
+     */
+    public function test_the_headingless_list_matches_what_the_views_actually_use(): void
+    {
+        foreach (array_keys(PageSection::TYPES) as $type) {
+            $markup = file_get_contents(resource_path('views/sections/'.$type.'.blade.php'));
+            // Buang blok @php pembuka: di sana variabelnya hanya disiapkan.
+            $body = preg_replace('/^@php.*?@endphp/s', '', $markup);
+
+            $usesHeading = str_contains($body, '$heading') || str_contains($body, 'section->heading');
+            $hidden = in_array($type, PageSection::HEADINGLESS_TYPES, true);
+
+            $this->assertSame(
+                ! $usesHeading,
+                $hidden,
+                $hidden
+                    ? "Blok {$type} menyembunyikan isian judul padahal tampilannya memakai judul."
+                    : "Blok {$type} menampilkan isian judul padahal tampilannya mengabaikannya.",
+            );
+        }
+    }
 }
