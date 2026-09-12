@@ -85,7 +85,7 @@
                         <div class="divide-y divide-gray-200">
                             @foreach($submissions as $submission)
                                 <a href="{{ $paperResource::getUrl($paperResource::canEdit($submission) ? 'extended-abstract' : 'view', ['record' => $submission], panel: 'author') }}" class="author-record-row -mx-2 flex flex-col gap-3 px-2 py-4 first:pt-1 last:pb-1 sm:flex-row sm:items-center sm:justify-between">
-                                    <div class="min-w-0"><p class="truncate text-sm font-semibold text-gray-950">{{ $submission->title }}</p><p class="mt-1 text-xs text-gray-500">Paper #{{ str_pad((string) $submission->id, 5, '0', STR_PAD_LEFT) }} · {{ $submission->submitted_at?->format('d M Y') }}</p></div>
+                                    <div class="min-w-0"><p class="truncate text-sm font-semibold text-gray-950">{{ $submission->title }}</p><p class="mt-1 text-xs text-gray-500">Paper {{ $submission->submission_number }} · {{ $submission->submitted_at?->format('d M Y') }}</p></div>
                                     <x-filament::badge :color="$statusColor($submission->status)" class="self-start sm:self-auto">{{ $statusLabel($submission->status) }}</x-filament::badge>
                                 </a>
                             @endforeach

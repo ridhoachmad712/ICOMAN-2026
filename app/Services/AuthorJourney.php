@@ -10,7 +10,6 @@ use App\Models\Registration;
 use App\Models\Submission;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Str;
 
 class AuthorJourney
 {
@@ -390,7 +389,7 @@ class AuthorJourney
 
     private function paperReference(Submission $submission): string
     {
-        return 'Abstrak #'.str_pad((string) $submission->id, 5, '0', STR_PAD_LEFT);
+        return 'Abstrak '.$submission->submission_number;
     }
 
     private function action(string $key, string $titleId, string $titleEn, string $descriptionId, string $descriptionEn, string $route, string $labelId, string $labelEn, int $progress, string $actor = 'author'): array

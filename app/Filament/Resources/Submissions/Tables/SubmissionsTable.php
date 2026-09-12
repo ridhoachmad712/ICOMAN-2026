@@ -52,28 +52,22 @@ class SubmissionsTable
         return $table
             ->defaultSort('submitted_at', 'desc')
             ->columns([
-                // Nomor pendek (sama seperti portal author). Kode submission penuh
-                // berupa ULID terlalu panjang untuk tabel — cukup jadi tooltip.
-                TextColumn::make('id')
-                    ->label('No.')
-                    ->formatStateUsing(fn ($state) => '#'.str_pad((string) $state, 5, '0', STR_PAD_LEFT))
-                    ->tooltip(fn (Submission $record) => $record->submission_number)
+                // Kode submission kini cukup pendek untuk ditampilkan apa adanya,
+                // jadi admin dan author memakai nomor yang sama persis.
+                TextColumn::make('submission_number')
+                    ->label('Kode')
+                    ->copyable()
                     ->sortable()
-                    // Pencarian tetap mencakup judul & kode penuh meski kolomnya disembunyikan.
                     ->searchable(query: fn (Builder $query, string $search) => $query
                         ->where('title', 'like', "%{$search}%")
                         ->orWhere('submission_number', 'like', "%{$search}%")),
                 TextColumn::make('author.name')->label('Submitter')->searchable()->toggleable(),
-                // Judul & kode penuh disembunyikan agar tabel ringkas; bisa diaktifkan
-                // lewat tombol pemilih kolom bila sewaktu-waktu dibutuhkan.
+                // Judul disembunyikan agar tabel ringkas; bisa diaktifkan lewat
+                // tombol pemilih kolom bila sewaktu-waktu dibutuhkan.
                 TextColumn::make('title')
                     ->label('Judul')
                     ->limit(45)
                     ->wrap()
-                    ->toggleable(isToggledHiddenByDefault: true),
-                TextColumn::make('submission_number')
-                    ->label('Kode Submission')
-                    ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('reviewAssignments.reviewer.name')
                     ->label('Reviewers')

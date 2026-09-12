@@ -120,7 +120,7 @@
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Abstrak' : 'Abstract' }}</p>
                         @if($record->submission)
-                            <x-filament::link class="mt-1" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('view', ['record' => $record->submission]) }}">{{ $id ? 'Abstrak #' : 'Abstract #' }}{{ str_pad((string) $record->submission->id, 5, '0', STR_PAD_LEFT) }}</x-filament::link>
+                            <x-filament::link class="mt-1" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('view', ['record' => $record->submission]) }}">{{ $id ? 'Abstrak ' : 'Abstract ' }}{{ $record->submission->submission_number }}</x-filament::link>
                         @else
                             <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $id ? 'Peserta seminar' : 'Seminar participant' }}</p>
                         @endif

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Submissions\Pages\ListSubmissions;
+use App\Filament\Resources\Submissions\Tables\SubmissionsTable;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\Submission;
@@ -53,8 +54,8 @@ class AdminSubmissionsPageTest extends TestCase
         $this->assertSame(['action', 'under_review', 'accepted', 'rejected', 'all'], $tabs);
     }
 
-    /** Tabel diringkas: nomor pendek, judul & kode penuh disembunyikan — tapi tetap bisa dicari. */
-    public function test_list_shows_a_short_number_and_still_searches_by_title_and_code(): void
+    /** Tabel diringkas: kode submission tampil, judul disembunyikan — tapi tetap bisa dicari. */
+    public function test_list_shows_the_submission_code_and_still_searches_by_title_and_code(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Role::findOrCreate('superadmin', 'web');
@@ -93,9 +94,10 @@ class AdminSubmissionsPageTest extends TestCase
 
         $this->actingAs($admin, 'web');
 
-        // Nomor tampil ringkas (#00001); kode ULID penuh hanya jadi tooltip.
+        // Kode submission kini pendek, jadi ditampilkan apa adanya — admin dan
+        // author menyebut nomor yang sama.
         Livewire::test(ListSubmissions::class)
-            ->assertSee('#'.str_pad((string) $wanted->id, 5, '0', STR_PAD_LEFT));
+            ->assertSee($wanted->submission_number);
 
         // Pencarian judul tetap bekerja walau kolom judul disembunyikan.
         Livewire::test(ListSubmissions::class)
@@ -117,7 +119,7 @@ class AdminSubmissionsPageTest extends TestCase
      */
     public function test_manual_status_correction_excludes_accepted_and_machine_states(): void
     {
-        $reflection = new \ReflectionClass(\App\Filament\Resources\Submissions\Tables\SubmissionsTable::class);
+        $reflection = new \ReflectionClass(SubmissionsTable::class);
         $options = $reflection->getConstant('MANUAL_STATUS_OPTIONS');
 
         $this->assertSame(

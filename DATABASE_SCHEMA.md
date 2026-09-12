@@ -195,7 +195,7 @@ Akun publik untuk submission & registrasi (guard `author`, BUKAN tabel `users` F
 | edition_id | fk |
 | author_id | fk → authors (submitter/corresponding utama) |
 | topic_id | fk nullable |
-| submission_number | string unique (auto-generate, mis. `ICOMAN2026-0001`) |
+| submission_number | string unique (auto-generate, nomor urut per-edition, mis. `ICOMAN2026-007`) |
 | title | string |
 | abstract | text |
 | abstract_id | text nullable (versi Indonesia, opsional) |

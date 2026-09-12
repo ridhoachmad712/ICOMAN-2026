@@ -8,15 +8,20 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Submission extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
 
     /** Batas jumlah kata abstract (wajib bahasa Inggris). */
+    /** Lebar nomor urut pada kode submission, mis. 7 -> ICOMAN2026-007. */
+    public const NUMBER_PAD = 3;
+
     public const ABSTRACT_MIN_WORDS = 200;
 
     public const ABSTRACT_MAX_WORDS = 250;
@@ -139,7 +144,7 @@ class Submission extends Model implements HasMedia
     }
 
     /** Naskah lengkap (full paper) yang diunggah penulis. */
-    public function fullPaperMedia(): ?\Spatie\MediaLibrary\MediaCollections\Models\Media
+    public function fullPaperMedia(): ?Media
     {
         return $this->getMedia('camera_ready')->sortByDesc('id')->first();
     }
@@ -168,7 +173,14 @@ class Submission extends Model implements HasMedia
         });
     }
 
-    /** Nomor submission unik per-edition, mis. ICOMAN2026-0001. */
+    /**
+     * Nomor submission unik per-edition, mis. ICOMAN2026-007.
+     *
+     * Nomor urut pendek supaya mudah dibacakan lewat telepon dan ditulis di
+     * berkas. Pembuatannya diserialkan dengan mengunci baris edition: dua
+     * submission yang masuk bersamaan tidak bisa membaca nomor terakhir yang
+     * sama, dan indeks unik di kolomnya menjadi pengaman terakhir.
+     */
     public static function generateNumber(?int $editionId): string
     {
         $edition = $editionId ? Edition::find($editionId) : currentEdition();
@@ -176,7 +188,40 @@ class Submission extends Model implements HasMedia
             ? Str::of($edition->name)->replaceMatches('/[^A-Za-z0-9]/', '')->upper()
             : 'ICOMAN';
 
-        return $code.'-'.strtoupper((string) Str::ulid());
+        return DB::transaction(function () use ($code, $editionId): string {
+            if ($editionId) {
+                Edition::whereKey($editionId)->lockForUpdate()->first();
+            }
+
+            $sequence = static::nextSequence($code, $editionId);
+
+            do {
+                $number = $code.'-'.str_pad((string) $sequence, self::NUMBER_PAD, '0', STR_PAD_LEFT);
+                $sequence++;
+            } while (static::where('submission_number', $number)->exists());
+
+            return $number;
+        });
+    }
+
+    /**
+     * Nomor urut berikutnya, diambil dari kiriman terakhir edisi ini. Kode lama
+     * berbasis ULID diabaikan karena sisipannya bukan angka, sehingga penomoran
+     * baru tetap mulai dari 1 walau ada data lama.
+     */
+    private static function nextSequence(string $code, ?int $editionId): int
+    {
+        $prefix = $code.'-';
+
+        $last = static::query()
+            ->where('edition_id', $editionId)
+            ->where('submission_number', 'like', $prefix.'%')
+            ->orderByDesc('id')
+            ->pluck('submission_number')
+            ->map(fn (string $number): string => substr($number, strlen($prefix)))
+            ->first(fn (string $sequence): bool => ctype_digit($sequence));
+
+        return $last === null ? 1 : ((int) $last) + 1;
     }
 
     /**
@@ -226,7 +271,7 @@ class Submission extends Model implements HasMedia
 
     public function snapshot(string $event): void
     {
-        \Illuminate\Support\Facades\DB::table('submission_versions')->insert([
+        DB::table('submission_versions')->insert([
             'submission_id' => $this->id, 'event' => $event,
             'snapshot' => json_encode([
                 'title' => $this->title, 'abstract' => $this->abstract, 'status' => $this->status,

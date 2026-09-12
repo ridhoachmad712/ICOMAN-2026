@@ -2,6 +2,7 @@
 
 namespace App\Filament\Author\Resources\Papers\Pages;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Resources\Papers\PaperResource;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Contracts\Support\Htmlable;
@@ -14,7 +15,9 @@ class ViewPaper extends ViewRecord
 
     public function getTitle(): string|Htmlable
     {
-        return 'Paper #'.str_pad((string) $this->record->id, 5, '0', STR_PAD_LEFT);
+        // Kode resmi yang sama dengan email dan PDF, supaya author cukup
+        // menyebut satu nomor saat menghubungi panitia.
+        return 'Paper '.$this->record->submission_number;
     }
 
     public function getSubheading(): ?string
@@ -28,7 +31,7 @@ class ViewPaper extends ViewRecord
     public function getBreadcrumbs(): array
     {
         return [
-            \App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
+            AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
             $this->getTitle(),
         ];
     }
