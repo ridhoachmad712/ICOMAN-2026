@@ -76,8 +76,8 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register.terms', ['role' => 'presenter']) }}" class="btn btn-accent">{{ $isId ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
-                <a href="{{ route('author.register.terms', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ $isId ? 'Ikuti Seminar' : 'Attend Seminar' }}</a>
+                <a href="{{ route('author.register.terms', ['role' => 'presenter']) }}" class="btn btn-accent">{{ __('site.home_submit_abstract') }}</a>
+                <a href="{{ route('author.register.terms', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ __('site.home_attend_seminar') }}</a>
             </div>
         </div>
     </section>
@@ -87,7 +87,7 @@
         @php $orgLogo = $s->organizer_logo ? \Illuminate\Support\Facades\Storage::disk('public')->url($s->organizer_logo) : null; @endphp
         <section class="py-8 border-b border-slate-100">
             <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-center gap-4 text-center">
-                <span class="text-xs uppercase tracking-widest text-slate-400">{{ app()->getLocale() === 'id' ? 'Diselenggarakan oleh' : 'Organized by' }}</span>
+                <span class="text-xs uppercase tracking-widest text-slate-400">{{ __('site.home_organized_by') }}</span>
                 @if($orgLogo)<img src="{{ $orgLogo }}" alt="{{ $s->organizer_name }}" loading="lazy" class="h-10 w-auto object-contain">@endif
                 @if($s->organizer_name)<span class="font-semibold text-[var(--brand-2)]">{{ $s->organizer_name }}</span>@endif
             </div>
@@ -116,8 +116,8 @@
                     <div class="space-y-1">
                         @php
                             $factRows = array_filter([
-                                $edition?->start_date ? ['calendar', (app()->getLocale() === 'id' ? 'Tanggal' : 'Date'), $edition->start_date->translatedFormat('d M Y').($edition->end_date && ! $edition->end_date->equalTo($edition->start_date) ? ' – '.$edition->end_date->translatedFormat('d M Y') : '')] : null,
-                                $s->event_location ? ['map-pin', (app()->getLocale() === 'id' ? 'Lokasi' : 'Location'), $s->event_location] : null,
+                                $edition?->start_date ? ['calendar', (__('site.home_date')), $edition->start_date->translatedFormat('d M Y').($edition->end_date && ! $edition->end_date->equalTo($edition->start_date) ? ' – '.$edition->end_date->translatedFormat('d M Y') : '')] : null,
+                                $s->event_location ? ['map-pin', (__('site.home_location')), $s->event_location] : null,
                                 $s->event_mode ? ['monitor', 'Format', $s->event_mode] : null,
                             ]);
                         @endphp
@@ -153,7 +153,7 @@
                     <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand)]">
                         <x-ui-icon name="users" class="h-6 w-6" />
                     </div>
-                    <p class="text-lg font-semibold text-[var(--brand-2)]">{{ app()->getLocale() === 'id' ? 'Segera Diumumkan' : 'To Be Announced' }}</p>
+                    <p class="text-lg font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
                 </div>
             @else
                 {{-- Semua pembicara setara dalam satu carousel (tanpa kartu
@@ -191,11 +191,11 @@
     @if($fees->isNotEmpty())
         <section class="section-tint py-20">
             <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="__('site.registration_fees')" :eyebrow="app()->getLocale() === 'id' ? 'Investasi' : 'Investment'" />
+                <x-section-heading :title="__('site.registration_fees')" :eyebrow="__('site.home_investment')" />
                 @php
                     $audiences = [
-                        'presenter' => app()->getLocale() === 'id' ? 'Presenter (Pemakalah)' : 'Presenter',
-                        'participant' => app()->getLocale() === 'id' ? 'Peserta Seminar' : 'Seminar Attendee',
+                        'presenter' => __('site.home_presenter'),
+                        'participant' => __('site.home_seminar_attendee'),
                     ];
                 @endphp
                 <div class="space-y-10">

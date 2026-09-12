@@ -27,8 +27,8 @@
             <a href="{{ route('home') }}" class="author-wordmark author-wordmark-light"><span>IC</span><strong>{{ $confName }}</strong></a>
             <div class="author-auth-copy">
                 <span class="author-kicker">Participant & Author Portal</span>
-                <h1>{{ app()->getLocale() === 'id' ? 'Kelola keikutsertaan Anda dengan mudah.' : 'Manage your participation with ease.' }}</h1>
-                <p>{{ app()->getLocale() === 'id' ? 'Input abstrak, pantau hasil review, dan selesaikan registrasi konferensi melalui satu portal.' : 'Enter your abstract, follow the review result, and complete conference registration in one portal.' }}</p>
+                <h1>{{ __('site.portal_headline') }}</h1>
+                <p>{{ __('site.portal_subheadline') }}</p>
             </div>
             <div class="author-auth-steps" aria-label="Conference workflow">
                 <span>1. Submit</span><span>2. Review</span><span>3. Register</span><span>4. Present</span>

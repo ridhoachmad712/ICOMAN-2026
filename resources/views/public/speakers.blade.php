@@ -15,8 +15,8 @@
             </div>
         @else
             <div class="mx-auto max-w-xl border-y border-slate-200 py-10 text-center">
-                <h2 class="text-xl font-semibold text-slate-900">{{ app()->getLocale() === 'id' ? 'Pembicara akan diumumkan' : 'Speakers will be announced' }}</h2>
-                <p class="mt-2 text-sm text-slate-600">{{ app()->getLocale() === 'id' ? 'Profil hanya akan ditampilkan setelah dikonfirmasi oleh panitia.' : 'Profiles will appear here after confirmation by the committee.' }}</p>
+                <h2 class="text-xl font-semibold text-slate-900">{{ __('site.speakers_speakers_will_be_announced') }}</h2>
+                <p class="mt-2 text-sm text-slate-600">{{ __('site.speakers_profiles_will_appear_here_after') }}</p>
             </div>
         @endif
     </section>

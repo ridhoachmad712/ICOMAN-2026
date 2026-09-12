@@ -60,7 +60,7 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex flex-col">
     <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-md focus:bg-[var(--brand)] focus:px-4 focus:py-2 focus:text-white">
-        {{ app()->getLocale() === 'id' ? 'Lompat ke konten' : 'Skip to content' }}
+        {{ __('site.layout_skip_to_content') }}
     </a>
 
     <x-navbar :logo="$logoUrl" :name="$confName" />

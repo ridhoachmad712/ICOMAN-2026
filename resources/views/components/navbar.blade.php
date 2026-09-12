@@ -1,27 +1,13 @@
 @props(['logo' => null, 'name' => 'ICOMAN 2026'])
 
 @php
-    $nav = [
-        ['type' => 'link', 'route' => 'home', 'label' => __('nav.home')],
-        ['type' => 'group', 'label' => __('nav.about'), 'children' => [
-            ['route' => 'about', 'label' => __('nav.about')],
-            ['route' => 'committee', 'label' => __('nav.committee')],
-            ['route' => 'venue', 'label' => __('nav.venue')],
-        ]],
-        ['type' => 'group', 'label' => __('nav.program'), 'children' => [
-            ['route' => 'speakers', 'label' => __('nav.speakers')],
-            ['route' => 'call-for-papers', 'label' => __('nav.cfp')],
-            ['route' => 'important-dates', 'label' => __('nav.dates')],
-            ['route' => 'program', 'label' => __('nav.program')],
-            ['route' => 'author-guidelines', 'label' => __('site.templates')],
-        ]],
-        ['type' => 'link', 'route' => 'registration', 'label' => __('nav.registration')],
-        ['type' => 'link', 'route' => 'news.index', 'label' => __('nav.news')],
-        ['type' => 'link', 'route' => 'contact', 'label' => __('nav.contact')],
-    ];
+    // Susunan menu datang dari admin; selama tabelnya kosong dipakai bawaan.
+    $nav = \App\Models\MenuItem::forNavigation();
     $locale = app()->getLocale();
-    $isActive = fn ($route) => request()->routeIs($route);
-    $groupActive = fn ($children) => collect($children)->contains(fn ($child) => request()->routeIs($child['route']));
+    $isActive = fn (?string $route, ?string $url) => ($route && request()->routeIs($route))
+        || ($url && rtrim(request()->url(), '/') === rtrim($url, '/'));
+    $groupActive = fn (array $children) => collect($children)
+        ->contains(fn (array $child) => $isActive($child['route'], $child['url']));
 @endphp
 
 <header x-data="{ open: false }" class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
@@ -39,8 +25,8 @@
 
             <div class="hidden items-center gap-0.5 xl:flex">
                 @foreach($nav as $item)
-                    @if($item['type'] === 'link')
-                        <a href="{{ route($item['route']) }}" class="rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $isActive($item['route']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                    @if($item['children'] === [])
+                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                             {{ $item['label'] }}
                         </a>
                     @else
@@ -52,7 +38,7 @@
                             <div x-show="expanded" x-cloak x-transition @click.outside="expanded = false" class="absolute left-0 top-full w-56 pt-2">
                                 <div class="rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
                                     @foreach($item['children'] as $child)
-                                        <a href="{{ route($child['route']) }}" class="block rounded-lg px-3 py-2.5 text-sm {{ $isActive($child['route']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">{{ $child['label'] }}</a>
+                                        <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="block rounded-lg px-3 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">{{ $child['label'] }}</a>
                                     @endforeach
                                 </div>
                             </div>
@@ -82,12 +68,12 @@
         <div x-show="open" x-cloak x-transition class="border-t border-slate-100 pb-5 pt-3 xl:hidden">
             <div class="flex flex-col gap-1">
                 @foreach($nav as $item)
-                    @if($item['type'] === 'link')
-                        <a href="{{ route($item['route']) }}" class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
+                    @if($item['children'] === [])
+                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
                     @else
                         <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ $item['label'] }}</p>
                         @foreach($item['children'] as $child)
-                            <a href="{{ route($child['route']) }}" class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
+                            <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
                         @endforeach
                     @endif
                 @endforeach

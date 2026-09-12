@@ -34,6 +34,29 @@ Untuk halaman CMS bebas: About, Venue, Author Guidelines, dsb.
 | meta_description (T) | json |
 | is_published | boolean |
 
+## site_texts
+Suntingan admin atas label bawaan di `lang/`. Hanya kunci yang benar-benar diubah yang tersimpan; berkas bahasa tetap jadi cadangan.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| key | string unique (kunci penuh seperti `site.read_more`) |
+| value (T) | json |
+
+## menu_items
+Susunan menu navigasi website, menggantikan daftar tetap di navbar. Selama tabel ini kosong, website memakai menu bawaan.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| parent_id | fk nullable → menu_items (satu tingkat sub-menu) |
+| label (T) | json |
+| type | string(10): route \| page \| url |
+| route_name | string nullable (untuk type=route) |
+| page_id | fk nullable → pages (untuk type=page) |
+| url | string nullable (untuk type=url) |
+| opens_in_new_tab | boolean default false |
+| is_published | boolean default true |
+| order | integer default 0 |
+
 ## committees
 | Kolom | Tipe |
 |---|---|

@@ -31,7 +31,7 @@
         </div>
 
         <div class="text-sm">
-            <h4 class="mb-3 font-semibold text-white">{{ app()->getLocale() === 'id' ? 'Tautan' : 'Quick Links' }}</h4>
+            <h4 class="mb-3 font-semibold text-white">{{ __('site.footer_quick_links') }}</h4>
             <ul class="space-y-2">
                 @foreach($quickLinks as $route => $label)
                     <li><a href="{{ route($route) }}" class="text-slate-400 transition-colors hover:text-white">{{ $label }}</a></li>
@@ -47,7 +47,7 @@
         </div>
 
         <div class="text-sm">
-            <h4 class="mb-3 font-semibold text-white">{{ app()->getLocale() === 'id' ? 'Ikuti Kami' : 'Follow Us' }}</h4>
+            <h4 class="mb-3 font-semibold text-white">{{ __('site.footer_follow_us') }}</h4>
             @if(count($socials))
                 <div class="flex flex-wrap gap-3">
                     @foreach($socials as $label => $url)
@@ -57,7 +57,7 @@
             @else
                 <p class="text-slate-500">—</p>
             @endif
-            <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary mt-5 inline-flex text-sm">{{ app()->getLocale() === 'id' ? 'Kirim Abstrak' : 'Submit Abstract' }}</a>
+            <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary mt-5 inline-flex text-sm">{{ __('site.footer_submit_abstract') }}</a>
         </div>
     </div>
     <div class="border-t border-white/10">
@@ -66,5 +66,5 @@
             <span></span>
         </div>
     </div>
-    <div class="mx-auto max-w-7xl px-4 pb-6 text-sm"><a href="{{ route('privacy', ['lang' => app()->getLocale()]) }}" class="underline">{{ app()->getLocale() === 'id' ? 'Privasi dan penggunaan data' : 'Privacy and data use' }}</a></div>
+    <div class="mx-auto max-w-7xl px-4 pb-6 text-sm"><a href="{{ route('privacy', ['lang' => app()->getLocale()]) }}" class="underline">{{ __('site.footer_privacy_and_data_use') }}</a></div>
 </footer>

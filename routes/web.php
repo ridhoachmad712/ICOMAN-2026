@@ -27,7 +27,8 @@ Route::middleware('setlocale')->group(function () {
     Route::get('/program', [PublicController::class, 'schedule'])->name('program');
     Route::get('/faq', [PublicController::class, 'faq'])->name('faq');
     Route::get('/contact', [PublicController::class, 'contact'])->name('contact');
-    Route::view('/privacy', 'public.privacy')->name('privacy');
+    // Isinya kini halaman CMS berslug `privacy`; URL-nya tetap agar tautan lama tidak putus.
+    Route::get('/privacy', [PublicController::class, 'page'])->defaults('slug', 'privacy')->name('privacy');
     // Template naskah belum tentu sudah diunggah panitia; jangan balas 500 bila belum ada.
     Route::get('/author-guidelines/manuscript-template', function () {
         abort_unless(manuscriptTemplatePath(), 404);
