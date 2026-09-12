@@ -116,10 +116,19 @@ class Submission extends Model implements HasMedia
     {
         $text = trim((string) $this->abstract);
 
+        // Paragraf dipisah baris kosong menjadi <p> supaya bisa dirata-kanan-kiri
+        // dan diberi jarak antarparagraf; dulu seluruhnya jadi satu blok <br>
+        // sehingga aturan tata letak paragraf tidak pernah berlaku.
+        $html = collect(preg_split('/\R{2,}/', $text) ?: [])
+            ->map(fn (string $paragraph): string => trim($paragraph))
+            ->filter()
+            ->map(fn (string $paragraph): string => '<p>'.nl2br(e($paragraph)).'</p>')
+            ->implode('');
+
         return [
             'abstract' => [
                 'label' => 'Abstract',
-                'html' => $text === '' ? '' : nl2br(e($text)),
+                'html' => $html,
                 'text' => $text,
             ],
         ];
