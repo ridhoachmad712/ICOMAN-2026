@@ -20,7 +20,7 @@
                             <div>
                                 <p class="text-center text-xs uppercase tracking-widest text-slate-400 mb-4">{{ $tierLabel }}</p>
                                 <div class="flex flex-wrap items-center justify-center gap-8">
-                                    @foreach($sponsors->get($tierKey) as $sponsor)
+                                    @foreach($grouped->get($tierKey) as $sponsor)
                                         @php $logo = $sponsor->getFirstMediaUrl('logo', 'thumb'); @endphp
                                         <div class="grayscale hover:grayscale-0 transition">
                                             @if($logo)
