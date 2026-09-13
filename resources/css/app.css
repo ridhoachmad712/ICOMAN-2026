@@ -177,32 +177,8 @@
    tamu — register, forgot-password, reset-password — yang memakai
    komponen <x-author-layout>. (Semua CSS portal Blade lama v1–v5 dihapus.) */
 .author-portal { background: #f4f6f8; color: #243247; }
-.author-auth-shell { min-height: 100vh; }
-.author-auth-story { display: none; }
-.author-auth-panel { display: grid; grid-template-rows: auto 1fr auto; min-height: 100vh; background: #f4f6f8; }
-.author-auth-topbar {
-    display: flex; align-items: center; justify-content: space-between;
-    height: 4rem; padding: 0 2rem; border-bottom: 1px solid #d9e0e7;
-    background: #fff; color: #526273; font-size: .72rem; letter-spacing: .04em;
-}
-.author-auth-topbar a:hover { color: var(--brand-2); }
-.author-auth-main { display: grid; place-items: start center; padding: 3.5rem 1.25rem; }
-.author-auth-main > * { width: 100%; }
-.author-auth-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 1.15rem 2rem; border-top: 1px solid #e5e5e2;
-    background: #fff; color: #6b7785; font-size: .68rem;
-}
-.author-auth-footer a:hover { color: var(--brand-2); }
 
 /* Wordmark (dipakai bila layout menampilkannya) */
-.author-wordmark { display: inline-flex; align-items: center; gap: .6rem; color: var(--brand-2); font-size: .84rem; }
-.author-wordmark > span {
-    display: grid; width: 2rem; height: 2rem; place-items: center;
-    border-radius: .5rem; background: var(--brand); color: #fff;
-    font-size: .62rem; font-weight: 900; letter-spacing: -.04em;
-}
-.author-wordmark > strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* Notifikasi flash (session status/error) */
 .author-notice {
@@ -216,8 +192,3 @@
 }
 .author-notice-dark { border-color: #acd8ba; background: #eaf7ef; color: #176b37; }
 
-@media (max-width: 700px) {
-    .author-auth-topbar { padding: 0 1rem; }
-    .author-auth-main { padding: 2rem 1rem 4rem; }
-    .author-auth-footer { padding: 1.15rem 1rem; }
-}

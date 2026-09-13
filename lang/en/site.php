@@ -133,4 +133,5 @@ return [
     'speakers_speakers_will_be_announced' => 'Speakers will be announced',
     'portal_headline' => 'Manage your participation with ease.',
     'portal_subheadline' => 'Enter your abstract, follow the review result, and complete conference registration in one portal.',
+    'auth_abstract_closes_in' => 'Abstract submission closes in',
 ];

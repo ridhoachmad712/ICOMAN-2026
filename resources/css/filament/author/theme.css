@@ -2,6 +2,11 @@
 
 @source '../../../../app/Filament/Author/**/*';
 @source '../../../../resources/views/filament/author/**/*';
+/* Kerangka split-screen halaman login memakai utility Tailwind dari berkas
+   komponen bersama ini, jadi harus ikut dipindai di sini. */
+@source '../../../../resources/views/components/author-auth-story.blade.php';
+@source '../../../../resources/views/components/author-auth-split.blade.php';
+@source '../../../../resources/views/components/countdown.blade.php';
 
 @theme {
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;

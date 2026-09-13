@@ -133,4 +133,5 @@ return [
     'speakers_speakers_will_be_announced' => 'Pembicara akan diumumkan',
     'portal_headline' => 'Kelola keikutsertaan Anda dengan mudah.',
     'portal_subheadline' => 'Input abstrak, pantau hasil review, dan selesaikan registrasi konferensi melalui satu portal.',
+    'auth_abstract_closes_in' => 'Pengiriman abstrak ditutup dalam',
 ];

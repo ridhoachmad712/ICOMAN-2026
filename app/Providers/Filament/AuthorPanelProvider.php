@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Filament\Author\Auth\Login;
 use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Pages\AuthorProfile;
 use App\Http\Middleware\SetLocale;
@@ -19,6 +20,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Support\HtmlString;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class AuthorPanelProvider extends PanelProvider
@@ -26,12 +28,13 @@ class AuthorPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         $brand = rescue(fn () => siteSettings()->primary_color, null, false) ?: '#d9621c';
+        $brand2 = rescue(fn () => siteSettings()->secondary_color, null, false) ?: '#18315e';
         $conference = rescue(fn () => siteSettings()->conference_name, null, false) ?: config('app.name', 'ICOMAN 2026');
 
         return $panel
             ->id('author')
             ->path('author')
-            ->login()
+            ->login(Login::class)
             // Tanpa reset mandiri: author yang lupa password dibantu admin
             // lewat menu Akun Author di panel admin.
             ->profile(AuthorProfile::class, isSimple: false)
@@ -41,6 +44,11 @@ class AuthorPanelProvider extends PanelProvider
             ->colors(['primary' => Color::hex($brand)])
             ->darkMode(false)
             ->viteTheme('resources/css/filament/author/theme.css')
+            // Warna brand disuntikkan ke halaman panel supaya markup kustom
+            // (kerangka login split-screen) memakai warna yang sama dengan website.
+            ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString(
+                '<style>:root{--brand:'.e($brand).';--brand-2:'.e($brand2).';}</style>'
+            ))
             ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.author.auth.login-after'))
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn () => view('filament.author.components.language-switcher'))
             ->topNavigation()

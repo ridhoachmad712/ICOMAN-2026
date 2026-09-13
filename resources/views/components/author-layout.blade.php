@@ -22,31 +22,35 @@
         forgot-password, reset-password). Seluruh halaman author yang sudah login
         ditangani panel Filament (AuthorPanelProvider), bukan Blade.
     --}}
-    <div class="author-auth-shell">
-        <aside class="author-auth-story">
-            <a href="{{ route('home') }}" class="author-wordmark author-wordmark-light"><span>IC</span><strong>{{ $confName }}</strong></a>
-            <div class="author-auth-copy">
-                <span class="author-kicker">Participant & Author Portal</span>
-                <h1>{{ __('site.portal_headline') }}</h1>
-                <p>{{ __('site.portal_subheadline') }}</p>
-            </div>
-            <div class="author-auth-steps" aria-label="Conference workflow">
-                <span>1. Submit</span><span>2. Review</span><span>3. Register</span><span>4. Present</span>
-            </div>
-        </aside>
-        <div class="author-auth-panel">
-            <header class="author-auth-topbar">
-                <a href="{{ route('home') }}">← {{ __('author.back_home') }}</a>
-                <span>{{ __('author.portal') }}</span>
+    {{--
+        Halaman tamu portal author (daftar, syarat & ketentuan). Kerangkanya
+        sama persis dengan halaman login Filament: identitas konferensi di
+        kiri, isi di kanan.
+    --}}
+    <div class="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)]">
+        <x-author-auth-story />
+
+        <div class="flex min-h-screen flex-col bg-white">
+            <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4 text-xs text-slate-500">
+                <a href="{{ route('home') }}" class="hover:text-[var(--brand-2)]">← {{ __('author.back_home') }}</a>
+                <span class="uppercase tracking-[0.14em]">{{ __('author.portal') }}</span>
             </header>
-            <main class="author-auth-main">
+
+            <main class="flex-1 px-6 py-12">
+                {{-- Panel kiri tidak tampil di ponsel, jadi identitas acara diulang ringkas di sini. --}}
+                <p class="mb-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)] lg:hidden">
+                    {{ currentEdition()?->name ?: $confName }}
+                </p>
+
                 @if(session('status'))<div class="author-notice author-notice-dark"><span>✓</span>{{ session('status') }}</div>@endif
                 @if(session('error'))<div class="author-notice"><span>!</span>{{ session('error') }}</div>@endif
+
                 {{ $slot }}
             </main>
-            <footer class="author-auth-footer">
+
+            <footer class="flex items-center justify-between border-t border-slate-200 px-6 py-4 text-xs text-slate-500">
                 <span>© {{ date('Y') }} {{ $confName }}</span>
-                @if($settings->contact_email)<a href="mailto:{{ $settings->contact_email }}">{{ __('author.need_help') }}</a>@endif
+                @if($settings->contact_email)<a href="mailto:{{ $settings->contact_email }}" class="hover:text-[var(--brand-2)]">{{ __('author.need_help') }}</a>@endif
             </footer>
         </div>
     </div>
