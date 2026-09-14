@@ -131,7 +131,4 @@ return [
     'schedule_all_times_are_in_central' => 'Semua waktu dalam WITA (UTC+8).',
     'speakers_profiles_will_appear_here_after' => 'Profil hanya akan ditampilkan setelah dikonfirmasi oleh panitia.',
     'speakers_speakers_will_be_announced' => 'Pembicara akan diumumkan',
-    'portal_headline' => 'Kelola keikutsertaan Anda dengan mudah.',
-    'portal_subheadline' => 'Input abstrak, pantau hasil review, dan selesaikan registrasi konferensi melalui satu portal.',
-    'auth_abstract_closes_in' => 'Pengiriman abstrak ditutup dalam',
 ];

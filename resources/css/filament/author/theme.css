@@ -188,3 +188,36 @@
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 }
+
+/* Halaman login: isian dibuat lebih lapang mengikuti contoh desain yang
+   diberikan — kotak lebih tinggi, tepi lebih tipis, jarak antarisian lebih
+   longgar. Tetap memakai komponen bawaan Filament, hanya diberi ruang. */
+.author-auth-form .fi-fo-field-wrp + .fi-fo-field-wrp {
+    margin-top: 1.25rem;
+}
+
+.author-auth-form .fi-input-wrp {
+    border-radius: .625rem;
+}
+
+.author-auth-form .fi-input {
+    padding-top: .8rem;
+    padding-bottom: .8rem;
+}
+
+.author-auth-form .fi-fo-field-wrp-label {
+    font-size: .8rem;
+    letter-spacing: .01em;
+}
+
+.author-auth-form .fi-btn {
+    padding-top: .8rem;
+    padding-bottom: .8rem;
+}
+
+/* Judul halaman login diberi napas lebih. */
+.author-auth-form .fi-header-heading,
+.author-auth-form .fi-simple-header-heading {
+    font-size: 1.875rem;
+    line-height: 2.25rem;
+}

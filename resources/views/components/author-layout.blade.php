@@ -27,11 +27,11 @@
         sama persis dengan halaman login Filament: identitas konferensi di
         kiri, isi di kanan.
     --}}
-    <div class="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(0,34rem)] xl:grid-cols-[minmax(0,1fr)_minmax(0,40rem)]">
+    <div class="grid min-h-screen lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
         <x-author-auth-story />
 
         <div class="flex min-h-screen flex-col bg-white">
-            <header class="flex items-center justify-between border-b border-slate-200 px-6 py-4 text-xs text-slate-500">
+            <header class="flex items-center justify-between px-6 py-5 text-xs text-slate-400 sm:px-10">
                 <a href="{{ route('home') }}" class="hover:text-[var(--brand-2)]">← {{ __('author.back_home') }}</a>
                 <span class="uppercase tracking-[0.14em]">{{ __('author.portal') }}</span>
             </header>
@@ -48,9 +48,9 @@
                 {{ $slot }}
             </main>
 
-            <footer class="flex items-center justify-between border-t border-slate-200 px-6 py-4 text-xs text-slate-500">
-                <span>© {{ date('Y') }} {{ $confName }}</span>
-                @if($settings->contact_email)<a href="mailto:{{ $settings->contact_email }}" class="hover:text-[var(--brand-2)]">{{ __('author.need_help') }}</a>@endif
+            <footer class="flex items-center justify-between px-6 py-5 pe-28 text-xs text-slate-400 sm:px-10 sm:pe-32">
+                <span class="lg:invisible">© {{ date('Y') }} {{ $confName }}</span>
+                @if($settings->contact_email)<a href="mailto:{{ $settings->contact_email }}" class="hover:text-[var(--brand-2)]">{{ __('author.need_help') }} {{ $settings->contact_email }}</a>@endif
             </footer>
         </div>
     </div>

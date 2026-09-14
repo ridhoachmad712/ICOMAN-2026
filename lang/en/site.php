@@ -131,7 +131,4 @@ return [
     'schedule_all_times_are_in_central' => 'All times are in Central Indonesia Time (UTC+8).',
     'speakers_profiles_will_appear_here_after' => 'Profiles will appear here after confirmation by the committee.',
     'speakers_speakers_will_be_announced' => 'Speakers will be announced',
-    'portal_headline' => 'Manage your participation with ease.',
-    'portal_subheadline' => 'Enter your abstract, follow the review result, and complete conference registration in one portal.',
-    'auth_abstract_closes_in' => 'Abstract submission closes in',
 ];

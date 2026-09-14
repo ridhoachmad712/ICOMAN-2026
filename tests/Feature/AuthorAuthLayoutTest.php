@@ -54,7 +54,7 @@ class AuthorAuthLayoutTest extends TestCase
 
         $response = $this->get('/author/login')->assertOk();
 
-        $response->assertSee(__('site.portal_headline'));
+        $response->assertSee('ICOMAN 2026');
         $response->assertSee('Makassar, Indonesia');
         $response->assertSee('Hybrid');
         // Formulirnya sendiri harus tetap ada.
@@ -67,34 +67,30 @@ class AuthorAuthLayoutTest extends TestCase
         $this->assertFalse(app(Login::class)->hasLogo());
     }
 
-    public function test_the_countdown_appears_while_the_abstract_deadline_is_open(): void
+    /**
+     * Rel kiri sengaja tenang: tanpa gambar hero dan tanpa hitung mundur, agar
+     * perhatian jatuh ke formulir — mengikuti contoh desain yang diberikan.
+     */
+    public function test_the_panel_stays_quiet(): void
     {
-        app()->setLocale('en');
+        app(SiteSettings::class)->fill(['hero_image' => 'site/hero.jpg'])->save();
         $this->abstractDeadline(now()->addDays(10));
 
-        $this->get('/author/login')
-            ->assertOk()
-            ->assertSee(__('site.auth_abstract_closes_in'));
+        $html = $this->get('/author/login')->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('site/hero.jpg', $html, 'Gambar hero tidak dipakai lagi di halaman login.');
+        $this->assertStringNotContainsString('x-countdown', $html);
+        $this->assertStringNotContainsString('Abstract submission closes in', $html);
     }
 
-    /** Hitung mundur ke tanggal yang sudah lewat hanya membuat cemas. */
-    public function test_the_countdown_disappears_once_the_deadline_has_passed(): void
+    /** Kalimat bantuan berakhir dengan "di"/"at", jadi alamatnya harus ikut tercetak. */
+    public function test_the_help_line_names_the_address(): void
     {
-        app()->setLocale('en');
-        $this->abstractDeadline(now()->subDay());
+        app(SiteSettings::class)->fill(['contact_email' => 'panitia@example.test'])->save();
 
         $this->get('/author/login')
             ->assertOk()
-            ->assertDontSee(__('site.auth_abstract_closes_in'));
-    }
-
-    public function test_there_is_no_countdown_when_no_deadline_is_set(): void
-    {
-        app()->setLocale('en');
-
-        $this->get('/author/login')
-            ->assertOk()
-            ->assertDontSee(__('site.auth_abstract_closes_in'));
+            ->assertSee('panitia@example.test');
     }
 
     /** Halaman daftar memakai panel yang sama, bukan tampilannya sendiri. */
@@ -104,7 +100,7 @@ class AuthorAuthLayoutTest extends TestCase
 
         $this->get(route('author.register'))
             ->assertOk()
-            ->assertSee(__('site.portal_headline'))
+            ->assertSee('ICOMAN 2026')
             ->assertSee('Makassar, Indonesia');
     }
 

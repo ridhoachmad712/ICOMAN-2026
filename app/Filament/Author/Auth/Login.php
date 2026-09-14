@@ -21,4 +21,12 @@ class Login extends BaseLogin
     {
         return false;
     }
+
+    /** Satu kalimat penjelas di bawah judul, seperti contoh desainnya. */
+    public function getSubheading(): ?string
+    {
+        return app()->getLocale() === 'id'
+            ? 'Masuk untuk melanjutkan ke portal peserta & pemakalah.'
+            : 'Sign in to continue to the participant and author portal.';
+    }
 }
