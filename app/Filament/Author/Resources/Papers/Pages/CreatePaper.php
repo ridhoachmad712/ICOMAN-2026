@@ -2,8 +2,10 @@
 
 namespace App\Filament\Author\Resources\Papers\Pages;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Models\Topic;
+use App\Services\ConferenceDeadlines;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
@@ -11,9 +13,11 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
 use Filament\Resources\Pages\CreateRecord\Concerns\HasWizard;
 use Filament\Schemas\Components\Wizard\Step;
+use Filament\Support\Exceptions\Halt;
 use Illuminate\Validation\ValidationException;
 
 class CreatePaper extends CreateRecord
@@ -23,6 +27,57 @@ class CreatePaper extends CreateRecord
     protected static string $resource = PaperResource::class;
 
     protected static bool $canCreateAnother = false;
+
+    /**
+     * Cegat sebelum formulirnya sempat diisi. Sebelumnya penolakan baru terjadi
+     * saat tombol simpan ditekan, dan pesannya melekat pada isian di langkah
+     * pertama wizard — tak terlihat dari langkah kedua, sehingga tombolnya
+     * tampak sekadar tidak berfungsi.
+     */
+    public function mount(): void
+    {
+        // Sengaja sebelum parent::mount(): di sana ada pemeriksaan izin yang
+        // membalas 403 untuk akun yang sudah punya paper — layar buntu tanpa
+        // penjelasan. Antar mereka ke papernya sendiri.
+        $edition = currentEdition();
+        $isId = app()->getLocale() === 'id';
+
+        $existing = $edition
+            ? Filament::auth()->user()?->submissions()->where('edition_id', $edition->id)->latest('submitted_at')->first()
+            : null;
+
+        if ($existing) {
+            Notification::make()
+                ->title($isId ? 'Anda sudah memiliki paper pada edisi ini.' : 'You already have a paper in this edition.')
+                ->body($isId
+                    ? 'Setiap akun hanya dapat mengirim satu paper. Lanjutkan mengerjakan paper yang sudah ada.'
+                    : 'Each account may submit only one paper. Continue working on the paper you already have.')
+                ->warning()
+                ->persistent()
+                ->send();
+
+            $this->redirect(PaperResource::getUrl('view', ['record' => $existing], panel: 'author'));
+
+            return;
+        }
+
+        if (! app(ConferenceDeadlines::class)->isOpen('abstract', $edition?->id)) {
+            Notification::make()
+                ->title($isId ? 'Pengiriman abstract sudah ditutup.' : 'Abstract submission has closed.')
+                ->body($isId
+                    ? 'Tenggat tahap ini telah berakhir. Hubungi panitia bila Anda memerlukan bantuan.'
+                    : 'The deadline for this stage has passed. Contact the committee if you need assistance.')
+                ->danger()
+                ->persistent()
+                ->send();
+
+            $this->redirect(AuthorDashboard::getUrl(panel: 'author'));
+
+            return;
+        }
+
+        parent::mount();
+    }
 
     public function getTitle(): string
     {
@@ -111,9 +166,14 @@ class CreatePaper extends CreateRecord
         $edition = currentEdition();
 
         if (! $edition) {
-            throw ValidationException::withMessages([
-                'data.title' => app()->getLocale() === 'id' ? 'Belum ada edisi konferensi aktif.' : 'There is no active conference edition.',
-            ]);
+            // Sama seperti penolakan lain: lewat notifikasi, bukan galat yang
+            // menempel pada isian di langkah yang sedang tidak terlihat.
+            $this->refuse(
+                app()->getLocale() === 'id' ? 'Belum ada edisi konferensi aktif.' : 'There is no active conference edition.',
+                app()->getLocale() === 'id'
+                    ? 'Hubungi panitia agar edisi konferensi diaktifkan lebih dulu.'
+                    : 'Contact the committee so the conference edition can be activated first.',
+            );
         }
 
         $data['edition_id'] = $edition->id;
@@ -128,28 +188,81 @@ class CreatePaper extends CreateRecord
     protected function beforeCreate(): void
     {
         $edition = currentEdition();
-        app(\App\Services\ConferenceDeadlines::class)->assertOpen('abstract', $edition?->id, 'data.title');
+        $isId = app()->getLocale() === 'id';
+
+        // Pagar terakhir: keadaan bisa berubah antara halaman dibuka dan
+        // disimpan. Pesannya lewat notifikasi supaya terbaca dari langkah mana
+        // pun wizard sedang berada.
+        if (! app(ConferenceDeadlines::class)->isOpen('abstract', $edition?->id)) {
+            $this->refuse(
+                $isId ? 'Pengiriman abstract sudah ditutup.' : 'Abstract submission has closed.',
+                $isId
+                    ? 'Tenggat tahap ini telah berakhir. Hubungi panitia bila Anda memerlukan bantuan.'
+                    : 'The deadline for this stage has passed. Contact the committee if you need assistance.',
+            );
+        }
+
         $alreadySubmitted = $edition && Filament::auth()->user()
             ?->submissions()
             ->where('edition_id', $edition->id)
             ->exists();
 
         if ($alreadySubmitted) {
-            throw ValidationException::withMessages([
-                'data.title' => app()->getLocale() === 'id'
+            $this->refuse(
+                $isId ? 'Anda sudah memiliki paper pada edisi ini.' : 'You already have a paper in this edition.',
+                $isId
                     ? 'Setiap akun hanya dapat mengirim satu paper pada edisi konferensi ini.'
                     : 'Each account may submit only one paper in this conference edition.',
-            ]);
+            );
         }
 
-        $authors = collect($this->data['authors'] ?? []);
-        if ($authors->where('is_corresponding', true)->count() !== 1) {
-            throw ValidationException::withMessages([
-                'data.authors' => app()->getLocale() === 'id'
-                    ? 'Tandai tepat satu corresponding author.'
-                    : 'Mark exactly one corresponding author.',
-            ]);
+        $corresponding = collect($this->data['authors'] ?? [])->where('is_corresponding', true)->count();
+
+        if ($corresponding !== 1) {
+            $this->refuse(
+                $isId ? 'Corresponding author belum tepat.' : 'The corresponding author is not set correctly.',
+                $isId
+                    ? 'Tandai tepat satu penulis sebagai corresponding author pada langkah Data penulis.'
+                    : 'Mark exactly one author as the corresponding author in the Author details step.',
+            );
         }
+    }
+
+    /**
+     * Isian wajib yang kosong bisa berada di langkah yang sedang tidak terlihat,
+     * dan galatnya menempel pada isian itu — dari langkah lain tombol simpan
+     * jadi tampak sekadar tidak berfungsi. Sebutkan langkah mana yang harus
+     * diperiksa.
+     */
+    protected function onValidationError(ValidationException $exception): void
+    {
+        parent::onValidationError($exception);
+
+        $isId = app()->getLocale() === 'id';
+        $field = (string) array_key_first($exception->errors());
+        $message = $exception->errors()[$field][0] ?? '';
+
+        $onAuthorStep = str_contains($field, 'authors');
+        $step = $onAuthorStep
+            ? ($isId ? 'Data penulis' : 'Author details')
+            : ($isId ? 'Data paper' : 'Paper details');
+
+        Notification::make()
+            ->title($isId ? 'Ada isian yang belum lengkap.' : 'Some details are still missing.')
+            ->body($isId
+                ? 'Periksa kembali langkah "'.$step.'". '.$message
+                : 'Check the "'.$step.'" step again. '.$message)
+            ->danger()
+            ->persistent()
+            ->send();
+    }
+
+    /** Hentikan penyimpanan dengan alasan yang benar-benar terbaca penulis. */
+    private function refuse(string $title, string $body): never
+    {
+        Notification::make()->title($title)->body($body)->danger()->persistent()->send();
+
+        throw new Halt;
     }
 
     protected function getRedirectUrl(): string
@@ -161,7 +274,7 @@ class CreatePaper extends CreateRecord
     public function getBreadcrumbs(): array
     {
         return [
-            \App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
+            AuthorDashboard::getUrl(panel: 'author') => 'Dashboard',
             $this->getTitle(),
         ];
     }

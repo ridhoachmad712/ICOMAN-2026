@@ -21,8 +21,10 @@ class AppServiceProvider extends ServiceProvider
          * jalan, dan akan menimpa binding apa pun yang dipasang di sini.
          */
         $this->app->extend('translator', function (Translator $translator, $app): Translator {
+            // Loader asli dibungkus, bukan diganti: di dalamnya ada jalur bahasa
+            // bawaan framework (pesan validasi) dan namespace milik paket.
             $replacement = new Translator(
-                new DatabaseTranslationLoader($app['files'], $app['path.lang']),
+                new DatabaseTranslationLoader($app['translation.loader']),
                 $translator->getLocale(),
             );
             $replacement->setFallback($translator->getFallback());
