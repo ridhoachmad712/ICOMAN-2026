@@ -27,16 +27,19 @@
         sama persis dengan halaman login Filament: identitas konferensi di
         kiri, isi di kanan.
     --}}
-    <div class="grid min-h-screen lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
+    {{-- Di layar lebar tinggi dikunci satu layar: rel kiri diam, hanya isi di
+         kanan yang bergulir. Di ponsel rel kiri disembunyikan, jadi halaman
+         bergulir seperti biasa. --}}
+    <div class="grid min-h-screen lg:h-screen lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:overflow-hidden xl:grid-cols-[minmax(0,30rem)_minmax(0,1fr)]">
         <x-author-auth-story />
 
-        <div class="flex min-h-screen flex-col bg-white">
-            <header class="flex items-center justify-between px-6 py-5 text-xs text-slate-400 sm:px-10">
+        <div class="flex min-h-screen flex-col bg-white lg:h-screen lg:min-h-0">
+            <header class="flex shrink-0 items-center justify-between px-6 py-5 text-xs text-slate-400 sm:px-10">
                 <a href="{{ route('home') }}" class="hover:text-[var(--brand-2)]">← {{ __('author.back_home') }}</a>
                 <span class="uppercase tracking-[0.14em]">{{ __('author.portal') }}</span>
             </header>
 
-            <main class="flex-1 px-6 py-12">
+            <main class="flex-1 px-6 py-12 lg:min-h-0 lg:overflow-y-auto">
                 {{-- Panel kiri tidak tampil di ponsel, jadi identitas acara diulang ringkas di sini. --}}
                 <p class="mb-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)] lg:hidden">
                     {{ currentEdition()?->name ?: $confName }}
@@ -48,7 +51,7 @@
                 {{ $slot }}
             </main>
 
-            <footer class="flex items-center justify-between px-6 py-5 pe-28 text-xs text-slate-400 sm:px-10 sm:pe-32">
+            <footer class="flex shrink-0 items-center justify-between px-6 py-5 pe-28 text-xs text-slate-400 sm:px-10 sm:pe-32">
                 <span class="lg:invisible">© {{ date('Y') }} {{ $confName }}</span>
                 @if($settings->contact_email)<a href="mailto:{{ $settings->contact_email }}" class="hover:text-[var(--brand-2)]">{{ __('author.need_help') }} {{ $settings->contact_email }}</a>@endif
             </footer>

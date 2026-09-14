@@ -122,4 +122,22 @@ class AuthorAuthLayoutTest extends TestCase
         $this->assertStringNotContainsString('.author-auth-story', $css);
         $this->assertStringNotContainsString('.author-auth-panel', $css);
     }
+
+    /**
+     * Halaman syarat & ketentuan panjang. Di layar lebar rel kiri harus diam
+     * dan hanya isi di kanan yang bergulir; di ponsel rel kiri tersembunyi
+     * sehingga halaman bergulir seperti biasa.
+     */
+    public function test_only_the_right_column_scrolls_on_wide_screens(): void
+    {
+        $html = $this->get(route('author.register.terms', ['role' => 'presenter']))
+            ->assertOk()
+            ->getContent();
+
+        // Tinggi dikunci satu layar hanya mulai lebar lg.
+        $this->assertStringContainsString('lg:h-screen', $html);
+        $this->assertStringContainsString('lg:overflow-hidden', $html);
+        // Yang bergulir isinya, bukan halamannya.
+        $this->assertStringContainsString('lg:overflow-y-auto', $html);
+    }
 }
