@@ -276,8 +276,10 @@ class PageBuilderTest extends TestCase
 
     /**
      * Daftar blok tanpa judul harus cocok dengan kenyataan di berkas tampilan:
-     * kalau sebuah blok memakai $section->heading, isian judulnya tidak boleh
-     * disembunyikan dari admin, dan sebaliknya.
+     * kalau sebuah blok memakai salah satu dari label kecil, judul, atau
+     * sub-judul, isiannya tidak boleh disembunyikan dari admin — dan
+     * sebaliknya. Blok kutipan misalnya hanya memakai sub-judul, untuk
+     * mencantumkan siapa yang berkata.
      */
     public function test_the_headingless_list_matches_what_the_views_actually_use(): void
     {
@@ -286,7 +288,8 @@ class PageBuilderTest extends TestCase
             // Buang blok @php pembuka: di sana variabelnya hanya disiapkan.
             $body = preg_replace('/^@php.*?@endphp/s', '', $markup);
 
-            $usesHeading = str_contains($body, '$heading') || str_contains($body, 'section->heading');
+            $usesHeading = collect(['$heading', 'section->heading', '$eyebrow', 'section->eyebrow', '$subheading', 'section->subheading'])
+                ->contains(fn (string $needle) => str_contains($body, $needle));
             $hidden = in_array($type, PageSection::HEADINGLESS_TYPES, true);
 
             $this->assertSame(

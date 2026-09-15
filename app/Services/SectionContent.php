@@ -41,6 +41,13 @@ class SectionContent
             'page_content' => $this->page($section) === null,
             'rich_text' => blank($section->content),
             'columns' => collect($section->setting('columns', []))->filter(fn ($column) => filled($column))->isEmpty(),
+            'buttons' => collect($section->setting('buttons', []))->isEmpty(),
+            'cards' => collect($section->setting('cards', []))->isEmpty(),
+            'stats' => collect($section->setting('stats', []))->isEmpty(),
+            'accordion' => collect($section->setting('items', []))->isEmpty(),
+            'quote' => blank($section->content),
+            'video' => blank($section->setting('video_url')),
+            'heading' => blank($section->heading) && blank($section->subheading),
             'image' => ! $section->hasMedia('section'),
             default => false,
         };

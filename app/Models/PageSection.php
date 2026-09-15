@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -56,6 +58,15 @@ class PageSection extends Model implements HasMedia
         'image' => 'Gambar lebar',
         'cta' => 'Ajakan bertindak',
         'columns' => 'Kolom bebas',
+        'heading' => 'Judul saja',
+        'buttons' => 'Deretan tombol',
+        'cards' => 'Kartu berisi ikon & teks',
+        'stats' => 'Angka statistik',
+        'quote' => 'Kutipan',
+        'accordion' => 'Akordeon (tanya jawab bebas)',
+        'video' => 'Video (YouTube / Vimeo)',
+        'spacer' => 'Ruang kosong',
+        'divider' => 'Garis pemisah',
         'speakers' => 'Pembicara',
         'topics' => 'Topik (Call for Papers)',
         'fees' => 'Tarif registrasi',
@@ -87,7 +98,7 @@ class PageSection extends Model implements HasMedia
      * supaya tidak ada yang mengetik lalu bertanya-tanya kenapa tak muncul.
      */
     public const HEADINGLESS_TYPES = [
-        'hero', 'organizer',
+        'hero', 'organizer', 'spacer', 'divider',
         'speakers_full', 'committee_full', 'faq_full', 'dates_full',
         'schedule_full', 'downloads_full', 'cfp_full', 'registration_full',
     ];
@@ -174,6 +185,10 @@ class PageSection extends Model implements HasMedia
             '--ps-pb' => $this->cssLength($this->setting('appearance.padding_bottom')),
             '--ps-width' => $this->cssLength($this->setting('appearance.max_width')),
             '--ps-align' => $this->cssAlign($this->setting('appearance.align')),
+            '--ps-heading-sm' => $this->cssLength($this->setting('appearance.heading_size_mobile')),
+            '--ps-text-sm' => $this->cssLength($this->setting('appearance.text_size_mobile')),
+            '--ps-image' => $this->cssImage($this->setting('appearance.background_image')),
+            '--ps-overlay' => $this->cssOverlay($this->setting('appearance.overlay')),
         ];
 
         return collect($map)
@@ -188,6 +203,34 @@ class PageSection extends Model implements HasMedia
         $columns = (int) $this->setting('appearance.columns', 0);
 
         return $columns >= 1 && $columns <= 6 ? $columns : null;
+    }
+
+    /**
+     * Gambar latar dirakit dari berkas yang memang tersimpan di disk publik,
+     * bukan dari alamat bebas — url() tidak boleh bisa diisi sembarangan.
+     */
+    private function cssImage(mixed $path): ?string
+    {
+        if (! is_string($path) || blank($path)) {
+            return null;
+        }
+
+        if (! Storage::disk('public')->exists($path)) {
+            return null;
+        }
+
+        return 'url("'.Storage::disk('public')->url($path).'")';
+    }
+
+    private function cssOverlay(mixed $value): ?string
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $percent = (int) $value;
+
+        return $percent >= 0 && $percent <= 100 ? ($percent / 100) : null;
     }
 
     /** Warna hanya diterima dalam bentuk heks, supaya tak bisa disisipi CSS lain. */
@@ -218,6 +261,31 @@ class PageSection extends Model implements HasMedia
     public function setting(string $key, mixed $default = null): mixed
     {
         return data_get($this->settings, $key, $default);
+    }
+
+    /** Alamat halaman publik tempat blok ini tampil, untuk pratinjau di admin. */
+    public function publicUrl(): ?string
+    {
+        if (str_starts_with((string) $this->target, 'page:')) {
+            return route('page', ['slug' => substr($this->target, 5)]);
+        }
+
+        // Beberapa halaman bawaan memakai nama route yang berbeda dari kuncinya.
+        $routes = [
+            'home' => 'home',
+            'speakers' => 'speakers',
+            'committee' => 'committee',
+            'call-for-papers' => 'call-for-papers',
+            'important-dates' => 'important-dates',
+            'schedule' => 'program',
+            'registration' => 'registration',
+            'faq' => 'faq',
+            'downloads' => 'author-guidelines',
+        ];
+
+        $name = $routes[$this->target] ?? null;
+
+        return $name && Route::has($name) ? route($name) : null;
     }
 
     /** Nama berkas tampilan blok ini, atau null bila jenisnya tak dikenal lagi. */

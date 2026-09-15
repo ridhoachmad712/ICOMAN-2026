@@ -10,8 +10,10 @@ use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
+use Filament\Forms\Components\ViewField;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
@@ -21,6 +23,18 @@ class PageSectionForm
     public static function configure(Schema $schema): Schema
     {
         return $schema->components([
+            Section::make('Pratinjau')
+                ->description('Tampilan halaman tempat blok ini berada.')
+                ->collapsed()
+                // Blok yang belum tersimpan belum punya halaman untuk ditunjukkan.
+                ->visible(fn (?PageSection $record) => $record !== null)
+                ->schema([
+                    ViewField::make('preview')
+                        ->hiddenLabel()
+                        ->view('filament.forms.components.section-preview')
+                        ->dehydrated(false),
+                ]),
+
             Section::make('Blok')
                 ->columns(2)
                 ->schema([
@@ -102,6 +116,109 @@ class PageSectionForm
                         ]),
                 ]),
 
+            Section::make('Tombol')
+                ->description('Sampai tiga tombol berjajar.')
+                ->visible(fn ($get) => $get('type') === 'buttons')
+                ->schema([
+                    Repeater::make('settings.buttons')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah tombol')
+                        ->reorderable()
+                        ->maxItems(3)
+                        ->defaultItems(1)
+                        ->columns(2)
+                        ->schema([
+                            TextInput::make('label_id')->label('Teks (Indonesia)')->required(),
+                            TextInput::make('label_en')->label('Teks (English)')->required(),
+                            TextInput::make('url')->label('Alamat')->url()->required(),
+                            Select::make('style')
+                                ->label('Gaya')
+                                ->options(['primary' => 'Utama', 'accent' => 'Aksen', 'outline' => 'Garis'])
+                                ->default('primary'),
+                            Toggle::make('new_tab')->label('Buka di tab baru')->inline(false),
+                        ]),
+                ]),
+
+            Section::make('Kartu')
+                ->visible(fn ($get) => $get('type') === 'cards')
+                ->schema([
+                    Repeater::make('settings.cards')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah kartu')
+                        ->reorderable()
+                        ->defaultItems(3)
+                        ->columns(2)
+                        ->schema([
+                            Select::make('icon')
+                                ->label('Ikon')
+                                ->options(['calendar' => 'Kalender', 'map-pin' => 'Lokasi', 'users' => 'Orang', 'monitor' => 'Layar', 'document' => 'Dokumen', 'check' => 'Centang'])
+                                ->placeholder('Tanpa ikon'),
+                            TextInput::make('title_id')->label('Judul (Indonesia)'),
+                            TextInput::make('title_en')->label('Judul (English)'),
+                            Textarea::make('text_id')->label('Teks (Indonesia)')->rows(3),
+                            Textarea::make('text_en')->label('Teks (English)')->rows(3),
+                        ]),
+                ]),
+
+            Section::make('Angka')
+                ->visible(fn ($get) => $get('type') === 'stats')
+                ->schema([
+                    Repeater::make('settings.stats')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah angka')
+                        ->reorderable()
+                        ->defaultItems(3)
+                        ->columns(3)
+                        ->schema([
+                            TextInput::make('value')->label('Angka')->required()->placeholder('120+'),
+                            TextInput::make('label_id')->label('Keterangan (Indonesia)'),
+                            TextInput::make('label_en')->label('Keterangan (English)'),
+                        ]),
+                ]),
+
+            Section::make('Tanya jawab')
+                ->visible(fn ($get) => $get('type') === 'accordion')
+                ->schema([
+                    Repeater::make('settings.items')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah pertanyaan')
+                        ->reorderable()
+                        ->defaultItems(2)
+                        ->columns(2)
+                        ->schema([
+                            TextInput::make('question_id')->label('Pertanyaan (Indonesia)')->required(),
+                            TextInput::make('question_en')->label('Pertanyaan (English)')->required(),
+                            RichEditor::make('answer_id')->label('Jawaban (Indonesia)')->columnSpanFull(),
+                            RichEditor::make('answer_en')->label('Jawaban (English)')->columnSpanFull(),
+                        ]),
+                ]),
+
+            Section::make('Video')
+                ->visible(fn ($get) => $get('type') === 'video')
+                ->schema([
+                    TextInput::make('settings.video_url')
+                        ->label('Alamat video')
+                        ->url()
+                        ->required()
+                        ->helperText('Tempel tautan YouTube atau Vimeo. Layanan lain tidak disematkan.'),
+                ]),
+
+            Section::make('Kutipan')
+                ->visible(fn ($get) => $get('type') === 'quote')
+                ->schema([
+                    RichEditor::make('content.id')->label('Kutipan (Indonesia)')->columnSpanFull(),
+                    RichEditor::make('content.en')->label('Kutipan (English)')->columnSpanFull(),
+                ]),
+
+            Section::make('Ruang kosong')
+                ->visible(fn ($get) => $get('type') === 'spacer')
+                ->schema([
+                    TextInput::make('settings.height')
+                        ->label('Tinggi')
+                        ->numeric()->minValue(0)->maxValue(400)->suffix('px')
+                        ->default(48),
+                ]),
+
             Section::make('Tampilan')
                 ->description('Kosongkan isian apa pun untuk memakai tampilan bawaan blok ini.')
                 ->columns(2)
@@ -134,6 +251,28 @@ class PageSectionForm
                         ->label('Jarak atas')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
                     TextInput::make('settings.appearance.padding_bottom')
                         ->label('Jarak bawah')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
+
+                    TextInput::make('settings.appearance.heading_size_mobile')
+                        ->label('Ukuran judul di ponsel')
+                        ->numeric()->minValue(10)->maxValue(200)->suffix('px')
+                        ->helperText('Kosongkan untuk memakai ukuran yang sama.'),
+
+                    TextInput::make('settings.appearance.text_size_mobile')
+                        ->label('Ukuran teks di ponsel')
+                        ->numeric()->minValue(8)->maxValue(100)->suffix('px'),
+
+                    FileUpload::make('settings.appearance.background_image')
+                        ->label('Gambar latar')
+                        ->image()
+                        ->disk('public')
+                        ->directory('sections')
+                        ->visibility('public')
+                        ->columnSpanFull(),
+
+                    TextInput::make('settings.appearance.overlay')
+                        ->label('Kepekatan lapisan gelap di atas gambar')
+                        ->numeric()->minValue(0)->maxValue(100)->suffix('%')
+                        ->helperText('Supaya teks tetap terbaca di atas gambar. 0 berarti tanpa lapisan.'),
 
                     TextInput::make('settings.appearance.max_width')
                         ->label('Lebar isi')

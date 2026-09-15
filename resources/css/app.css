@@ -251,3 +251,26 @@
 @media (max-width: 640px) {
     .ps-block[class*="ps-cols-"] > section :is(.grid) { grid-template-columns: minmax(0, 1fr) !important; }
 }
+
+/* Gambar latar per blok, beserta lapisan gelap agar teks tetap terbaca. */
+.ps-block[style*="--ps-image"] > section {
+    background-image: var(--ps-image);
+    background-position: center;
+    background-size: cover;
+    position: relative;
+}
+
+.ps-block[style*="--ps-overlay"] > section::before {
+    background: rgb(0 0 0 / var(--ps-overlay));
+    content: '';
+    inset: 0;
+    position: absolute;
+}
+
+.ps-block[style*="--ps-image"] > section > * { position: relative; z-index: 1; }
+
+/* Ukuran khusus layar kecil, bila admin mengisinya. */
+@media (max-width: 640px) {
+    .ps-block[style*="--ps-heading-sm"] > section :is(h1, h2) { font-size: var(--ps-heading-sm) !important; }
+    .ps-block[style*="--ps-text-sm"] > section :is(p, li, dd) { font-size: var(--ps-text-sm) !important; }
+}
