@@ -115,4 +115,57 @@ class SponsorMarqueeTest extends TestCase
         $this->assertStringContainsString('Sudah Pasti', $html);
         $this->assertStringNotContainsString('Masih Rahasia', $html);
     }
+
+    /** Logo tampil apa adanya, tidak lagi dibuat abu-abu. */
+    public function test_the_logos_keep_their_colour(): void
+    {
+        $this->sponsor('Bank Contoh', 'gold', 1);
+
+        $html = $this->render();
+
+        $marquee = substr($html, strpos($html, 'sponsor-marquee'));
+        $marquee = substr($marquee, 0, strpos($marquee, '</section>'));
+
+        $this->assertStringNotContainsString('grayscale', $marquee);
+    }
+
+    /** Tingkatan tetap bisa diketahui — muncul saat logonya disentuh. */
+    public function test_the_tier_is_named_on_hover(): void
+    {
+        $this->sponsor('Bank Contoh', 'gold', 1);
+        $this->sponsor('Mitra Media', 'media_partner', 2);
+
+        $html = $this->render();
+
+        $this->assertStringContainsString('Gold Sponsor', $html);
+        $this->assertStringContainsString('Media Partner', $html);
+        // Keterangannya tersembunyi sampai disentuh, bukan tercetak permanen.
+        $this->assertStringContainsString('group-hover:opacity-100', $html);
+    }
+
+    /**
+     * Pita hanya mulus bila isinya lebih panjang dari layar; dengan sponsor
+     * sedikit, satu set harus diulang cukup banyak.
+     */
+    public function test_a_short_list_is_repeated_until_the_strip_is_long_enough(): void
+    {
+        $this->sponsor('Satu-satunya', 'gold', 1);
+
+        $html = $this->render();
+
+        // Satu sponsor, dua salinan pita: minimal 16 kemunculan per salinan.
+        $this->assertGreaterThanOrEqual(32, substr_count($html, 'Satu-satunya'));
+    }
+
+    /** Sponsor kini tampil lebih awal: tepat setelah blok penyelenggara. */
+    public function test_sponsors_sit_right_below_the_organizer_block(): void
+    {
+        $types = collect(PageSection::HOME_DEFAULTS)->pluck('type')->all();
+
+        $organizer = array_search('organizer', $types, true);
+        $sponsors = array_search('sponsors', $types, true);
+
+        $this->assertNotFalse($organizer);
+        $this->assertSame($organizer + 1, $sponsors, 'Blok sponsor harus tepat di bawah blok penyelenggara.');
+    }
 }

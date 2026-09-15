@@ -13,6 +13,20 @@ class Sponsor extends Model implements HasMedia
 {
     use HasFactory, InteractsWithMedia;
 
+    /** Tingkatan dukungan. Tidak lagi memisahkan tampilan, tapi tetap disebut saat logonya disentuh. */
+    public const TIERS = [
+        'platinum' => 'Platinum Sponsor',
+        'gold' => 'Gold Sponsor',
+        'silver' => 'Silver Sponsor',
+        'partner' => 'Partner',
+        'media_partner' => 'Media Partner',
+    ];
+
+    public function tierLabel(): string
+    {
+        return self::TIERS[$this->tier] ?? ucwords(str_replace('_', ' ', (string) $this->tier));
+    }
+
     protected $fillable = [
         'edition_id',
         'name',

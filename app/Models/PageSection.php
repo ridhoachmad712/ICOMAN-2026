@@ -116,6 +116,8 @@ class PageSection extends Model implements HasMedia
     public const HOME_DEFAULTS = [
         ['type' => 'hero'],
         ['type' => 'organizer'],
+        // Dukungan mitra ditampilkan lebih awal, tepat di bawah penyelenggara.
+        ['type' => 'sponsors'],
         ['type' => 'page_content', 'settings' => ['page_slug' => 'about', 'layout' => 'split']],
         ['type' => 'speakers', 'heading_key' => 'site.keynote_speakers'],
         ['type' => 'topics', 'heading_key' => 'site.call_for_papers', 'subheading_key' => 'site.topics'],
@@ -125,7 +127,6 @@ class PageSection extends Model implements HasMedia
         ['type' => 'gallery', 'heading_key' => 'site.gallery', 'settings' => ['limit' => 6]],
         ['type' => 'news', 'heading_key' => 'site.latest_news', 'settings' => ['limit' => 3]],
         ['type' => 'faq', 'heading_key' => 'site.faq_title', 'settings' => ['limit' => 5]],
-        ['type' => 'sponsors'],
     ];
 
     public function edition(): BelongsTo
