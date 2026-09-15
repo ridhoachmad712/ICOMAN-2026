@@ -364,6 +364,27 @@ class SectionAppearanceTest extends TestCase
 
         $this->assertStringContainsString('<iframe', $html);
         $this->assertStringContainsString(route('home'), $html);
+        // Selebar formulir, dengan pilihan lebar layar dan mode layar penuh.
+        $this->assertStringContainsString('Layar penuh', $html);
+        $this->assertStringContainsString('Ponsel', $html);
+    }
+
+    /**
+     * Di dalam pratinjau, tombol masuk mode sunting tidak ditawarkan — editor
+     * di dalam editor hanya membingungkan.
+     */
+    public function test_the_preview_does_not_offer_edit_mode_inside_itself(): void
+    {
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-bingkai@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        $inside = $this->get(route('home', ['preview' => 123]))->assertOk()->getContent();
+        $normal = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString('Sunting halaman', $inside);
+        $this->assertStringContainsString('Sunting halaman', $normal);
     }
 
     public function test_every_block_target_knows_its_public_page(): void

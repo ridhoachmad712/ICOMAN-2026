@@ -91,7 +91,7 @@
 
     <x-footer :name="$confName" />
 
-    @if(canEditPages() && ! pageEditMode())
+    @if(canEditPages() && ! pageEditMode() && ! request()->has('preview'))
         {{-- Pintu masuk mode sunting, hanya untuk penyunting yang sedang login. --}}
         <a href="{{ request()->fullUrlWithQuery(['edit' => 1]) }}"
            class="fixed bottom-5 left-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--brand-2)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg hover:bg-[var(--brand)]">

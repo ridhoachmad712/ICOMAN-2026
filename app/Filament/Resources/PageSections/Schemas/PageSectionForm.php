@@ -26,6 +26,9 @@ class PageSectionForm
             Section::make('Pratinjau')
                 ->description('Tampilan halaman tempat blok ini berada.')
                 ->collapsed()
+                // Selebar formulir: pratinjau dalam satu kolom sempit tidak
+                // menggambarkan tampilan halaman yang sebenarnya.
+                ->columnSpanFull()
                 // Blok yang belum tersimpan belum punya halaman untuk ditunjukkan.
                 ->visible(fn (?PageSection $record) => $record !== null)
                 ->schema([
