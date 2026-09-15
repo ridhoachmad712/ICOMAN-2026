@@ -4,6 +4,9 @@ namespace App\Filament\Resources\PageSections\Schemas;
 
 use App\Models\Page;
 use App\Models\PageSection;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\SpatieMediaLibraryFileUpload;
@@ -70,6 +73,72 @@ class PageSectionForm
                         ->disk('public')
                         ->image()
                         ->imageEditor()
+                        ->columnSpanFull(),
+                ]),
+
+            Section::make('Kolom')
+                ->description('Tiap kolom diisi bebas: teks, gambar, dan satu tombol.')
+                ->visible(fn ($get) => $get('type') === 'columns')
+                ->schema([
+                    Repeater::make('settings.columns')
+                        ->hiddenLabel()
+                        ->addActionLabel('Tambah kolom')
+                        ->reorderable()
+                        ->maxItems(4)
+                        ->defaultItems(2)
+                        ->columns(2)
+                        ->schema([
+                            RichEditor::make('text_id')->label('Isi (Indonesia)')->columnSpanFull(),
+                            RichEditor::make('text_en')->label('Isi (English)')->columnSpanFull(),
+                            FileUpload::make('image')
+                                ->label('Gambar')
+                                ->image()
+                                ->disk('public')
+                                ->directory('sections')
+                                ->visibility('public')
+                                ->columnSpanFull(),
+                            TextInput::make('button_label')->label('Teks tombol'),
+                            TextInput::make('button_url')->label('Alamat tombol')->url(),
+                        ]),
+                ]),
+
+            Section::make('Tampilan')
+                ->description('Kosongkan isian apa pun untuk memakai tampilan bawaan blok ini.')
+                ->columns(2)
+                ->collapsed()
+                ->schema([
+                    TextInput::make('appearance.heading_size')
+                        ->label('Ukuran judul')
+                        ->numeric()->minValue(10)->maxValue(200)->suffix('px')
+                        ->helperText('Bawaan sekitar 30–36 px.'),
+
+                    TextInput::make('appearance.text_size')
+                        ->label('Ukuran teks isi')
+                        ->numeric()->minValue(8)->maxValue(100)->suffix('px')
+                        ->helperText('Bawaan sekitar 16 px.'),
+
+                    Select::make('appearance.align')
+                        ->label('Perataan teks')
+                        ->options(['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'])
+                        ->placeholder('Bawaan blok'),
+
+                    TextInput::make('appearance.columns')
+                        ->label('Jumlah kolom')
+                        ->numeric()->minValue(1)->maxValue(6)
+                        ->helperText('Untuk blok berisi kartu. Di ponsel selalu menumpuk satu kolom.'),
+
+                    ColorPicker::make('appearance.background')->label('Warna latar'),
+                    ColorPicker::make('appearance.text_color')->label('Warna teks'),
+
+                    TextInput::make('appearance.padding_top')
+                        ->label('Jarak atas')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
+                    TextInput::make('appearance.padding_bottom')
+                        ->label('Jarak bawah')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
+
+                    TextInput::make('appearance.max_width')
+                        ->label('Lebar isi')
+                        ->numeric()->minValue(320)->maxValue(2000)->suffix('px')
+                        ->helperText('Bawaan sekitar 1280 px.')
                         ->columnSpanFull(),
                 ]),
 

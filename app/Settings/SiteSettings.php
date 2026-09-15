@@ -63,6 +63,31 @@ class SiteSettings extends Settings
 
     public bool $midtrans_is_production;
 
+    /** Tipografi menyeluruh (lihat FONTS untuk pilihan yang tersedia). */
+    public ?string $font_heading;
+
+    public ?string $font_body;
+
+    public ?int $base_font_size;
+
+    /**
+     * Huruf yang boleh dipilih. Semuanya diambil dari Google Fonts, sumber yang
+     * memang sudah dipakai halaman publik — jadi memilih di sini tidak
+     * menambah ketergantungan baru.
+     */
+    public const FONTS = [
+        'Instrument Sans' => 'Instrument Sans',
+        'Space Grotesk' => 'Space Grotesk',
+        'Inter' => 'Inter',
+        'Plus Jakarta Sans' => 'Plus Jakarta Sans',
+        'Poppins' => 'Poppins',
+        'Montserrat' => 'Montserrat',
+        'Lora' => 'Lora (serif)',
+        'Merriweather' => 'Merriweather (serif)',
+        'Playfair Display' => 'Playfair Display (serif)',
+        'Source Serif 4' => 'Source Serif (serif)',
+    ];
+
     public static function group(): string
     {
         return 'site';

@@ -216,3 +216,38 @@
 
     .sponsor-marquee-set:last-child { display: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Kendali tampilan per blok (Penyusun Halaman).
+
+   Aturan di bawah hanya berlaku bila custom property-nya benar-benar ada pada
+   atribut style pembungkusnya — itulah guna selector [style*="--ps-..."].
+   Dengan begitu blok yang tidak diatur admin tetap memakai kelas bawaannya,
+   tanpa perlu nilai cadangan yang menebak-nebak.
+
+   !important dipakai dengan sadar: pilihan admin harus mengalahkan kelas
+   utility bawaan blok.
+--------------------------------------------------------------------------- */
+.ps-block[style*="--ps-bg"] > section { background-color: var(--ps-bg) !important; }
+.ps-block[style*="--ps-color"] > section { color: var(--ps-color) !important; }
+.ps-block[style*="--ps-color"] > section :is(h1, h2, h3, p, span, li, dt, dd) { color: inherit !important; }
+.ps-block[style*="--ps-pt"] > section { padding-top: var(--ps-pt) !important; }
+.ps-block[style*="--ps-pb"] > section { padding-bottom: var(--ps-pb) !important; }
+.ps-block[style*="--ps-heading"] > section :is(h1, h2) { font-size: var(--ps-heading) !important; line-height: 1.15; }
+.ps-block[style*="--ps-text"] > section :is(p, li, dd) { font-size: var(--ps-text) !important; }
+.ps-block[style*="--ps-align"] > section { text-align: var(--ps-align) !important; }
+.ps-block[style*="--ps-width"] > section > div { max-width: var(--ps-width) !important; }
+
+/* Jumlah kolom untuk blok berisi daftar kartu. */
+.ps-block[class*="ps-cols-"] > section :is(.grid) { grid-template-columns: repeat(var(--ps-columns), minmax(0, 1fr)) !important; }
+.ps-cols-1 { --ps-columns: 1; }
+.ps-cols-2 { --ps-columns: 2; }
+.ps-cols-3 { --ps-columns: 3; }
+.ps-cols-4 { --ps-columns: 4; }
+.ps-cols-5 { --ps-columns: 5; }
+.ps-cols-6 { --ps-columns: 6; }
+
+/* Di ponsel kolom selalu menumpuk, berapa pun yang dipilih admin. */
+@media (max-width: 640px) {
+    .ps-block[class*="ps-cols-"] > section :is(.grid) { grid-template-columns: minmax(0, 1fr) !important; }
+}

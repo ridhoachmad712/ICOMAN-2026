@@ -51,6 +51,27 @@ class ManageSiteSettings extends SettingsPage
                         FileUpload::make('favicon')->image()->disk('public')->directory('site')->visibility('public'),
                     ]),
 
+                Section::make('Tipografi')
+                    ->description('Berlaku untuk seluruh halaman publik sekaligus.')
+                    ->columns(3)
+                    ->schema([
+                        Select::make('font_heading')
+                            ->label('Huruf judul')
+                            ->options(SiteSettings::FONTS)
+                            ->searchable()
+                            ->required(),
+                        Select::make('font_body')
+                            ->label('Huruf isi')
+                            ->options(SiteSettings::FONTS)
+                            ->searchable()
+                            ->required(),
+                        TextInput::make('base_font_size')
+                            ->label('Ukuran teks dasar')
+                            ->helperText('Bawaan 16 px. Seluruh ukuran lain ikut menyesuaikan.')
+                            ->numeric()->minValue(12)->maxValue(24)->suffix('px')
+                            ->required(),
+                    ]),
+
                 Section::make('Tema Warna')
                     ->columns(2)
                     ->schema([

@@ -47,11 +47,31 @@
     <meta name="twitter:description" content="{{ \Illuminate\Support\Str::limit(strip_tags($description), 200, '') }}">
     <meta name="twitter:image" content="{{ $ogImageUrl }}">
 
-    {{-- Fonts: Space Grotesk (display) + Instrument Sans (body) --}}
+    @php
+        // Huruf mengikuti pilihan di Site Settings; hanya nama dari daftar
+        // FONTS yang diterima, supaya URL-nya tidak bisa disisipi sembarangan.
+        $fonts = \App\Settings\SiteSettings::FONTS;
+        $headingFont = array_key_exists((string) $settings->font_heading, $fonts) ? $settings->font_heading : 'Space Grotesk';
+        $bodyFont = array_key_exists((string) $settings->font_body, $fonts) ? $settings->font_body : 'Instrument Sans';
+        $baseFontSize = ($settings->base_font_size >= 12 && $settings->base_font_size <= 24) ? $settings->base_font_size : 16;
+        $fontQuery = collect(array_unique([$bodyFont, $headingFont]))
+            ->map(fn (string $family) => 'family='.str_replace(' ', '+', $family).':wght@400;500;600;700')
+            ->implode('&');
+        $fontHref = 'https://fonts.googleapis.com/css2?'.$fontQuery.'&display=swap';
+    @endphp
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap">
+    <link rel="preload" as="style" href="{{ $fontHref }}">
+    <link rel="stylesheet" href="{{ $fontHref }}">
+
+    <style>
+        :root {
+            --font-sans: '{{ $bodyFont }}', ui-sans-serif, system-ui, sans-serif;
+            --font-display: '{{ $headingFont }}', '{{ $bodyFont }}', ui-sans-serif, system-ui, sans-serif;
+        }
+        html { font-size: {{ $baseFontSize }}px; }
+    </style>
 
     {{ $head ?? '' }}
 

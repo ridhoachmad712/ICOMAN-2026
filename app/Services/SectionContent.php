@@ -40,6 +40,7 @@ class SectionContent
             'schedule_full', 'downloads_full', 'cfp_full', 'registration_full' => false,
             'page_content' => $this->page($section) === null,
             'rich_text' => blank($section->content),
+            'columns' => collect($section->setting('columns', []))->filter(fn ($column) => filled($column))->isEmpty(),
             'image' => ! $section->hasMedia('section'),
             default => false,
         };

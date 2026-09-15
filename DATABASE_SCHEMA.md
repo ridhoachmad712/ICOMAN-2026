@@ -46,7 +46,7 @@ Blok penyusun halaman. Satu baris = satu section, urutannya diatur admin. Selama
 | heading (T) | json nullable |
 | subheading (T) | json nullable |
 | content (T) | json nullable (rich text) |
-| settings | json nullable (opsi per jenis blok: limit, page_slug, layout, tombol) |
+| settings | json nullable (opsi per jenis blok: limit, page_slug, layout, tombol, kolom, serta `appearance`: ukuran judul & teks, perataan, warna latar & teks, jarak atas/bawah, lebar isi, jumlah kolom) |
 | is_published | boolean default true |
 | order | integer default 0 |
 | image | media nullable (collection `section`) |

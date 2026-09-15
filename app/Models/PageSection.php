@@ -55,6 +55,7 @@ class PageSection extends Model implements HasMedia
         'page_content' => 'Isi halaman lain',
         'image' => 'Gambar lebar',
         'cta' => 'Ajakan bertindak',
+        'columns' => 'Kolom bebas',
         'speakers' => 'Pembicara',
         'topics' => 'Topik (Call for Papers)',
         'fees' => 'Tarif registrasi',
@@ -152,6 +153,66 @@ class PageSection extends Model implements HasMedia
     public function typeLabel(): string
     {
         return self::TYPES[$this->type] ?? $this->type;
+    }
+
+    /**
+     * Gaya tampilan yang dipilih admin, diterjemahkan jadi custom property CSS
+     * pada pembungkus blok.
+     *
+     * Hanya nilai yang benar-benar diisi yang dikeluarkan. Aturan gayanya
+     * dipasang dengan selector [style*="--ps-..."], jadi blok yang tidak diatur
+     * tetap memakai tampilan bawaannya — tanpa perlu nilai cadangan palsu.
+     */
+    public function styleVariables(): string
+    {
+        $map = [
+            '--ps-bg' => $this->cssColor($this->setting('appearance.background')),
+            '--ps-color' => $this->cssColor($this->setting('appearance.text_color')),
+            '--ps-heading' => $this->cssLength($this->setting('appearance.heading_size')),
+            '--ps-text' => $this->cssLength($this->setting('appearance.text_size')),
+            '--ps-pt' => $this->cssLength($this->setting('appearance.padding_top')),
+            '--ps-pb' => $this->cssLength($this->setting('appearance.padding_bottom')),
+            '--ps-width' => $this->cssLength($this->setting('appearance.max_width')),
+            '--ps-align' => $this->cssAlign($this->setting('appearance.align')),
+        ];
+
+        return collect($map)
+            ->filter(fn (?string $value): bool => $value !== null)
+            ->map(fn (string $value, string $property): string => $property.':'.$value)
+            ->implode(';');
+    }
+
+    /** Jumlah kolom untuk blok berisi daftar; null berarti ikut bawaannya. */
+    public function columnCount(): ?int
+    {
+        $columns = (int) $this->setting('appearance.columns', 0);
+
+        return $columns >= 1 && $columns <= 6 ? $columns : null;
+    }
+
+    /** Warna hanya diterima dalam bentuk heks, supaya tak bisa disisipi CSS lain. */
+    private function cssColor(mixed $value): ?string
+    {
+        $value = is_string($value) ? trim($value) : '';
+
+        return preg_match('/^#[0-9a-fA-F]{3,8}$/', $value) === 1 ? $value : null;
+    }
+
+    /** Ukuran diterima sebagai angka piksel dalam batas yang masuk akal. */
+    private function cssLength(mixed $value): ?string
+    {
+        if (! is_numeric($value)) {
+            return null;
+        }
+
+        $pixels = (int) $value;
+
+        return $pixels >= 0 && $pixels <= 2000 ? $pixels.'px' : null;
+    }
+
+    private function cssAlign(mixed $value): ?string
+    {
+        return in_array($value, ['left', 'center', 'right'], true) ? $value : null;
     }
 
     public function setting(string $key, mixed $default = null): mixed
