@@ -2,9 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\PageSections\Pages\EditPageSection;
 use App\Models\Edition;
 use App\Models\PageSection;
+use App\Models\User;
 use App\Settings\SiteSettings;
+use Filament\Facades\Filament;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 /**
@@ -151,5 +156,83 @@ class SectionAppearanceTest extends TestCase
 
         $this->assertStringNotContainsString('evil(', $html);
         $this->assertStringContainsString('Space+Grotesk', $html);
+    }
+
+    // --- Lewat formulir admin, bukan lewat model ----------------------------
+
+    /**
+     * Inti keluhannya: pengaturan disimpan lewat formulir admin tapi tidak
+     * berubah apa-apa. Isian tampilan menulis ke atribut `appearance`, padahal
+     * nilainya dibaca dari kolom `settings` — jadi tersimpan ke tempat yang
+     * tidak ada dan diam-diam hilang saat disimpan.
+     *
+     * Tes sebelumnya menulis langsung ke model, jadi jalur yang benar-benar
+     * dipakai admin tidak pernah teruji.
+     */
+    public function test_appearance_saved_through_the_admin_form_reaches_the_page(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-tampilan@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        $section = PageSection::create([
+            'target' => 'home',
+            'type' => 'rich_text',
+            'order' => 0,
+            'heading' => ['id' => 'Judul Blok', 'en' => 'Block Heading'],
+            'content' => ['id' => '<p>Isi.</p>', 'en' => '<p>Body.</p>'],
+        ]);
+
+        Livewire::test(EditPageSection::class, ['record' => $section->getRouteKey()])
+            ->assertOk()
+            ->fillForm([
+                'settings.appearance.heading_size' => 48,
+                'settings.appearance.background' => '#112233',
+                'settings.appearance.align' => 'center',
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $saved = $section->refresh();
+
+        $this->assertSame(48, (int) $saved->setting('appearance.heading_size'), 'Ukuran judul tidak tersimpan ke kolom settings.');
+        $this->assertSame('#112233', $saved->setting('appearance.background'));
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('--ps-heading:48px', $html);
+        $this->assertStringContainsString('--ps-bg:#112233', $html);
+        $this->assertStringContainsString('--ps-align:center', $html);
+    }
+
+    /** Pengaturan lain di blok yang sama tidak boleh ikut terhapus. */
+    public function test_saving_appearance_keeps_the_other_block_settings(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-tampilan2@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        $section = PageSection::create([
+            'target' => 'home',
+            'type' => 'rich_text',
+            'order' => 0,
+            'heading' => ['id' => 'Judul', 'en' => 'Heading'],
+            'content' => ['id' => '<p>Isi.</p>', 'en' => '<p>Body.</p>'],
+            'settings' => ['tinted' => true],
+        ]);
+
+        Livewire::test(EditPageSection::class, ['record' => $section->getRouteKey()])
+            ->fillForm(['settings.appearance.text_size' => 20])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $saved = $section->refresh();
+
+        $this->assertSame(20, (int) $saved->setting('appearance.text_size'));
+        $this->assertTrue((bool) $saved->setting('tinted'), 'Setelan lama pada blok yang sama ikut hilang.');
     }
 }

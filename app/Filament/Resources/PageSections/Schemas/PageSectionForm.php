@@ -107,35 +107,35 @@ class PageSectionForm
                 ->columns(2)
                 ->collapsed()
                 ->schema([
-                    TextInput::make('appearance.heading_size')
+                    TextInput::make('settings.appearance.heading_size')
                         ->label('Ukuran judul')
                         ->numeric()->minValue(10)->maxValue(200)->suffix('px')
                         ->helperText('Bawaan sekitar 30–36 px.'),
 
-                    TextInput::make('appearance.text_size')
+                    TextInput::make('settings.appearance.text_size')
                         ->label('Ukuran teks isi')
                         ->numeric()->minValue(8)->maxValue(100)->suffix('px')
                         ->helperText('Bawaan sekitar 16 px.'),
 
-                    Select::make('appearance.align')
+                    Select::make('settings.appearance.align')
                         ->label('Perataan teks')
                         ->options(['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'])
                         ->placeholder('Bawaan blok'),
 
-                    TextInput::make('appearance.columns')
+                    TextInput::make('settings.appearance.columns')
                         ->label('Jumlah kolom')
                         ->numeric()->minValue(1)->maxValue(6)
                         ->helperText('Untuk blok berisi kartu. Di ponsel selalu menumpuk satu kolom.'),
 
-                    ColorPicker::make('appearance.background')->label('Warna latar'),
-                    ColorPicker::make('appearance.text_color')->label('Warna teks'),
+                    ColorPicker::make('settings.appearance.background')->label('Warna latar'),
+                    ColorPicker::make('settings.appearance.text_color')->label('Warna teks'),
 
-                    TextInput::make('appearance.padding_top')
+                    TextInput::make('settings.appearance.padding_top')
                         ->label('Jarak atas')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
-                    TextInput::make('appearance.padding_bottom')
+                    TextInput::make('settings.appearance.padding_bottom')
                         ->label('Jarak bawah')->numeric()->minValue(0)->maxValue(400)->suffix('px'),
 
-                    TextInput::make('appearance.max_width')
+                    TextInput::make('settings.appearance.max_width')
                         ->label('Lebar isi')
                         ->numeric()->minValue(320)->maxValue(2000)->suffix('px')
                         ->helperText('Bawaan sekitar 1280 px.')
