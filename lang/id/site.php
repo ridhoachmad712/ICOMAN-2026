@@ -18,7 +18,7 @@ return [
 
     'keynote_speakers' => 'Pembicara Utama & Undangan',
     'important_dates' => 'Tanggal Penting',
-    'our_sponsors' => 'Sponsor & Mitra',
+    'our_sponsors' => 'Partner & Sponsor',
     'latest_news' => 'Berita Terbaru',
     'our_committee' => 'Panitia',
     'call_for_papers' => 'Call for Papers',

@@ -1,39 +1,42 @@
 @php
-    $s = siteSettings();
-    $edition = currentEdition();
     $content = app(\App\Services\SectionContent::class);
-    $tierOrder = ['platinum' => 'Platinum', 'gold' => 'Gold', 'silver' => 'Silver', 'partner' => 'Partner', 'media_partner' => 'Media Partner'];
-    $heading = $section->heading;
-    $eyebrow = $section->eyebrow;
-    $subheading = $section->subheading;
+
+    // Satu rombongan tanpa pemisahan tingkatan; urutannya murni mengikuti nomor
+    // urut yang diatur admin.
+    $sponsors = $content->records($section);
+    $count = $sponsors->count();
+
+    // Pita berjalan perlu isi yang cukup panjang agar putarannya mulus. Bila
+    // sponsornya sedikit, satu set diulang sampai memenuhi lebar layar.
+    $repeat = max(1, (int) ceil(8 / max(1, $count)));
+    $set = collect()->times($repeat)->flatMap(fn () => $sponsors);
+
+    // Kecepatan dijaga tetap: makin banyak logo, makin lama satu putaran.
+    $duration = max(24, $set->count() * 4);
 @endphp
 
-@php $grouped = $content->sponsorsByTier($section); @endphp
+<section class="bg-white py-16">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <x-section-heading :title="$section->heading ?: __('site.our_sponsors')" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+    </div>
 
-    {{-- SPONSORS (grouped by tier) --}}
-            <section class="bg-white py-16">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="$heading ?: __('site.our_sponsors')" :eyebrow="$eyebrow" :subtitle="$subheading" />
-                <div class="space-y-8">
-                    @foreach($tierOrder as $tierKey => $tierLabel)
-                        @if($grouped->has($tierKey))
-                            <div>
-                                <p class="text-center text-xs uppercase tracking-widest text-slate-400 mb-4">{{ $tierLabel }}</p>
-                                <div class="flex flex-wrap items-center justify-center gap-8">
-                                    @foreach($grouped->get($tierKey) as $sponsor)
-                                        @php $logo = $sponsor->getFirstMediaUrl('logo', 'thumb'); @endphp
-                                        <div class="grayscale hover:grayscale-0 transition">
-                                            @if($logo)
-                                                <img src="{{ $logo }}" alt="{{ $sponsor->name }}" loading="lazy" class="h-14 w-auto object-contain">
-                                            @else
-                                                <span class="text-slate-400 font-medium">{{ $sponsor->name }}</span>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        @endif
+    <div class="sponsor-marquee relative overflow-hidden">
+        <div class="sponsor-marquee-track flex w-max items-center gap-12" style="animation-duration: {{ $duration }}s">
+            @foreach([1, 2] as $copy)
+                {{-- Salinan kedua hanya untuk menyambung putaran; pembaca layar cukup membaca yang pertama. --}}
+                <div class="sponsor-marquee-set flex items-center gap-12" @if($copy === 2) aria-hidden="true" @endif>
+                    @foreach($set as $sponsor)
+                        @php $logo = $sponsor->getFirstMediaUrl('logo', 'thumb'); @endphp
+                        <div class="shrink-0 grayscale transition hover:grayscale-0">
+                            @if($logo)
+                                <img src="{{ $logo }}" alt="{{ $sponsor->name }}" loading="lazy" class="h-14 w-auto object-contain">
+                            @else
+                                <span class="font-medium whitespace-nowrap text-slate-400">{{ $sponsor->name }}</span>
+                            @endif
+                        </div>
                     @endforeach
                 </div>
-            </div>
-        </section>
+            @endforeach
+        </div>
+    </div>
+</section>

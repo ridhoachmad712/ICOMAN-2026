@@ -86,12 +86,6 @@ class SectionContent
         return $limit > 0 ? $query->limit($limit)->get() : $query->get();
     }
 
-    /** Sponsor dikelompokkan per tingkatan, seperti tampilan aslinya. */
-    public function sponsorsByTier(PageSection $section): Collection
-    {
-        return $this->records($section)->groupBy('tier');
-    }
-
     /** Komite dikelompokkan per kategori, seperti tampilan halamannya. */
     public function committeeByCategory(PageSection $section): Collection
     {

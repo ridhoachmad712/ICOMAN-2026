@@ -18,7 +18,7 @@ return [
 
     'keynote_speakers' => 'Keynote & Invited Speakers',
     'important_dates' => 'Important Dates',
-    'our_sponsors' => 'Sponsors & Partners',
+    'our_sponsors' => 'Partners & Sponsors',
     'latest_news' => 'Latest News',
     'our_committee' => 'Committee',
     'call_for_papers' => 'Call for Papers',

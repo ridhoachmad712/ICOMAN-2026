@@ -192,3 +192,27 @@
 }
 .author-notice-dark { border-color: #acd8ba; background: #eaf7ef; color: #176b37; }
 
+/* Pita sponsor berjalan: satu baris yang bergerak terus-menerus.
+   Dua salinan identik digeser separuh lebar, sehingga sambungannya tak terlihat. */
+@keyframes sponsor-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+.sponsor-marquee-track { animation: sponsor-marquee linear infinite; }
+
+/* Berhenti saat disentuh supaya logo bisa dibaca. */
+.sponsor-marquee:hover .sponsor-marquee-track,
+.sponsor-marquee:focus-within .sponsor-marquee-track { animation-play-state: paused; }
+
+/* Hormati pengaturan sistem: tanpa gerakan, logo dirapikan jadi baris statis. */
+@media (prefers-reduced-motion: reduce) {
+    .sponsor-marquee-track {
+        animation: none;
+        flex-wrap: wrap;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .sponsor-marquee-set:last-child { display: none; }
+}
