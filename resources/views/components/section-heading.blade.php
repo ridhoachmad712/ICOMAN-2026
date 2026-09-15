@@ -1,12 +1,28 @@
-@props(['title', 'subtitle' => null, 'eyebrow' => null, 'center' => true])
+@props(['title', 'subtitle' => null, 'eyebrow' => null, 'center' => true, 'section' => null])
+
+@php
+    // Dalam mode sunting, teks judul bisa diketik langsung di halaman dan
+    // disimpan saat kursor meninggalkannya. HTML tempelan dibersihkan di sisi
+    // server, jadi contenteditable biasa sudah cukup.
+    $editable = $section && pageEditMode();
+
+    $editAttributes = function (string $field) use ($editable, $section): string {
+        if (! $editable) {
+            return '';
+        }
+
+        return 'contenteditable="true" data-editable="'.$field.'"'
+            .' x-on:blur="$wire.updateText('.$section->id.', \''.$field.'\', $el.innerText)"';
+    };
+@endphp
 
 <div data-reveal class="{{ $center ? 'text-center mx-auto' : '' }} mb-12 max-w-2xl">
     @if($eyebrow)
-        <p class="eyebrow {{ $center ? 'justify-center' : '' }} mb-3">{{ $eyebrow }}</p>
+        <p {!! $editAttributes('eyebrow') !!} class="eyebrow {{ $center ? 'justify-center' : '' }} mb-3">{{ $eyebrow }}</p>
     @endif
-    <h2 class="font-display text-3xl font-bold tracking-tight text-[var(--brand-2)] sm:text-4xl">{{ $title }}</h2>
+    <h2 {!! $editAttributes('heading') !!} class="font-display text-3xl font-bold tracking-tight text-[var(--brand-2)] sm:text-4xl">{{ $title }}</h2>
     @if($subtitle)
-        <p class="mt-4 text-base leading-relaxed text-slate-500">{{ $subtitle }}</p>
+        <p {!! $editAttributes('subheading') !!} class="mt-4 text-base leading-relaxed text-slate-500">{{ $subtitle }}</p>
     @endif
     @unless($eyebrow)
         <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--brand)] {{ $center ? 'mx-auto' : '' }}"></div>

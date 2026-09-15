@@ -12,7 +12,7 @@
     {{-- CALL FOR PAPERS TEASER --}}
             <section class="py-16">
             <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
+                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
                 <div class="grid gap-3 sm:grid-cols-2">
                     @foreach($records->take(8) as $topic)
                         <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">

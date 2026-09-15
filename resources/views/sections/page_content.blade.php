@@ -18,7 +18,7 @@
     <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
         <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div data-reveal>
-                <x-section-heading :title="$heading" :eyebrow="$section->eyebrow ?: __('nav.about')" :center="false" />
+                <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow ?: __('nav.about')" :center="false" />
                 <p class="text-base leading-relaxed text-slate-600">{{ $excerpt }}</p>
                 @if($page)
                     <a href="{{ route('page', ['slug' => $page->slug]) }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
@@ -52,7 +52,7 @@
 @else
     <section class="bg-white py-16">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <x-section-heading :title="$heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+            <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
             <div class="prose prose-slate max-w-none">
                 {!! $page?->content !!}
             </div>

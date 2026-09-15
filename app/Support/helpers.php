@@ -104,3 +104,23 @@ if (! function_exists('countryOptions')) {
         return $options + $all;
     }
 }
+
+if (! function_exists('canEditPages')) {
+    /**
+     * Siapa yang boleh menyunting halaman langsung di atas tampilannya.
+     * Dipakai sebagai gerbang mode sunting di halaman publik — dan diperiksa
+     * ulang di setiap aksi penyimpanan, bukan hanya saat merender.
+     */
+    function canEditPages(): bool
+    {
+        return auth('web')->user()?->hasAnyRole(['superadmin', 'content_admin']) ?? false;
+    }
+}
+
+if (! function_exists('pageEditMode')) {
+    /** Mode sunting hanya menyala bila diminta lewat ?edit=1 DAN penggunanya berwenang. */
+    function pageEditMode(): bool
+    {
+        return request()->boolean('edit') && canEditPages();
+    }
+}

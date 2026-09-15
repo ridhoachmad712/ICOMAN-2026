@@ -15,7 +15,7 @@
     @endphp
     <section class="bg-white py-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <x-section-heading :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
+            <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
 
             @if($announcedSpeakers->isEmpty())
                 <div data-reveal class="mx-auto max-w-md text-center">

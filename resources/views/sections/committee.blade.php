@@ -4,7 +4,7 @@
 
 <section class="bg-white py-16">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <x-section-heading :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+        <x-section-heading :section="$section" :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
         <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             @foreach($records as $member)
                 <div class="card p-5 text-center">

@@ -274,3 +274,61 @@
     .ps-block[style*="--ps-heading-sm"] > section :is(h1, h2) { font-size: var(--ps-heading-sm) !important; }
     .ps-block[style*="--ps-text-sm"] > section :is(p, li, dd) { font-size: var(--ps-text-sm) !important; }
 }
+
+/* ---------------------------------------------------------------------------
+   Mode sunting halaman (?edit=1). Seluruh aturan di bawah hanya berlaku pada
+   markup yang memang hanya dirender untuk penyunting, jadi pengunjung biasa
+   tidak menerima apa pun dari sini.
+--------------------------------------------------------------------------- */
+.ps-editable { position: relative; outline: 1px dashed transparent; transition: outline-color .15s; }
+.ps-editable:hover { outline-color: var(--brand); }
+.ps-hidden-block { opacity: .45; }
+
+.ps-edit-toolbar {
+    align-items: center;
+    background: var(--brand-2);
+    border-radius: .5rem;
+    color: #fff;
+    display: flex;
+    font-size: .72rem;
+    gap: .35rem;
+    left: 1rem;
+    opacity: 0;
+    padding: .35rem .5rem;
+    pointer-events: none;
+    position: absolute;
+    top: .5rem;
+    transition: opacity .15s;
+    z-index: 40;
+}
+
+.ps-editable:hover .ps-edit-toolbar { opacity: 1; pointer-events: auto; }
+
+.ps-edit-toolbar button {
+    border-radius: .3rem;
+    line-height: 1;
+    padding: .3rem .45rem;
+}
+
+.ps-edit-toolbar button:hover { background: rgb(255 255 255 / .2); }
+.ps-edit-toolbar .ps-edit-danger:hover { background: #dc2626; }
+
+.ps-edit-label { font-weight: 600; letter-spacing: .04em; padding-right: .4rem; text-transform: uppercase; }
+.ps-edit-flag { background: rgb(255 255 255 / .2); border-radius: .25rem; padding: .15rem .35rem; }
+
+.ps-edit-add { display: flex; justify-content: center; padding: .35rem 0; }
+
+.ps-edit-add-button {
+    border: 1px dashed #cbd5e1;
+    border-radius: 999px;
+    color: #64748b;
+    font-size: .72rem;
+    padding: .3rem .9rem;
+}
+
+.ps-edit-add-button:hover { border-color: var(--brand); color: var(--brand); }
+
+/* Teks yang bisa disunting langsung di halaman. */
+[data-editable] { outline: 1px dashed transparent; transition: outline-color .15s; }
+[data-editable]:hover { outline-color: var(--brand); outline-offset: 3px; }
+[data-editable]:focus { outline: 2px solid var(--brand); outline-offset: 3px; }

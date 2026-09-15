@@ -12,7 +12,7 @@
     {{-- REGISTRATION TEASER (pricing) --}}
             <section class="section-tint py-20">
             <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
+                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
                 @php
                     $audiences = [
                         'presenter' => __('site.home_presenter'),

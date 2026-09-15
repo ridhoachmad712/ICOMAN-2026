@@ -3,7 +3,7 @@
 <section class="py-12">
     <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         @if(filled($section->heading))
-            <x-section-heading :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+            <x-section-heading :section="$section" :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
         @endif
         @if($media)
             <img src="{{ $section->getFirstMediaUrl('section', 'wide') ?: $media->getUrl() }}"

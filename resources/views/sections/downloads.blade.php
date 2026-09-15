@@ -4,7 +4,7 @@
 
 <section class="bg-white py-16">
     <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <x-section-heading :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+        <x-section-heading :section="$section" :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
         <div class="space-y-3">
             @foreach($records as $download)
                 <a href="{{ $download->getFirstMediaUrl('file') ?: $download->url }}" target="_blank" rel="noopener"
