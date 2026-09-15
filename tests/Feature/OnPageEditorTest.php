@@ -293,4 +293,101 @@ class OnPageEditorTest extends TestCase
 
         $this->assertGreaterThan(5, PageSection::where('target', 'home')->count());
     }
+
+    // --- Sambungan ke peramban ---------------------------------------------
+
+    /**
+     * Toolbar berada DI LUAR akar komponen Livewire, jadi wire:click di sana
+     * tidak akan pernah sampai — tombolnya akan diam saja di peramban. Aksinya
+     * harus dikirim sebagai event Livewire.
+     */
+    public function test_the_toolbar_does_not_rely_on_wire_click(): void
+    {
+        $this->editor();
+        $this->block();
+
+        $html = $this->get(route('home', ['edit' => 1]))->assertOk()->getContent();
+
+        $toolbar = substr($html, strpos($html, 'ps-edit-toolbar'));
+        $toolbar = substr($toolbar, 0, strpos($toolbar, '</div>'));
+
+        $this->assertStringNotContainsString('wire:click', $toolbar);
+        $this->assertStringContainsString("Livewire.dispatch('ps-move'", $toolbar);
+    }
+
+    /**
+     * Alpine hanya menyalakan direktif di dalam cakupan x-data. Tanpa itu,
+     * seluruh x-on:click pada toolbar dan tombol tambah tidak pernah terpasang.
+     */
+    public function test_the_edit_markup_sits_inside_an_alpine_scope(): void
+    {
+        $this->editor();
+        $this->block();
+
+        $html = $this->get(route('home', ['edit' => 1]))->assertOk()->getContent();
+
+        $block = substr($html, strpos($html, 'ps-block'));
+        $block = substr($block, 0, strpos($block, 'ps-edit-toolbar'));
+
+        $this->assertStringContainsString('x-data', $block);
+        $this->assertStringContainsString('draggable="true"', $block);
+    }
+
+    /** Teks yang disunting langsung juga di luar akar komponen. */
+    public function test_inline_text_editing_uses_an_event_too(): void
+    {
+        $this->editor();
+        PageSection::create([
+            'target' => 'home', 'type' => 'heading', 'order' => 0,
+            'heading' => ['id' => 'Judul', 'en' => 'Heading'],
+        ]);
+
+        $html = $this->get(route('home', ['edit' => 1]))->assertOk()->getContent();
+
+        $this->assertStringContainsString('contenteditable="true"', $html);
+        $this->assertStringContainsString("Livewire.dispatch('ps-text'", $html);
+        $this->assertStringNotContainsString('$wire.updateText', $html);
+    }
+
+    public function test_dragging_a_block_onto_another_moves_it_there(): void
+    {
+        $this->editor();
+        $first = $this->block(0, 'Pertama');
+        $second = $this->block(1, 'Kedua');
+        $third = $this->block(2, 'Ketiga');
+
+        // Blok ketiga diseret ke posisi pertama.
+        Livewire::test(PageEditor::class, ['target' => 'home'])
+            ->call('dropOn', $third->id, $first->id);
+
+        $this->assertSame(0, $third->refresh()->order);
+        $this->assertSame(1, $first->refresh()->order);
+        $this->assertSame(2, $second->refresh()->order);
+    }
+
+    public function test_dropping_a_block_onto_itself_changes_nothing(): void
+    {
+        $this->editor();
+        $first = $this->block(0, 'Pertama');
+        $second = $this->block(1, 'Kedua');
+
+        Livewire::test(PageEditor::class, ['target' => 'home'])
+            ->call('dropOn', $first->id, $first->id);
+
+        $this->assertSame(0, $first->refresh()->order);
+        $this->assertSame(1, $second->refresh()->order);
+    }
+
+    public function test_dragging_also_rechecks_authorisation(): void
+    {
+        $this->editor();
+        $first = $this->block(0, 'Pertama');
+        $second = $this->block(1, 'Kedua');
+        $component = Livewire::test(PageEditor::class, ['target' => 'home']);
+
+        auth('web')->logout();
+
+        $component->call('dropOn', $second->id, $first->id)->assertForbidden();
+        $this->assertSame(1, $second->refresh()->order);
+    }
 }

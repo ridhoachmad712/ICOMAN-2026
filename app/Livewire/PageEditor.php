@@ -4,6 +4,7 @@ namespace App\Livewire;
 
 use App\Models\PageSection;
 use Illuminate\Support\Collection;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
@@ -79,6 +80,7 @@ class PageEditor extends Component
 
     // --- Menyusun ulang -----------------------------------------------------
 
+    #[On('ps-move')]
     public function move(int $id, int $direction): void
     {
         $this->guard();
@@ -108,6 +110,38 @@ class PageEditor extends Component
         $this->refreshPage();
     }
 
+    /**
+     * Blok yang diseret dipindahkan ke posisi blok yang dijatuhi, sisanya
+     * bergeser. Urutan ditulis ulang seluruhnya agar tidak ada nomor kembar.
+     */
+    #[On('ps-drop')]
+    public function dropOn(int $dragged, int $target): void
+    {
+        $this->guard();
+
+        if ($dragged === $target) {
+            return;
+        }
+
+        $sections = $this->sections()->values()->all();
+        $from = collect($sections)->search(fn (PageSection $section) => $section->id === $dragged);
+        $to = collect($sections)->search(fn (PageSection $section) => $section->id === $target);
+
+        if ($from === false || $to === false) {
+            return;
+        }
+
+        $moved = array_splice($sections, $from, 1);
+        array_splice($sections, $to, 0, $moved);
+
+        foreach ($sections as $position => $section) {
+            $section->update(['order' => $position]);
+        }
+
+        $this->refreshPage();
+    }
+
+    #[On('ps-toggle')]
     public function toggleVisibility(int $id): void
     {
         $this->guard();
@@ -118,6 +152,7 @@ class PageEditor extends Component
         $this->refreshPage();
     }
 
+    #[On('ps-duplicate')]
     public function duplicate(int $id): void
     {
         $this->guard();
@@ -136,6 +171,7 @@ class PageEditor extends Component
         $this->refreshPage();
     }
 
+    #[On('ps-remove')]
     public function remove(int $id): void
     {
         $this->guard();
@@ -145,6 +181,7 @@ class PageEditor extends Component
         $this->refreshPage();
     }
 
+    #[On('ps-add')]
     public function add(string $type, ?int $afterId = null): void
     {
         $this->guard();
@@ -171,6 +208,7 @@ class PageEditor extends Component
 
     // --- Menyunting teks langsung di halaman --------------------------------
 
+    #[On('ps-text')]
     public function updateText(int $id, string $field, string $value): void
     {
         $this->guard();
@@ -186,6 +224,7 @@ class PageEditor extends Component
 
     // --- Panel pengaturan ---------------------------------------------------
 
+    #[On('ps-edit')]
     public function edit(int $id): void
     {
         $this->guard();

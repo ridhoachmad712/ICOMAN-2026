@@ -12,7 +12,7 @@
         }
 
         return 'contenteditable="true" data-editable="'.$field.'"'
-            .' x-on:blur="$wire.updateText('.$section->id.', \''.$field.'\', $el.innerText)"';
+            .' x-on:blur="Livewire.dispatch(\'ps-text\', { id: '.$section->id.', field: \''.$field.'\', value: $el.innerText })"';
     };
 @endphp
 

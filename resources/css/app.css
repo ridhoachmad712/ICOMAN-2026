@@ -332,3 +332,8 @@
 [data-editable] { outline: 1px dashed transparent; transition: outline-color .15s; }
 [data-editable]:hover { outline-color: var(--brand); outline-offset: 3px; }
 [data-editable]:focus { outline: 2px solid var(--brand); outline-offset: 3px; }
+
+/* Seret-lepas blok di mode sunting. */
+.ps-edit-handle { cursor: grab; font-size: .9rem; padding-right: .2rem; }
+.ps-dragging { opacity: .4; }
+.ps-drop-target { outline: 2px solid var(--brand) !important; outline-offset: -2px; }
