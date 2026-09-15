@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ReviewAssignments;
 
+use App\Filament\Resources\ReviewAssignments\Pages\AssessSubmission;
 use App\Filament\Resources\ReviewAssignments\Pages\ListReviewAssignments;
 use App\Filament\Resources\ReviewAssignments\Tables\ReviewAssignmentsTable;
 use App\Models\ReviewAssignment;
@@ -76,6 +77,7 @@ class ReviewAssignmentResource extends Resource
     {
         return [
             'index' => ListReviewAssignments::route('/'),
+            'assess' => AssessSubmission::route('/{record}/assess'),
         ];
     }
 }

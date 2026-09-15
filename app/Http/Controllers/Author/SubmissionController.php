@@ -5,14 +5,14 @@ namespace App\Http\Controllers\Author;
 use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Http\Controllers\Controller;
 use App\Models\Submission;
+use App\Services\ConferenceDeadlines;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
-use Illuminate\View\View;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Symfony\Component\HttpFoundation\Response;
 
 class SubmissionController extends Controller
@@ -70,7 +70,7 @@ class SubmissionController extends Controller
             'full_paper' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
         ]);
 
-        app(\App\Services\ConferenceDeadlines::class)->assertOpen('full_paper', $submission->edition_id, 'full_paper');
+        app(ConferenceDeadlines::class)->assertOpen('full_paper', $submission->edition_id, 'full_paper');
         // Retain previous private versions. A failed upload leaves the old file intact.
         $submission->addMediaFromRequest('full_paper')->toMediaCollection('camera_ready');
         $submission->forceFill(['full_paper_submitted_at' => now()])->save();
@@ -118,14 +118,15 @@ class SubmissionController extends Controller
         $mayManage = $user->hasAnyRole(['superadmin', 'admin_registrasi']);
         abort_unless($mayReview || $mayManage, 403);
 
-        return $this->extendedAbstractPdf($submission);
+        // Reviewer murni menerima versi tanpa identitas penulis.
+        return $this->extendedAbstractPdf($submission, blind: ! $mayManage);
     }
 
     public function submitExtendedAbstract(Request $request, Submission $submission): RedirectResponse
     {
         $this->authorizeOwner($submission);
         abort_unless(in_array($submission->status, Submission::AUTHOR_EDITABLE_STATUSES, true), 403, 'Abstract tidak dapat diubah setelah dikirim ke reviewer.');
-        app(\App\Services\ConferenceDeadlines::class)->assertOpen($submission->status === 'revision_required' ? 'revision' : 'abstract', $submission->edition_id, 'abstract');
+        app(ConferenceDeadlines::class)->assertOpen($submission->status === 'revision_required' ? 'revision' : 'abstract', $submission->edition_id, 'abstract');
 
         $validated = $request->validate([
             'abstract' => ['required', 'string', 'max:6000'],
@@ -174,12 +175,12 @@ class SubmissionController extends Controller
      * kosong sehingga tidak bisa didiagnosis; sekarang dicatat ke log dengan
      * konteks, dan pembaca mendapat pesan yang jelas.
      */
-    private function extendedAbstractPdf(Submission $submission): Response
+    private function extendedAbstractPdf(Submission $submission, bool $blind = false): Response
     {
         $submission->loadMissing(['edition', 'topic', 'authors']);
 
         try {
-            return Pdf::loadView('pdf.extended-abstract', compact('submission'))
+            return Pdf::loadView('pdf.extended-abstract', compact('submission', 'blind'))
                 ->setPaper('a4')
                 ->stream($submission->submission_number.'-extended-abstract.pdf');
         } catch (\Throwable $e) {

@@ -181,7 +181,9 @@
         $documentSections = app(\App\Services\ExtendedAbstractDocument::class)->sections($submission);
         $abstractSection = $documentSections['abstract'] ?? null;
 
-        $authors = $submission->authors->sortBy('order')->values();
+        // Review buta: identitas penulis disembunyikan dari reviewer.
+        $blind = $blind ?? false;
+        $authors = $blind ? collect() : $submission->authors->sortBy('order')->values();
         $affiliations = $authors->pluck('affiliation')->filter()->unique()->values();
         $corresponding = $authors->firstWhere('is_corresponding', true);
 
@@ -240,6 +242,10 @@
 
     <main>
         <h1>{{ $submission->title }}</h1>
+
+        @if($blind)
+            <p class="authors" style="color:#777;font-style:italic">{{ __('review.authors_hidden') }}</p>
+        @endif
 
         <div class="authors">
             @foreach($authors as $author)

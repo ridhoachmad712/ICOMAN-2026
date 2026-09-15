@@ -25,7 +25,7 @@ class SiteText extends Model
      * dan terjemahan kerangka kerja bukan teks website, dan menimpanya dari
      * admin bisa merusak perilaku aplikasi.
      */
-    public const MANAGED_GROUPS = ['site', 'nav'];
+    public const MANAGED_GROUPS = ['site', 'nav', 'review'];
 
     protected static function booted(): void
     {

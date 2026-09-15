@@ -35,6 +35,7 @@ class ManageSiteTexts extends Page
     public const GROUP_LABELS = [
         'nav' => 'Menu & Navigasi',
         'site' => 'Halaman Publik',
+        'review' => 'Panduan Reviewer',
     ];
 
     /** @return array<string, string> */
