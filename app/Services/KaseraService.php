@@ -56,25 +56,45 @@ class KaseraService
         app(ConferenceDeadlines::class)->assertOpen('payment', $registration->edition_id);
 
         // Order dikunci sebelum request keluar; tab kedua memakai ulang baris ini.
-        [$payment, $isNew] = DB::transaction(function () use ($registration, $installment): array {
+        [$registration, $payment, $isNew] = DB::transaction(function () use ($registration, $installment): array {
             $registration = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($registration->status, ['pending', 'failed'], true), 403);
             abort_unless($registration->priceDetails()['currency'] === 'IDR', 422);
 
-            // Pilihan mencicil dikunci bersama ordernya, jadi dua tab tidak bisa
-            // menyalakannya setelah cicilan pertama terlanjur dibuat.
-            if ($installment && $registration->allowsInstallments()) {
-                $registration->update(['installment_plan' => true]);
-            }
-
-            $existing = $registration->payments()->where('method', 'gateway')->where('status', 'initiated')->latest('id')->first();
-            if ($existing) {
-                return [$existing, false];
+            // Pilihan cara membayar diperbarui di bawah kunci yang sama dengan
+            // ordernya. Selama belum ada yang dibayar author boleh berganti
+            // pikiran; sesudah itu allowsInstallments() menutup pintunya.
+            if ($registration->allowsInstallments()) {
+                $registration->update(['installment_plan' => $installment]);
             }
 
             // Sisa tagihan nol berarti tidak ada lagi yang perlu dibayar.
             $due = $registration->amountDueNow();
             abort_if($due <= 0, 409);
+
+            $existing = $registration->payments()->where('method', 'gateway')->where('status', 'initiated')->latest('id')->first();
+
+            if ($existing) {
+                // Dipakai ulang HANYA bila nominalnya masih sama — inilah kasus
+                // tab kedua yang menjadi alasan pengecekan ini ada. Kalau
+                // nominalnya berbeda, author mengubah pilihannya (mis. mencoba
+                // bayar lunas lalu beralih ke cicilan), dan memakai ulang order
+                // lama berarti menagih angka yang tidak ia pilih.
+                $sameAmount = (float) $existing->amount === (float) $due;
+
+                // Baris tanpa checkout_url berarti permintaan ke gateway tidak
+                // pernah selesai. Jeda singkat diberikan untuk tab yang sedang
+                // berjalan; lewat itu barisnya dilepas, sebab kalau tidak author
+                // terkunci selamanya pada pesan "pembayaran sedang disiapkan".
+                $usable = $existing->checkout_url !== null
+                    || $existing->created_at?->greaterThan(now()->subMinutes(2));
+
+                if ($sameAmount && $usable) {
+                    return [$registration, $existing, false];
+                }
+
+                $existing->update(['status' => 'failed']);
+            }
 
             $payment = $registration->payments()->create([
                 'method' => 'gateway',
@@ -85,7 +105,7 @@ class KaseraService
             ]);
             $registration->update(['gateway_transaction_id' => $payment->gateway_reference, 'status' => 'pending']);
 
-            return [$payment, true];
+            return [$registration, $payment, true];
         });
 
         if ($payment->checkout_url) {

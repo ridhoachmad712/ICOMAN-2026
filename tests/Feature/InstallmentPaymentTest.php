@@ -177,6 +177,81 @@ class InstallmentPaymentTest extends TestCase
         $this->assertFalse($registration->refresh()->installment_plan);
     }
 
+    /**
+     * Author yang mencoba bayar lunas, mengurungkan, lalu memilih mencicil harus
+     * ditagih 200.000 — bukan 350.000 dari percobaan sebelumnya.
+     *
+     * Order yang masih "initiated" sengaja dipakai ulang supaya tab kedua tidak
+     * membuka tagihan kedua; sebelum ini, pemakaian ulang itu tidak memeriksa
+     * nominalnya, sehingga pilihan cicilan tetap diarahkan ke halaman bayar
+     * 350.000 yang lama.
+     */
+    public function test_switching_to_instalments_charges_the_first_instalment(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $this->assertSame(350000, $captured[0]['amount']);
+
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])->assertRedirect();
+
+        $this->assertCount(2, $captured);
+        $this->assertSame(200000, $captured[1]['amount'], 'Cicilan pertama harus ditagih 200.000 di Kasera Pay.');
+
+        $registration->refresh();
+        $this->assertTrue($registration->installment_plan);
+        $this->assertSame(200000.0, $registration->amountDueNow());
+    }
+
+    /** Dan sebaliknya: berpindah ke bayar lunas harus menagih seluruhnya. */
+    public function test_switching_back_to_paying_in_full_charges_the_whole_amount(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])->assertRedirect();
+        $this->assertSame(200000, $captured[0]['amount']);
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+
+        $this->assertSame(350000, $captured[1]['amount']);
+    }
+
+    /** Order yang ditinggalkan dilepas, jadi tidak ada dua tagihan hidup sekaligus. */
+    public function test_the_abandoned_order_is_released(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration));
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment']);
+
+        $this->assertSame(1, $registration->payments()->where('status', 'initiated')->count());
+        $this->assertSame(200000.0, (float) $registration->payments()->where('status', 'initiated')->value('amount'));
+    }
+
+    /** Tab kedua dengan pilihan yang sama tetap tidak boleh membuka tagihan kedua. */
+    public function test_a_second_tab_with_the_same_choice_reuses_the_order(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment']);
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment']);
+
+        $this->assertCount(1, $captured);
+        $this->assertSame(1, $registration->payments()->count());
+    }
+
     // --- Status -------------------------------------------------------------
 
     /**

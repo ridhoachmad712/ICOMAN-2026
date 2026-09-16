@@ -210,6 +210,47 @@ class PricingAndPaymentHardeningTest extends TestCase
         $this->assertSame('payreq_abc', $payment->gateway_payment_id);
     }
 
+    /**
+     * Kalau permintaan ke gateway gagal setelah ordernya tersimpan, barisnya
+     * tertinggal tanpa checkout_url. Sebelumnya baris itu dipakai ulang
+     * selamanya, sehingga setiap percobaan berikutnya membalas "pembayaran
+     * sedang disiapkan" dan author tidak pernah bisa membayar lagi.
+     */
+    public function test_an_order_left_without_a_checkout_url_is_retried_later(): void
+    {
+        config()->set('services.kasera.api_key', 'kp_test_key');
+        [$registration] = $this->payableRegistration();
+
+        $this->mockGateway(fn () => throw new \RuntimeException('Kasera Pay menolak permintaan (500):'));
+
+        try {
+            app(KaseraService::class)->createCheckoutRedirect($registration);
+        } catch (\RuntimeException) {
+            // Yang diuji adalah keadaan setelahnya, bukan kegagalan ini sendiri.
+        }
+
+        $stuck = $registration->payments()->firstOrFail();
+        $this->assertNull($stuck->checkout_url);
+
+        // Segera sesudahnya, tab lain mungkin sedang menyiapkannya — jangan tumpuk.
+        $this->mockGateway(fn () => ['id' => 'payreq_ok', 'checkout_url' => 'https://pay.kasera.id/p/ok']);
+        try {
+            app(KaseraService::class)->createCheckoutRedirect($registration->refresh());
+            $this->fail('Percobaan langsung seharusnya ditahan.');
+        } catch (ValidationException) {
+            // Diharapkan.
+        }
+
+        // Lewat jeda itu, author harus bisa mencoba lagi.
+        $this->travel(5)->minutes();
+
+        $url = app(KaseraService::class)->createCheckoutRedirect($registration->refresh());
+
+        $this->assertSame('https://pay.kasera.id/p/ok', $url);
+        $this->assertSame('failed', $stuck->refresh()->status);
+        $this->assertSame(1, $registration->payments()->where('status', 'initiated')->count());
+    }
+
     public function test_a_checkout_url_from_an_unexpected_host_is_rejected(): void
     {
         config()->set('services.kasera.api_key', 'kp_test_key');

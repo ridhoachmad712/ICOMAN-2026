@@ -116,18 +116,27 @@ class Registration extends Model implements HasMedia
      */
     public function amountDueNow(): float
     {
-        if ($this->installment_plan && $this->paidAmount() <= 0) {
-            return (float) $this->registrationFee?->installment_first_amount;
+        $first = (float) $this->registrationFee?->installment_first_amount;
+
+        // Panitia bisa mengosongkan nominal cicilan setelah author memilihnya;
+        // kalau itu terjadi, yang ditagih kembali ke sisa penuh, bukan nol —
+        // nol akan membuat tombol bayarnya menolak dengan 409.
+        if ($this->installment_plan && $this->paidAmount() <= 0 && $first > 0) {
+            return min($first, $this->outstandingAmount());
         }
 
         return $this->outstandingAmount();
     }
 
-    /** Boleh menawarkan cicilan: belum ada yang dibayar, dan tidak sedang dibebaskan voucher. */
+    /**
+     * Pilihan cara membayar masih terbuka: belum ada yang dibayar, dan tidak
+     * sedang dibebaskan voucher. Sengaja tidak memeriksa installment_plan —
+     * selama belum ada uang masuk, author boleh berganti pikiran, dan
+     * pilihannya baru mengunci saat pembayaran pertama diterima.
+     */
     public function allowsInstallments(): bool
     {
-        return ! $this->installment_plan
-            && $this->status === 'pending'
+        return $this->status === 'pending'
             && ! $this->isWaived()
             && $this->paidAmount() <= 0
             && (bool) $this->registrationFee?->allowsInstallments()
