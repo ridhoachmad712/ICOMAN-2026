@@ -2,16 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\Settings\ManageSiteSettings;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
+use App\Models\User;
 use App\Services\KaseraService;
 use App\Services\RegistrationProvisioner;
+use App\Settings\SiteSettings;
+use Filament\Facades\Filament;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
+use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class PaymentAndRegistrationTest extends TestCase
@@ -109,6 +116,49 @@ class PaymentAndRegistrationTest extends TestCase
             ltrim(parse_url(route('payment.kasera.notification'), PHP_URL_PATH), '/'),
             $excluded,
         );
+    }
+
+    /**
+     * Kredensial diisi lewat form admin, bukan ditulis ke model. Tes yang
+     * menulis langsung ke settings pernah menyembunyikan field yang salah nama
+     * dan diam-diam dibuang saat disimpan.
+     */
+    public function test_the_gateway_credentials_are_saved_from_the_admin_form(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-kasera@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(ManageSiteSettings::class)
+            ->assertOk()
+            ->fillForm(['kasera_api_key' => 'kp_test_abc', 'kasera_webhook_secret' => 'whsec-abc'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(SiteSettings::class)->refresh();
+        $this->assertSame('kp_test_abc', $settings->kasera_api_key);
+        $this->assertSame('whsec-abc', $settings->kasera_webhook_secret);
+
+        // Rahasia tidak boleh tersimpan apa adanya di kolom database.
+        $stored = DB::table('settings')
+            ->where('group', 'site')->where('name', 'kasera_api_key')->value('payload');
+        $this->assertStringNotContainsString('kp_test_abc', (string) $stored);
+    }
+
+    /** Kredensial yang tersimpan dipakai lebih dulu daripada nilai .env. */
+    public function test_saved_credentials_win_over_the_env_fallback(): void
+    {
+        config()->set('services.kasera.api_key', 'kp_test_from_env');
+
+        $this->assertTrue(app(KaseraService::class)->isConfigured());
+
+        $settings = app(SiteSettings::class);
+        $settings->kasera_api_key = 'kp_live_from_settings';
+        $settings->save();
+
+        $this->assertTrue(app(KaseraService::class)->isLiveMode());
     }
 
     public function test_registration_uses_one_fixed_price(): void

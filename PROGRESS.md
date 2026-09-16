@@ -133,7 +133,7 @@ php artisan migrate:fresh --seed
 **Sebelum go-live (wajib):**
 1. **Isi konten asli** via `/admin` (lihat `CONTENT_CHECKLIST.md`) — sekarang semua dummy.
 2. **Buat akun reviewer asli** (dosen internal) via `/admin` → Users & Roles.
-3. **Kredensial Kasera Pay** (API key + webhook signing secret) di Pengaturan admin atau `.env` + daftarkan endpoint webhook di dashboard Kasera ke `https://<domain>/payment/kasera/notification`. Mode live dan test punya endpoint dan secret masing-masing.
+3. **Kredensial Kasera Pay** (API key + webhook signing secret) di Pengaturan admin atau `.env` (jalankan `php artisan migrate` dulu — migration settings ikut perintah ini, tidak ada `settings:migrate`) + daftarkan endpoint webhook di dashboard Kasera ke `https://<domain>/payment/kasera/notification`. Mode live dan test punya endpoint dan secret masing-masing.
 4. **Ganti password superadmin** sementara.
 
 **Fase 6 sisa (SEO/perf):** meta description per-halaman (kini hanya homepage punya JSON-LD), breadcrumb JSON-LD, uji **Lighthouse** (target PRD ≥85) di Chrome DevTools.
