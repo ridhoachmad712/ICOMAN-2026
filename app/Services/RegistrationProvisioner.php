@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Author;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Membuat invoice registrasi secara OTOMATIS berdasarkan kategori yang sudah
@@ -16,7 +17,7 @@ class RegistrationProvisioner
 {
     public function ensureFor(Author $author): ?Registration
     {
-        return \Illuminate\Support\Facades\DB::transaction(function () use ($author) {
+        return DB::transaction(function () use ($author) {
             // Serialize checkout for this author, including concurrent tabs.
             $locked = Author::whereKey($author->id)->lockForUpdate()->firstOrFail();
 
@@ -64,6 +65,12 @@ class RegistrationProvisioner
             return $existing;
         }
 
+        if ($submission && $orphan = $this->orphanedPresenterInvoice($author, $edition->id)) {
+            $orphan->update(['submission_id' => $submission->id]);
+
+            return $orphan->refresh();
+        }
+
         app(ConferenceDeadlines::class)->assertOpen('payment', $edition->id);
 
         // Tarif mengikuti kategori (registrant_category) yang dipilih saat mendaftar.
@@ -90,5 +97,28 @@ class RegistrationProvisioner
             'pricing_snapshot' => $quote,
             'status' => 'pending',
         ]);
+    }
+
+    /**
+     * Invoice presenter yang kehilangan tautan papernya.
+     *
+     * `registrations.submission_id` memakai nullOnDelete, jadi paper yang
+     * dihapus lalu dikirim ulang meninggalkan invoice tanpa paper. Invoice
+     * seperti itu tidak akan pernah menampilkan pilihan jurnal SINTA 3 —
+     * tawarannya melekat pada paper — dan membiarkannya berarti menerbitkan
+     * tagihan kedua untuk orang yang sama. Maka diambil alih, bukan ditinggal.
+     *
+     * Yang sudah lunas tidak pernah diambil alih: memindahkannya akan membuat
+     * paper baru langsung terhitung terbayar.
+     */
+    private function orphanedPresenterInvoice(Author $author, int $editionId): ?Registration
+    {
+        return $author->registrations()
+            ->where('edition_id', $editionId)
+            ->whereNull('submission_id')
+            ->where('status', '!=', 'paid')
+            ->whereHas('registrationFee', fn ($fee) => $fee->where('audience', 'presenter'))
+            ->latest()
+            ->first();
     }
 }
