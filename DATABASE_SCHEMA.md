@@ -129,6 +129,7 @@ Scope/topik Call for Papers
 | price_early_bird | decimal nullable |
 | price_regular | decimal |
 | installment_first_amount | decimal nullable — nominal cicilan PERTAMA. Diisi hanya untuk presenter mahasiswa (`audience=presenter`, `registrant_category=student_s1`); cicilan kedua selalu dihitung sebagai `amount - installment_first_amount`, sehingga keduanya tidak pernah bisa berjumlah salah. Kosong = wajib lunas sekaligus |
+| installment_first_amount_sinta3 | decimal nullable — nominal cicilan PERTAMA bila author memilih penerbitan SINTA 3, yang totalnya lebih besar. Kosong = pakai `installment_first_amount`. Contoh: reguler 350.000 dibagi 200.000 + 150.000; SINTA 3 650.000 dibagi 350.000 + 300.000 |
 | currency | string default IDR |
 | notes (T) | json nullable |
 | order | integer |

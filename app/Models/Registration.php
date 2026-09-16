@@ -113,6 +113,14 @@ class Registration extends Model implements HasMedia
         return max(0, (float) $this->amount - $this->paidAmount());
     }
 
+    /** Cicilan pertama untuk invoice ini, mengikuti pilihan jurnalnya. */
+    public function firstInstallmentAmount(): float
+    {
+        $sinta3 = ($this->priceDetails()['journal_target'] ?? 'regular') === 'sinta3';
+
+        return (float) $this->registrationFee?->firstInstallmentFor($sinta3);
+    }
+
     /**
      * Nominal yang ditagihkan pada pembayaran berikutnya.
      *
@@ -121,7 +129,7 @@ class Registration extends Model implements HasMedia
      */
     public function amountDueNow(): float
     {
-        $first = (float) $this->registrationFee?->installment_first_amount;
+        $first = $this->firstInstallmentAmount();
 
         // Panitia bisa mengosongkan nominal cicilan setelah author memilihnya;
         // kalau itu terjadi, yang ditagih kembali ke sisa penuh, bukan nol —
@@ -145,7 +153,7 @@ class Registration extends Model implements HasMedia
             && ! $this->isWaived()
             && $this->paidAmount() <= 0
             && (bool) $this->registrationFee?->allowsInstallments()
-            && (float) $this->amount > (float) $this->registrationFee->installment_first_amount;
+            && (float) $this->amount > $this->firstInstallmentAmount();
     }
 
     /** Sudah membayar sebagian, tapi belum lunas. */

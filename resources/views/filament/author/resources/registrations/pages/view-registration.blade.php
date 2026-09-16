@@ -188,7 +188,7 @@
                 @elseif($record->status !== 'pending_verification')
                     @php
                         $canInstall = $record->allowsInstallments();
-                        $firstAmount = (float) ($record->registrationFee?->installment_first_amount ?? 0);
+                        $firstAmount = $record->firstInstallmentAmount();
                         $secondAmount = (float) $record->amount - $firstAmount;
                         $installmentDue = $record->installmentDueAt();
                         $dueNow = $record->amountDueNow();

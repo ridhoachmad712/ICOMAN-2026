@@ -13,6 +13,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Services\KaseraGateway;
 use App\Services\KaseraService;
+use App\Settings\SiteSettings;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
@@ -38,7 +39,7 @@ class InstallmentPaymentTest extends TestCase
         config()->set('services.kasera.api_key', 'kp_test_key');
     }
 
-    private function fee(string $audience = 'presenter', string $category = 'student_s1', ?int $first = 200_000, int $price = 350_000): RegistrationFee
+    private function fee(string $audience = 'presenter', string $category = 'student_s1', ?int $first = 200_000, int $price = 350_000, ?int $firstSinta3 = 350_000): RegistrationFee
     {
         return RegistrationFee::create([
             'edition_id' => $this->edition->id,
@@ -47,8 +48,30 @@ class InstallmentPaymentTest extends TestCase
             'registrant_category' => $category,
             'price_regular' => $price,
             'installment_first_amount' => $first,
+            'installment_first_amount_sinta3' => $firstSinta3,
             'currency' => 'IDR',
         ]);
+    }
+
+    /** Invoice presenter yang memilih penerbitan SINTA 3: 350.000 + 300.000. */
+    private function sinta3Registration(RegistrationFee $fee): Registration
+    {
+        $settings = app(SiteSettings::class);
+        $settings->sinta3_fee = 300_000;
+        $settings->save();
+
+        $registration = $this->registration($fee);
+        $price = $registration->priceDetails();
+        $price['addon_amount'] = 300_000;
+        $price['quoted_addon_amount'] = 300_000;
+        $price['journal_target'] = 'sinta3';
+
+        $registration->update([
+            'amount' => (float) $price['base_amount'] + 300_000,
+            'pricing_snapshot' => $price,
+        ]);
+
+        return $registration->refresh();
     }
 
     private function registration(RegistrationFee $fee): Registration
@@ -250,6 +273,86 @@ class InstallmentPaymentTest extends TestCase
 
         $this->assertCount(1, $captured);
         $this->assertSame(1, $registration->payments()->count());
+    }
+
+    // --- Pilihan jurnal mengubah pembagiannya ---------------------------------
+
+    /**
+     * Paper SINTA 3 ditagih 650.000, jadi cicilannya 350.000 + 300.000 — bukan
+     * 200.000 + 450.000 yang akan keluar dari satu angka tetap.
+     */
+    public function test_a_sinta3_paper_uses_its_own_split(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->sinta3Registration($this->fee());
+        $service = app(KaseraService::class);
+
+        $this->assertSame(650000.0, (float) $registration->amount);
+
+        $service->createCheckoutRedirect($registration, installment: true);
+        $this->assertSame(350000, $captured[0]['amount']);
+        $this->pay($registration);
+
+        $service->createCheckoutRedirect($registration->refresh());
+        $this->assertSame(300000, $captured[1]['amount']);
+
+        $this->assertSame(650000, $captured[0]['amount'] + $captured[1]['amount']);
+
+        $this->pay($registration);
+        $this->assertSame('paid', $registration->refresh()->status);
+    }
+
+    /** Paper reguler tetap 200.000 + 150.000. */
+    public function test_a_regular_paper_keeps_its_own_split(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+
+        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+
+        $this->assertSame(200000, $captured[0]['amount']);
+    }
+
+    /**
+     * Author boleh mengubah pilihan jurnalnya sebelum membayar, dan cicilan
+     * pertamanya harus ikut berubah — bukan menagih 200.000 atas tagihan
+     * 650.000.
+     */
+    public function test_choosing_sinta3_after_picking_instalments_moves_the_first_amount(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $fee = $this->fee();
+        $registration = $this->registration($fee);
+
+        $this->assertSame(200000.0, $registration->firstInstallmentAmount());
+
+        $upgraded = $this->sinta3Registration($fee);
+
+        $this->assertSame(350000.0, $upgraded->firstInstallmentAmount());
+    }
+
+    /** Tanpa angka SINTA 3, angka regulernya dipakai — pembagiannya tetap tepat. */
+    public function test_without_a_sinta3_amount_the_regular_one_is_used(): void
+    {
+        $registration = $this->sinta3Registration($this->fee(firstSinta3: null));
+
+        $this->assertSame(200000.0, $registration->firstInstallmentAmount());
+        $this->assertSame(450000.0, (float) $registration->amount - $registration->firstInstallmentAmount());
+    }
+
+    /** Halaman invoice menyebut angka SINTA 3, bukan angka regulernya. */
+    public function test_the_invoice_page_shows_the_sinta3_split(): void
+    {
+        $registration = $this->sinta3Registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->assertOk()
+            ->assertSee('350.000')
+            ->assertSee('300.000');
     }
 
     // --- Status -------------------------------------------------------------

@@ -53,6 +53,21 @@ class RegistrationFeeForm
                             ->visible(fn ($get): bool => $get('audience') === 'presenter' && $get('registrant_category') === 'student_s1')
                             ->lt('price_regular'),
                         TextInput::make('price_regular')->label('Registration price')->numeric()->minValue(1)->required(),
+                        TextInput::make('installment_first_amount_sinta3')
+                            ->label('Cicilan pertama bila memilih SINTA 3 (IDR)')
+                            ->helperText('Tagihan paper SINTA 3 lebih besar karena biaya penerbitan ditambahkan, jadi cicilan pertamanya punya angka sendiri. Kosongkan untuk memakai angka di atas.')
+                            ->numeric()
+                            ->minValue(1)
+                            ->prefix('Rp')
+                            ->visible(fn ($get): bool => $get('audience') === 'presenter' && $get('registrant_category') === 'student_s1')
+                            // Batasnya total tagihan SINTA 3, bukan harga dasar.
+                            ->rule(fn ($get): \Closure => function (string $attribute, $value, \Closure $fail) use ($get): void {
+                                $total = (float) $get('price_regular') + (int) rescue(fn () => siteSettings()->sinta3_fee, 0, false);
+
+                                if (filled($value) && (float) $value >= $total) {
+                                    $fail('Cicilan pertama harus lebih kecil dari total tagihan SINTA 3 (Rp '.number_format($total, 0, ',', '.').').');
+                                }
+                            }),
                         Textarea::make('notes.en')->label('Notes (EN)')->rows(2)->columnSpanFull(),
                         Textarea::make('notes.id')->label('Notes (ID)')->rows(2)->columnSpanFull(),
                         TextInput::make('order')->numeric()->default(0),

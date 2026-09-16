@@ -20,6 +20,7 @@ class RegistrationFee extends Model
         'registrant_category',
         'price_regular',
         'installment_first_amount',
+        'installment_first_amount_sinta3',
         'currency',
         'idr_exchange_rate',
         'notes',
@@ -33,6 +34,7 @@ class RegistrationFee extends Model
         return [
             'price_regular' => 'decimal:2',
             'installment_first_amount' => 'decimal:2',
+            'installment_first_amount_sinta3' => 'decimal:2',
             'idr_exchange_rate' => 'decimal:4',
             'order' => 'integer',
         ];
@@ -55,6 +57,25 @@ class RegistrationFee extends Model
             && $this->registrant_category === 'student_s1'
             && $first > 0
             && $first < (float) $this->price_regular;
+    }
+
+    /**
+     * Cicilan pertama menurut pilihan jurnal.
+     *
+     * Paper SINTA 3 tagihannya lebih besar (biaya penerbitan ditambahkan), jadi
+     * cicilan pertamanya punya angkanya sendiri. Bila panitia belum mengisinya,
+     * angka regulernya dipakai — pembagiannya tetap tepat, hanya porsinya
+     * berbeda dari yang mungkin mereka maksudkan.
+     */
+    public function firstInstallmentFor(bool $sinta3): float
+    {
+        $sinta3Amount = (float) $this->installment_first_amount_sinta3;
+
+        if ($sinta3 && $sinta3Amount > 0) {
+            return $sinta3Amount;
+        }
+
+        return (float) $this->installment_first_amount;
     }
 
     public function edition(): BelongsTo
