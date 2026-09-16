@@ -54,14 +54,11 @@ class SiteSettings extends Settings
     // Biaya tambahan penerbitan jurnal SINTA 3 (ditambahkan ke registrasi presenter).
     public int $sinta3_fee;
 
-    // Payment gateway Midtrans (dikelola dari admin; fallback ke .env bila dikosongkan).
-    public ?string $midtrans_merchant_id;
+    // Payment gateway Kasera Pay (dikelola dari admin; fallback ke .env bila dikosongkan).
+    // Keduanya rahasia dan disimpan ter-enkripsi (lihat encrypted()).
+    public ?string $kasera_api_key;
 
-    public ?string $midtrans_client_key;
-
-    public ?string $midtrans_server_key;   // disimpan ter-enkripsi (lihat encrypted()).
-
-    public bool $midtrans_is_production;
+    public ?string $kasera_webhook_secret;
 
     /** Tipografi menyeluruh (lihat FONTS untuk pilihan yang tersedia). */
     public ?string $font_heading;
@@ -93,9 +90,9 @@ class SiteSettings extends Settings
         return 'site';
     }
 
-    /** Server key adalah rahasia: enkripsi saat disimpan di database. */
+    /** Kredensial gateway adalah rahasia: enkripsi saat disimpan di database. */
     public static function encrypted(): array
     {
-        return ['midtrans_server_key'];
+        return ['kasera_api_key', 'kasera_webhook_secret'];
     }
 }

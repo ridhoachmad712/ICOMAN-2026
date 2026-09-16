@@ -23,10 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('filament.author.auth.login'));
         $middleware->redirectUsersTo(fn () => route('filament.author.pages.author-dashboard'));
 
-        // Webhook Midtrans datang dari server gateway (tanpa CSRF token) — keamanan
-        // dijamin oleh verifikasi signature di MidtransController, bukan CSRF.
+        // Webhook Kasera Pay datang dari server gateway (tanpa CSRF token) — keamanan
+        // dijamin oleh verifikasi signature di KaseraController, bukan CSRF.
         $middleware->validateCsrfTokens(except: [
-            'payment/midtrans/notification',
+            'payment/kasera/notification',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

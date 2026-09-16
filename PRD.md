@@ -89,7 +89,7 @@ Konsekuensi: MVP ini bukan lagi sekadar "website informasi + CMS", tapi sudah me
 1. Peserta (author yang papernya accepted, atau peserta non-presenter) isi form registrasi: pilih kategori biaya (sesuai `registration_fees`).
 2. Pilih metode bayar:
    - **Manual**: tampil info rekening tujuan → peserta upload bukti transfer → status `pending_verification` → admin verifikasi manual di Filament → status `paid`.
-   - **Gateway**: redirect ke Midtrans/Xendit → setelah bayar, webhook otomatis set status `paid`.
+   - **Gateway**: redirect ke Kasera Pay Checkout → setelah bayar, webhook `payment.paid` set status `paid`.
 3. Peserta dapat cek status registrasi & bukti bayar di dashboard portalnya.
 4. Admin punya dashboard rekap: jumlah peserta per kategori, status pembayaran, total pemasukan (estimasi, bukan akuntansi resmi).
 

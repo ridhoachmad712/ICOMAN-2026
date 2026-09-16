@@ -7,7 +7,7 @@ use App\Filament\Author\Pages\AuthorProfile;
 use App\Filament\Author\Resources\Registrations\RegistrationResource;
 use App\Http\Controllers\Controller;
 use App\Models\Registration;
-use App\Services\MidtransService;
+use App\Services\KaseraService;
 use App\Services\RegistrationProvisioner;
 use App\Services\VoucherRedeemer;
 use Illuminate\Http\RedirectResponse;
@@ -109,16 +109,16 @@ class RegistrationController extends Controller
 
     private function startGateway(Registration $registration): RedirectResponse
     {
-        $midtrans = app(MidtransService::class);
+        $kasera = app(KaseraService::class);
 
-        if (! $midtrans->isConfigured()) {
+        if (! $kasera->isConfigured()) {
             return redirect()
                 ->route('author.registration.show', $registration)
                 ->with('error', __('Pembayaran online belum dapat digunakan saat ini. Silakan coba beberapa saat lagi atau hubungi panitia.'));
         }
 
         try {
-            $url = $midtrans->createSnapRedirect($registration);
+            $url = $kasera->createCheckoutRedirect($registration);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {
@@ -141,7 +141,7 @@ class RegistrationController extends Controller
     {
         $this->authorizeOwner($registration);
         try {
-            app(MidtransService::class)->synchronize($registration);
+            app(KaseraService::class)->synchronize($registration);
         } catch (\Throwable $exception) {
             report($exception);
 

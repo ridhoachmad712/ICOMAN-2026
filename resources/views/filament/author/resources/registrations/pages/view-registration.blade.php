@@ -131,7 +131,7 @@
                 <div class="mt-4 grid gap-3 border-t border-gray-200 pt-4 text-sm sm:grid-cols-2 dark:border-white/10">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Metode' : 'Method' }}</p>
-                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'Midtrans' }}</p>
+                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'Kasera Pay' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Abstrak' : 'Abstract' }}</p>
@@ -190,7 +190,7 @@
                 @elseif($record->status !== 'pending_verification')
                     <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10">
                         <p class="mb-3 text-xs leading-relaxed text-gray-500">
-                            {{ $id ? 'Anda akan diarahkan ke halaman pembayaran aman Midtrans untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.' : 'You will be redirected to Midtrans secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.' }}
+                            {{ $id ? 'Anda akan diarahkan ke halaman pembayaran aman Kasera Pay untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.' : 'You will be redirected to Kasera Pay secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.' }}
                         </p>
                         <form method="POST" action="{{ route('author.registration.pay', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf

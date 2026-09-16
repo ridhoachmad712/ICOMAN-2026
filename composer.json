@@ -13,7 +13,6 @@
         "filament/spatie-laravel-settings-plugin": "^4.0",
         "laravel/framework": "^13.17",
         "laravel/tinker": "^3.0",
-        "midtrans/midtrans-php": "^2.6",
         "spatie/laravel-medialibrary": "^11.23",
         "spatie/laravel-permission": "^8.3",
         "spatie/laravel-settings": "^3.9",

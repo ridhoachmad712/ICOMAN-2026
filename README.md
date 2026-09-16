@@ -1,6 +1,6 @@
 # ICOMAN 2026
 
-Sistem manajemen International Conference on Management 2026 yang mencakup website publik bilingual, CMS panitia, portal author, submission dan review paper, registrasi, serta pembayaran manual/Midtrans.
+Sistem manajemen International Conference on Management 2026 yang mencakup website publik bilingual, CMS panitia, portal author, submission dan review paper, registrasi, serta pembayaran manual/Kasera Pay.
 
 ## Stack
 
@@ -44,9 +44,9 @@ npm audit --omit=dev
 
 - Gunakan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://...`.
 - Gunakan database user khusus aplikasi dan password yang kuat.
-- Isi kredensial SMTP dan Midtrans melalui environment, bukan repository.
-- Set `MIDTRANS_IS_PRODUCTION=true` hanya setelah sandbox lulus.
-- Arahkan webhook Midtrans ke `/payment/midtrans/notification`.
+- Isi kredensial SMTP dan Kasera Pay melalui environment atau Pengaturan admin, bukan repository.
+- Ganti `KASERA_API_KEY` ke key `kp_live_` hanya setelah uji dengan key `kp_test_` lulus.
+- Arahkan webhook Kasera Pay ke `/payment/kasera/notification` (https, wajib publik).
 - Aktifkan queue worker dan scheduler dengan process manager/cron.
 - Jalankan `php artisan storage:link` dan `php artisan optimize`.
 - Siapkan backup database dan `storage/app/public`, serta uji restore.

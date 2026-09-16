@@ -16,7 +16,7 @@
 | Role & Permission | `filament-shield` (bakumatoshi) atau Spatie Permission langsung | Role Superadmin, Admin Konten, Reviewer |
 | SEO Meta | `artesaos/seotools` atau custom field per-page | Meta title/desc/OG per halaman |
 | Autentikasi Publik | `laravel/fortify` atau Breeze (headless, tanpa scaffolding Blade default — dibuat custom sesuai desain) | Guard terpisah (`author`) dari guard admin Filament (`web`) |
-| Payment Gateway | `midtrans/midtrans-php` (utama, umum dipakai instansi Indonesia) + fallback manual transfer | Dukung dua jalur pembayaran sesuai keputusan scope |
+| Payment Gateway | Kasera Pay (HTTP API, tanpa SDK) + fallback manual transfer | Dukung dua jalur pembayaran sesuai keputusan scope |
 | Notifikasi Email | Laravel Notification + Mailable bawaan (queue via `database` atau `sync` untuk MVP) | Notifikasi status submission/registrasi |
 | File Paper | Spatie Media Library (collection khusus `paper`, restrict mime docx/pdf) | Reuse infrastruktur media yang sama dengan foto |
 
@@ -124,7 +124,7 @@ app/
     SubmissionController.php
     RegistrationController.php  (form registrasi + pilih metode bayar)
   Http/Controllers/Payment/
-    MidtransController.php  (create transaction + webhook/notification handler)
+    KaseraController.php  (webhook/notification handler + halaman kembali)
   Notifications/
     SubmissionStatusChanged.php
     RegistrationPaymentReceived.php
@@ -134,7 +134,7 @@ resources/views/author/
   registration/create.blade.php + show.blade.php
 ```
 
-Webhook Midtrans harus punya route publik tanpa CSRF (`withoutMiddleware(VerifyCsrfToken::class)` atau exclude di `bootstrap/app.php`), dan **wajib** verifikasi signature key sebelum update status pembayaran — jangan percaya payload begitu saja.
+Webhook Kasera Pay harus punya route publik tanpa CSRF (exclude di `bootstrap/app.php`), dan **wajib** verifikasi header `Kasera-Signature-V1` atas **raw body** sebelum update status pembayaran — jangan percaya payload begitu saja. Signature-nya HMAC-SHA256 atas `<unix>.<raw body>` memakai webhook signing secret; tolak bila timestamp melenceng lebih dari 5 menit.
 
 ## 6. Keamanan
 

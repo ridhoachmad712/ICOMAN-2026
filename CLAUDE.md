@@ -11,7 +11,7 @@ Sistem manajemen International Conference on Management (ICOMAN) 2026: website C
 ## Keputusan Scope (sudah dikonfirmasi user — jangan tanya ulang)
 1. Bilingual EN/ID — **aktif** untuk seluruh konten CMS.
 2. Sistem submission & review paper — **dibangun sendiri** (bukan link ke OJS/EasyChair eksternal).
-3. Pembayaran registrasi — **mendukung dua jalur sekaligus**: manual transfer + upload bukti, DAN payment gateway otomatis (Midtrans).
+3. Pembayaran registrasi — **mendukung dua jalur sekaligus**: manual transfer + upload bukti, DAN payment gateway otomatis (Kasera Pay; sebelumnya Midtrans, diganti 2026-09-16).
 
 ## Status Saat Ini
 - **MVP (Fase 0–5) SELESAI & teruji** + polish frontend/backend. Detail lengkap di `PROGRESS.md`. Sisa: Fase 6 (SEO per-halaman, Lighthouse) & Fase 7 (Deploy).
@@ -32,7 +32,7 @@ Sistem manajemen International Conference on Management (ICOMAN) 2026: website C
 
 ## Yang HARUS Ditanyakan ke User Sebelum Lanjut (jangan asumsikan sendiri)
 1. Nama domain/subdomain final dan target hosting (pola serupa Hostinger + Cloudflare seperti project sebelumnya?) — pastikan hosting mendukung **queue worker/cron**, karena notifikasi email & webhook payment butuh ini.
-2. Payment gateway mana yang akun bisnisnya sudah/akan disiapkan: Midtrans atau Xendit (ARCHITECTURE.md default ke Midtrans, tapi konfirmasi dulu sebelum integrasi ditulis).
+2. ~~Payment gateway mana yang dipakai~~ — sudah diputuskan: **Kasera Pay**.
 3. Skema role reviewer: apakah reviewer adalah dosen internal (akun dibuatkan admin) atau reviewer eksternal (perlu self-register)? Ini menentukan apakah reviewer pakai guard `web` (dibuatkan manual) atau perlu flow undangan/registrasi sendiri.
 4. Format skor review: skala apa yang dipakai panitia (1–100, 1–5, atau rubrik multi-kriteria)? Ini menentukan struktur kolom `reviews.score`.
 

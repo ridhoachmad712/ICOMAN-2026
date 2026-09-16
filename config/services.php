@@ -35,10 +35,10 @@ return [
         ],
     ],
 
-    'midtrans' => [
-        'server_key' => env('MIDTRANS_SERVER_KEY'),
-        'client_key' => env('MIDTRANS_CLIENT_KEY'),
-        'is_production' => env('MIDTRANS_IS_PRODUCTION', false),
+    // Mode (test/live) ikut prefix API key-nya, jadi tidak ada saklar tersendiri.
+    'kasera' => [
+        'api_key' => env('KASERA_API_KEY'),
+        'webhook_secret' => env('KASERA_WEBHOOK_SECRET'),
     ],
 
 ];

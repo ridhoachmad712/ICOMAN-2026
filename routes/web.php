@@ -5,7 +5,7 @@ use App\Http\Controllers\Author\RegistrationController;
 use App\Http\Controllers\Author\SubmissionController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NewsController;
-use App\Http\Controllers\Payment\MidtransController;
+use App\Http\Controllers\Payment\KaseraController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
@@ -95,9 +95,9 @@ Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/downlo
 
 /*
 |--------------------------------------------------------------------------
-| Payment gateway (Midtrans) — di luar grup lokal/auth.
+| Payment gateway (Kasera Pay) — di luar grup lokal/auth.
 | Webhook di-exempt dari CSRF (lihat bootstrap/app.php).
 |--------------------------------------------------------------------------
 */
-Route::post('payment/midtrans/notification', [MidtransController::class, 'notification'])->middleware('throttle:120,1')->name('payment.midtrans.notification');
-Route::get('payment/midtrans/finish', [MidtransController::class, 'finish'])->name('payment.midtrans.finish');
+Route::post('payment/kasera/notification', [KaseraController::class, 'notification'])->middleware('throttle:120,1')->name('payment.kasera.notification');
+Route::get('payment/kasera/finish', [KaseraController::class, 'finish'])->name('payment.kasera.finish');

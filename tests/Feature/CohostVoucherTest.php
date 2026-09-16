@@ -24,7 +24,7 @@ use Tests\TestCase;
 /**
  * Voucher co-host: satu kode per institusi mitra dengan kuota paper gratis.
  * Membebaskan biaya registrasi dasar presenter; add-on Jurnal SINTA 3 tetap
- * ditagih lewat Midtrans.
+ * ditagih lewat Kasera Pay.
  */
 class CohostVoucherTest extends TestCase
 {
@@ -107,7 +107,7 @@ class CohostVoucherTest extends TestCase
         $this->assertSame('0.00', $registration->amount);
         $this->assertSame('400000.00', $registration->discount_amount);
         $this->assertSame('paid', $registration->status);
-        // Bukan transaksi Midtrans Rp 0 — laporan keuangan harus bisa membedakannya.
+        // Bukan transaksi Kasera Pay Rp 0 — laporan keuangan harus bisa membedakannya.
         $this->assertSame('waived', $registration->payment_method);
         $this->assertTrue($registration->isWaived());
         $this->assertNotNull($registration->paid_at);
@@ -256,7 +256,7 @@ class CohostVoucherTest extends TestCase
         $this->assertNull($registration->paid_at);
     }
 
-    /** Slot yang add-on-nya sudah dibayar lewat Midtrans tidak boleh dilepas sembarangan. */
+    /** Slot yang add-on-nya sudah dibayar lewat Kasera Pay tidak boleh dilepas sembarangan. */
     public function test_a_slot_with_real_money_paid_cannot_be_released(): void
     {
         $this->voucher();

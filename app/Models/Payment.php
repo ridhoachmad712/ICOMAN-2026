@@ -15,6 +15,7 @@ class Payment extends Model
         'method',
         'gateway_name',
         'gateway_reference',
+        'gateway_payment_id',
         'amount',
         'status',
         'raw_response',

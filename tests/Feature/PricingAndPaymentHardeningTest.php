@@ -5,12 +5,13 @@ namespace Tests\Feature;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\ImportantDate;
+use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\Submission;
 use App\Services\ConferenceDeadlines;
-use App\Services\MidtransGateway;
-use App\Services\MidtransService;
+use App\Services\KaseraGateway;
+use App\Services\KaseraService;
 use App\Services\RegistrationProvisioner;
 use App\Settings\SiteSettings;
 use Illuminate\Validation\ValidationException;
@@ -39,7 +40,7 @@ class PricingAndPaymentHardeningTest extends TestCase
 
         $quote = $fee->quote();
 
-        // Midtrans menagih IDR: 25 USD x 16.000 = 400.000.
+        // Kasera Pay menagih IDR: 25 USD x 16.000 = 400.000.
         $this->assertSame(400000, $quote['base_amount']);
         $this->assertSame('IDR', $quote['currency']);
         $this->assertSame('USD', $quote['source_currency']);
@@ -161,66 +162,92 @@ class PricingAndPaymentHardeningTest extends TestCase
 
     public function test_a_second_checkout_reuses_the_existing_order_instead_of_creating_another(): void
     {
-        config()->set('services.midtrans.server_key', 'server-key');
+        config()->set('services.kasera.api_key', 'kp_test_key');
         [$registration] = $this->payableRegistration();
 
         $calls = 0;
         $this->mockGateway(function () use (&$calls) {
             $calls++;
 
-            return (object) ['redirect_url' => 'https://app.sandbox.midtrans.com/snap/v3/redirection/abc'];
+            return ['id' => 'payreq_abc', 'checkout_url' => 'https://pay.kasera.id/p/xK3f'];
         });
 
-        $service = app(MidtransService::class);
-        $first = $service->createSnapRedirect($registration);
-        $second = $service->createSnapRedirect($registration->refresh());
+        $service = app(KaseraService::class);
+        $first = $service->createCheckoutRedirect($registration);
+        $second = $service->createCheckoutRedirect($registration->refresh());
 
         $this->assertSame($first, $second);
-        // Tab kedua tidak boleh membuka order baru di Midtrans.
+        // Tab kedua tidak boleh membuka permintaan pembayaran baru di Kasera.
         $this->assertSame(1, $calls);
         $this->assertSame(1, $registration->payments()->count());
     }
 
-    public function test_a_checkout_url_from_an_unexpected_host_is_rejected(): void
+    /**
+     * Referensi kita dikirim sebagai Idempotency-Key. Itulah satu-satunya yang
+     * mencegah tagihan ganda kalau request pertama sempat timeout.
+     */
+    public function test_the_idempotency_key_is_our_own_reference(): void
     {
-        config()->set('services.midtrans.server_key', 'server-key');
+        config()->set('services.kasera.api_key', 'kp_test_key');
         [$registration] = $this->payableRegistration();
 
-        $this->mockGateway(fn () => (object) ['redirect_url' => 'https://evil.example.com/snap/pay']);
+        $seen = null;
+        $this->mockGateway(function (array $body, string $key) use (&$seen) {
+            $seen = ['body' => $body, 'key' => $key];
+
+            return ['id' => 'payreq_abc', 'checkout_url' => 'https://pay.kasera.id/p/xK3f'];
+        });
+
+        app(KaseraService::class)->createCheckoutRedirect($registration);
+        $payment = $registration->payments()->firstOrFail();
+
+        $this->assertSame($payment->gateway_reference, $seen['key']);
+        $this->assertSame($payment->gateway_reference, $seen['body']['external_id']);
+        $this->assertSame((int) $payment->amount, $seen['body']['amount']);
+        // Tanpa object checkout, create diperlakukan sebagai Direct API.
+        $this->assertArrayHasKey('checkout', $seen['body']);
+        // Nomor dari Kasera-lah yang dipakai untuk menanyakan status.
+        $this->assertSame('payreq_abc', $payment->gateway_payment_id);
+    }
+
+    public function test_a_checkout_url_from_an_unexpected_host_is_rejected(): void
+    {
+        config()->set('services.kasera.api_key', 'kp_test_key');
+        [$registration] = $this->payableRegistration();
+
+        $this->mockGateway(fn () => ['id' => 'payreq_abc', 'checkout_url' => 'https://evil.example.com/p/pay']);
 
         $this->expectException(\RuntimeException::class);
-        app(MidtransService::class)->createSnapRedirect($registration);
+        app(KaseraService::class)->createCheckoutRedirect($registration);
     }
 
     public function test_a_repeated_webhook_is_recorded_once_and_keeps_the_invoice_paid(): void
     {
-        config()->set('services.midtrans.server_key', 'server-key');
         [$registration, $payment] = $this->payableRegistration(withPayment: true);
 
-        $service = app(MidtransService::class);
-        $payload = $this->settlementPayload($payment);
+        $service = app(KaseraService::class);
+        $event = $this->paidEvent($payment);
 
-        $service->applyNotification($payload);
-        $service->applyNotification($payload); // pengiriman ulang dari Midtrans
+        $service->applyEvent($event);
+        $service->applyEvent($event); // pengiriman ulang dari Kasera
 
         $registration->refresh();
         $payment->refresh();
 
         $this->assertSame('paid', $registration->status);
         $this->assertSame('success', $payment->status);
-        // Payload identik hanya dicatat sekali.
+        // Event dengan id yang sama hanya dicatat sekali.
         $this->assertCount(1, $payment->notification_history);
     }
 
     public function test_a_webhook_whose_amount_does_not_match_is_ignored(): void
     {
-        config()->set('services.midtrans.server_key', 'server-key');
         [$registration, $payment] = $this->payableRegistration(withPayment: true);
 
-        $payload = $this->settlementPayload($payment);
-        $payload['gross_amount'] = '1.00';
+        $event = $this->paidEvent($payment);
+        $event['data']['amount'] = 1;
 
-        $this->assertNull(app(MidtransService::class)->applyNotification($payload));
+        $this->assertNull(app(KaseraService::class)->applyEvent($event));
         $this->assertNotSame('paid', $registration->refresh()->status);
     }
 
@@ -277,7 +304,7 @@ class PricingAndPaymentHardeningTest extends TestCase
         app()->forgetInstance(SiteSettings::class);
     }
 
-    /** @return array{0: Registration, 1: \App\Models\Payment|null} */
+    /** @return array{0: Registration, 1: Payment|null} */
     private function payableRegistration(bool $withPayment = false): array
     {
         $edition = $this->edition();
@@ -289,8 +316,9 @@ class PricingAndPaymentHardeningTest extends TestCase
         $payment = null;
         if ($withPayment) {
             $payment = $registration->payments()->create([
-                'method' => 'gateway', 'gateway_name' => 'midtrans',
+                'method' => 'gateway', 'gateway_name' => 'kasera',
                 'gateway_reference' => 'ICOMAN-'.$registration->id.'-TEST',
+                'gateway_payment_id' => 'payreq_'.$registration->id,
                 'amount' => $registration->amount, 'status' => 'initiated',
             ]);
             $registration->update(['gateway_transaction_id' => $payment->gateway_reference]);
@@ -301,27 +329,32 @@ class PricingAndPaymentHardeningTest extends TestCase
 
     private function mockGateway(callable $create): void
     {
-        $this->app->bind(MidtransGateway::class, function () use ($create) {
-            return new class($create) extends MidtransGateway
+        $this->app->bind(KaseraGateway::class, function () use ($create) {
+            return new class($create) extends KaseraGateway
             {
                 public function __construct(private $create) {}
 
-                public function create(array $parameters): object
+                public function createTransaction(string $apiKey, array $body, string $idempotencyKey): array
                 {
-                    return ($this->create)($parameters);
+                    return ($this->create)($body, $idempotencyKey);
                 }
             };
         });
     }
 
-    private function settlementPayload(\App\Models\Payment $payment): array
+    /** @return array<string, mixed> */
+    private function paidEvent(Payment $payment): array
     {
         return [
-            'order_id' => $payment->gateway_reference,
-            'status_code' => '200',
-            'gross_amount' => number_format((float) $payment->amount, 2, '.', ''),
-            'transaction_status' => 'settlement',
-            'fraud_status' => 'accept',
+            'id' => 'evt_'.$payment->gateway_payment_id,
+            'type' => 'payment.paid',
+            'livemode' => false,
+            'data' => [
+                'payment_request_id' => $payment->gateway_payment_id,
+                'amount' => (int) $payment->amount,
+                'currency' => 'IDR',
+                'paid_at' => now()->toIso8601String(),
+            ],
         ];
     }
 }

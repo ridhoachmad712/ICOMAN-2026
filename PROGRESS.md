@@ -8,9 +8,9 @@
 
 ## 1. TL;DR Status
 
-**MVP (Fase 0–5) SELESAI & teruji end-to-end.** Website conference lengkap: CMS publik bilingual + portal author (submission & review) + registrasi & pembayaran ganda (manual + Midtrans). Sudah ditambah banyak polish UI/UX (design system, SEO dasar, panel admin di-branding + 2FA + user management).
+**MVP (Fase 0–5) SELESAI & teruji end-to-end.** Website conference lengkap: CMS publik bilingual + portal author (submission & review) + registrasi & pembayaran ganda (manual + Kasera Pay). Sudah ditambah banyak polish UI/UX (design system, SEO dasar, panel admin di-branding + 2FA + user management).
 
-**Belum:** Fase 6 sisa (SEO per-halaman, uji Lighthouse) & Fase 7 (Deploy). Kredensial Midtrans belum diisi. Konten masih dummy (DevSeeder).
+**Belum:** Fase 6 sisa (SEO per-halaman, uji Lighthouse) & Fase 7 (Deploy). Kredensial Kasera Pay belum diisi. Konten masih dummy (DevSeeder).
 
 ---
 
@@ -26,7 +26,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | DB | MySQL (`icoman_2026`) | |
 | Node | 25 · Vite 8 · **Tailwind v4** | |
 
-**Paket Composer terpasang:** filament/filament ^4, filament/spatie-laravel-media-library-plugin ^4, filament/spatie-laravel-settings-plugin ^4, spatie/laravel-medialibrary ^11, spatie/laravel-permission ^8, spatie/laravel-settings ^3, spatie/laravel-sluggable ^4, spatie/laravel-translatable ^6, midtrans/midtrans-php ^2.6.
+**Paket Composer terpasang:** filament/filament ^4, filament/spatie-laravel-media-library-plugin ^4, filament/spatie-laravel-settings-plugin ^4, spatie/laravel-medialibrary ^11, spatie/laravel-permission ^8, spatie/laravel-settings ^3, spatie/laravel-sluggable ^4, spatie/laravel-translatable ^6.
 
 **Paket npm:** tailwindcss ^4, @tailwindcss/vite, @tailwindcss/typography, flag-icons ^7 (bendera self-hosted), laravel-vite-plugin ^3, vite ^8. (`alpinejs` ada di package.json tapi TIDAK diimport — Alpine disediakan Livewire; lihat §5.)
 
@@ -40,7 +40,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 ## 3. Keputusan scope yang SUDAH dikonfirmasi user (JANGAN tanya ulang)
 
 1. **Hosting**: Hostinger + Cloudflare, mendukung queue worker/cron → `QUEUE_CONNECTION=database`.
-2. **Payment gateway**: **Midtrans** (`midtrans/midtrans-php`, Snap + webhook signature).
+2. **Payment gateway**: **Kasera Pay** (HTTP API tanpa SDK, Checkout + webhook `payment.paid`). Menggantikan Midtrans pada 2026-09-16.
 3. **Reviewer**: **dosen internal**, akun dibuat admin → guard `web` + role `reviewer` (bukan self-register).
 4. **Skor review**: skala **1–100** skor tunggal → `reviews.score` integer.
 5. Bilingual EN/ID aktif; submission-review dibangun sendiri; pembayaran dua jalur (manual + gateway).
@@ -56,7 +56,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | 2 Admin Panel | ✅ | 13 resource CRUD + reorderable + Settings page + role + widget |
 | 3 Frontend publik | ✅ | Bilingual, countdown, ~13 halaman, form kontak Livewire, language switcher |
 | 4 Portal author & submission | ✅ | Guard author, register/login/reset, submit + co-author, assign reviewer, form review, `changeStatus()` + email, camera-ready |
-| 5 Registrasi & pembayaran | ✅ | Form registrasi, manual (upload bukti + verifikasi admin), Midtrans + webhook signature, payments audit, rekap |
+| 5 Registrasi & pembayaran | ✅ | Form registrasi, manual (upload bukti + verifikasi admin), Kasera Pay + webhook signature, payments audit, rekap |
 | **Polish frontend** | ✅ | Design system (.btn/.card, Space Grotesk), hero upgrade, statistik/teaser/CTA, bendera negara, konsistensi semua halaman, portal author bilingual, scroll-reveal |
 | **Polish backend** | ✅ | Panel branding, Profile (ganti password), 2FA opt-in, UserResource, dashboard widgets (tabel+chart), global search, CSV export, relation manager co-author, auto-read pesan |
 | 6 SEO & Performa | ⚠️ sebagian | SUDAH: JSON-LD Event, meta/OG/canonical, sitemap.xml, konversi WebP, lazy. BELUM: meta per-halaman/breadcrumb, uji Lighthouse |
@@ -73,7 +73,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
   - `countryCode()/countryName()/countries()` — negara (ISO2) untuk speaker + bendera.
 - **Bilingual di admin (MANUAL, bukan plugin)**: field per-locale `title.en` + `title.id`; Edit page pakai trait `App\Filament\Concerns\ExpandsTranslationsOnFill` (expand JSON → array saat load; Spatie simpan array otomatis saat save).
 - **Status submission**: WAJIB via `Submission::changeStatus()` (memicu notifikasi email `SubmissionStatusChanged`). Jangan `update(['status'=>...])` langsung.
-- **Webhook Midtrans**: `POST /payment/midtrans/notification` (CSRF-exempt di bootstrap/app.php). WAJIB `MidtransService::verifySignature()` sebelum percaya payload. Logika di `app/Services/MidtransService.php`.
+- **Webhook Kasera Pay**: `POST /payment/kasera/notification` (CSRF-exempt di bootstrap/app.php). WAJIB `KaseraService::verifySignature()` atas **raw body** sebelum percaya payload. Logika di `app/Services/KaseraService.php`. Hanya ada event `payment.paid`; gagal/kedaluwarsa diketahui lewat `synchronize()` (tombol Periksa Status).
 - **Design system (frontend)**: `resources/css/app.css` `@layer components` → `.btn/.btn-primary/.btn-ghost/.btn-outline`, `.card/.card-hover`, `.section-tint`, `.avatar-fallback`. Font display **Space Grotesk** (heading), body Instrument Sans. Warna brand runtime dari SiteSettings via CSS var `--brand`/`--brand-2` (di-inject di `layouts/app.blade.php`).
 - **Alpine.js**: disediakan **Livewire (bundled)** — layout publik & author muat `@livewireStyles`/`@livewireScripts`. **JANGAN import Alpine di app.js** (error "multiple instances").
 - **Scroll-reveal**: `[data-reveal]` + IntersectionObserver di `app.js`, dengan **fail-safe timeout 1200ms** (konten tak pernah stuck hidden) + gated `.js` class.
@@ -93,7 +93,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | Reviewer uji (`/admin`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
 | Author uji (`/author/login`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
 | Mail (dev) | `MAIL_MAILER=log` → email masuk `storage/logs/laravel.log` |
-| Midtrans | `.env` `MIDTRANS_SERVER_KEY`/`MIDTRANS_CLIENT_KEY` **KOSONG** (isi sebelum uji gateway); `MIDTRANS_IS_PRODUCTION=false` |
+| Kasera Pay | `.env` `KASERA_API_KEY`/`KASERA_WEBHOOK_SECRET` **KOSONG** (isi sebelum uji gateway); pakai key `kp_test_` untuk lokal |
 
 Warna brand saat ini: primary `#d9621c` (oranye) + secondary `#18315e` (navy) — di Site Settings, bisa diubah.
 
@@ -133,12 +133,12 @@ php artisan migrate:fresh --seed
 **Sebelum go-live (wajib):**
 1. **Isi konten asli** via `/admin` (lihat `CONTENT_CHECKLIST.md`) — sekarang semua dummy.
 2. **Buat akun reviewer asli** (dosen internal) via `/admin` → Users & Roles.
-3. **Kredensial Midtrans** di `.env` (sandbox → production) + set URL notifikasi webhook di dashboard Midtrans ke `https://<domain>/payment/midtrans/notification`.
+3. **Kredensial Kasera Pay** (API key + webhook signing secret) di Pengaturan admin atau `.env` + daftarkan endpoint webhook di dashboard Kasera ke `https://<domain>/payment/kasera/notification`. Mode live dan test punya endpoint dan secret masing-masing.
 4. **Ganti password superadmin** sementara.
 
 **Fase 6 sisa (SEO/perf):** meta description per-halaman (kini hanya homepage punya JSON-LD), breadcrumb JSON-LD, uji **Lighthouse** (target PRD ≥85) di Chrome DevTools.
 
-**Fase 7 Deploy:** subdomain (pola `manajemen-feb.unm.ac.id` di Hostinger — antisipasi isu Cloudflare proxy/SSL), `.env` production, `php artisan optimize`, **queue worker aktif** (email+webhook), backup DB+storage, uji E2E kedua jalur pembayaran (manual & Midtrans sandbox).
+**Fase 7 Deploy:** subdomain (pola `manajemen-feb.unm.ac.id` di Hostinger — antisipasi isu Cloudflare proxy/SSL), `.env` production, `php artisan optimize`, **queue worker aktif** (email+webhook), backup DB+storage, uji E2E kedua jalur pembayaran (manual & Kasera Pay test mode).
 
 **Opsional/pasca-MVP:** sertifikat PDF otomatis, arsip multi-edition di UI publik, Xendit sebagai gateway kedua, export ke Excel (kini CSV), reviewAssignments relation manager, filament-shield.
 
@@ -146,6 +146,6 @@ php artisan migrate:fresh --seed
 
 ## 9. Verifikasi yang SUDAH dilakukan (biar tak uji ulang)
 
-Terverifikasi di browser/tinker: register+login author (guard terpisah), submit paper (nomor auto `ICOMAN2026-0001`, co-author, media, notifikasi ter-queue), assign reviewer → status auto, isi review, `changeStatus` → email ter-render ke log, camera-ready, registrasi manual (bank info + bukti + verifikasi admin), **webhook Midtrans: signature valid→paid / invalid→403**, akses role (reviewer 403 dari resource konten), bilingual EN/ID (konten model + UI), homepage semua section, panel: Profile+2FA+Users&Roles+global search+export CSV+widget.
+Terverifikasi di browser/tinker: register+login author (guard terpisah), submit paper (nomor auto `ICOMAN2026-0001`, co-author, media, notifikasi ter-queue), assign reviewer → status auto, isi review, `changeStatus` → email ter-render ke log, camera-ready, registrasi manual (bank info + bukti + verifikasi admin), **webhook Kasera Pay: signature valid→paid / invalid→403**, akses role (reviewer 403 dari resource konten), bilingual EN/ID (konten model + UI), homepage semua section, panel: Profile+2FA+Users&Roles+global search+export CSV+widget.
 
 **Batasan lingkungan uji:** pane preview browser di sesi pengembangan **tidak meng-compositing** → screenshot & animasi/transisi CSS & widget lazy (IntersectionObserver) tak bisa diverifikasi visual; diverifikasi via computed-style/DOM/tinker. **Perlu cek mata di Chrome asli** untuk finalisasi visual.

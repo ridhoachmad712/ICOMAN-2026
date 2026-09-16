@@ -9,7 +9,6 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
@@ -131,23 +130,24 @@ class ManageSiteSettings extends SettingsPage
                             ->dehydrateStateUsing(fn ($state): int => (int) $state),
                     ]),
 
-                Section::make('Payment Gateway (Midtrans)')
-                    ->description('Kredensial Midtrans. Gunakan key Sandbox (awalan SB-) untuk uji coba, dan key Production hanya setelah akun bisnis disetujui. Kosongkan untuk memakai nilai dari file .env.')
-                    ->columns(2)
+                Section::make('Payment Gateway (Kasera Pay)')
+                    ->description('Kredensial Kasera Pay dari menu Developer di dashboard. Key berawalan kp_test_ memakai Sandbox (tidak ada uang berpindah), kp_live_ memakai transaksi sungguhan — tidak ada saklar mode tersendiri. Kosongkan untuk memakai nilai dari file .env.')
                     ->schema([
-                        TextInput::make('midtrans_merchant_id')
-                            ->label('Merchant ID')
-                            ->placeholder('M852494862'),
-                        Toggle::make('midtrans_is_production')
-                            ->label('Mode Production')
-                            ->helperText('Nonaktif = Sandbox (uji coba). Aktifkan hanya bila memakai key Production dan akun sudah disetujui.')
-                            ->inline(false),
-                        TextInput::make('midtrans_client_key')
-                            ->label('Client Key')
-                            ->placeholder('SB-Mid-client-xxxxxxxx'),
-                        TextInput::make('midtrans_server_key')
-                            ->label('Server Key')
+                        TextInput::make('kasera_api_key')
+                            ->label('API Key')
+                            ->placeholder('kp_live_...')
                             ->helperText('Rahasia — disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
+                            ->password()
+                            ->revealable()
+                            ->autocomplete(false)
+                            // Jangan pernah render kembali nilai rahasia ke form.
+                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
+                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
+                            ->dehydrated(fn (?string $state): bool => filled($state)),
+
+                        TextInput::make('kasera_webhook_secret')
+                            ->label('Webhook Signing Secret')
+                            ->helperText('Rahasia milik endpoint webhook, berbeda dari API key dan berbeda antara mode test dan live. Disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
                             ->password()
                             ->revealable()
                             ->autocomplete(false)

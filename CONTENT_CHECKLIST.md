@@ -37,7 +37,7 @@ Menu **Editions** (sudah ada 1 "ICOMAN 2026", is_active):
 
 ## 🟢 Prioritas 4 — Operasional (sebelum go-live)
 - [ ] Akun **Reviewer** (dosen internal) via user admin + role `reviewer`.
-- [ ] Kredensial **Midtrans** di `.env` (sandbox → production) + set URL notifikasi webhook.
+- [ ] Kredensial **Kasera Pay** (API key + webhook signing secret) di Pengaturan admin atau `.env` + daftarkan URL webhook di dashboard.
 - [ ] Ganti password superadmin sementara.
 
 ---

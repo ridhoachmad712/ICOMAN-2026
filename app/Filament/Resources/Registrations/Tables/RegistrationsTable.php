@@ -54,7 +54,7 @@ class RegistrationsTable
                     ->openUrlInNewTab()
                     ->visible(fn (Registration $record) => (bool) $record->getFirstMediaUrl('payment_proof')),
 
-                // Jaring pengaman: bila notifikasi Midtrans gagal masuk (webhook/queue
+                // Jaring pengaman: bila notifikasi Kasera Pay gagal masuk (webhook/queue
                 // bermasalah) admin tetap bisa menandai invoice yang sudah dibayar.
                 Action::make('verify')
                     ->label('Tandai Lunas')
