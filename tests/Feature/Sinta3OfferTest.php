@@ -438,4 +438,90 @@ class Sinta3OfferTest extends TestCase
             ->expectsOutputToContain('tidak ditemukan')
             ->assertFailed();
     }
+
+    // --- Penguncian oleh pembayaran yang menggantung --------------------------
+
+    /** Order yang masih hidup di gateway: total tidak boleh berubah. */
+    private function liveOrder(Registration $registration, ?string $expiresAt): void
+    {
+        $registration->payments()->create([
+            'method' => 'gateway',
+            'gateway_name' => 'kasera',
+            'gateway_reference' => 'ICOMAN-'.$registration->id.'-X',
+            'gateway_payment_id' => 'payreq_x'.$registration->id,
+            'amount' => $registration->amount,
+            'status' => 'initiated',
+            'raw_response' => $expiresAt ? ['id' => 'payreq_x', 'expires_at' => $expiresAt] : ['id' => 'payreq_x'],
+        ]);
+    }
+
+    private function offeredInvoice(): Registration
+    {
+        $paper = $this->paper();
+        $this->review($paper, true);
+        $paper->changeStatus('accepted');
+
+        return $this->invoiceFor($paper);
+    }
+
+    /**
+     * Pilihan jurnal memang dikunci selama ada order hidup — mengubah total saat
+     * halaman bayar sudah terbuka akan menagih angka yang berbeda dari invoicenya.
+     * Yang dulu hilang adalah keterangannya: panelnya lenyap tanpa penjelasan.
+     */
+    public function test_a_live_order_locks_the_choice_and_says_why(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->liveOrder($registration, now()->addHour()->toIso8601String());
+
+        $this->actingAs($this->author, 'author');
+
+        $this->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->assertOk()
+            ->assertSee('locked', escape: false)
+            ->assertSee('Check Payment Status', escape: false)
+            ->assertDontSee(route('author.registration.journal', $registration), escape: false);
+    }
+
+    /**
+     * Order yang masa berlakunya habis tidak lagi mengunci apa pun. Kalau ikut
+     * mengunci, satu percobaan bayar yang ditinggalkan menutup pilihan jurnal
+     * selamanya.
+     */
+    public function test_an_expired_order_stops_locking_the_choice(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->liveOrder($registration, now()->subHour()->toIso8601String());
+
+        $this->assertFalse($registration->fresh()->hasUnresolvedPayment());
+
+        $this->actingAs($this->author, 'author');
+
+        $this->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->assertOk()
+            ->assertSee(route('author.registration.journal', $registration), escape: false);
+    }
+
+    /** Tanpa tanggal kedaluwarsa dari gateway, order dianggap masih hidup. */
+    public function test_an_order_without_an_expiry_still_locks(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->liveOrder($registration, null);
+
+        $this->assertTrue($registration->fresh()->hasUnresolvedPayment());
+    }
+
+    /** Pembayaran yang berhasil tetap mengunci, sekedaluwarsa apa pun ordernya. */
+    public function test_a_successful_payment_keeps_locking(): void
+    {
+        $registration = $this->offeredInvoice();
+        $registration->payments()->create([
+            'method' => 'gateway', 'gateway_name' => 'kasera',
+            'gateway_reference' => 'ICOMAN-lunas', 'gateway_payment_id' => 'payreq_lunas',
+            'amount' => $registration->amount, 'status' => 'success',
+            'raw_response' => ['expires_at' => now()->subDay()->toIso8601String()],
+        ]);
+
+        $this->assertTrue($registration->fresh()->hasUnresolvedPayment());
+    }
 }

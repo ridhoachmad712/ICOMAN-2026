@@ -14,7 +14,11 @@
         } : ucwords(str_replace('_', ' ', $record->status));
 
         // Opsi jurnal hanya relevan selama tagihan belum lunas.
-        $canChooseJournal = (bool) ($record->submission?->sinta3_offered && ! ($price['legacy'] ?? false) && ! $record->hasUnresolvedPayment() && in_array($record->status, ['pending', 'failed'], true));
+        $sinta3Offered = (bool) ($record->submission?->sinta3_offered && ! ($price['legacy'] ?? false));
+        $canChooseJournal = $sinta3Offered && ! $record->hasUnresolvedPayment() && in_array($record->status, ['pending', 'failed'], true);
+        // Tawarannya ada, tapi pilihannya sedang terkunci. Tanpa keterangan ini
+        // panelnya hilang begitu saja dan author menyangka tawarannya batal.
+        $journalLocked = $sinta3Offered && ! $canChooseJournal;
         $sinta3Fee = (int) $price['quoted_addon_amount'];
         $basePrice = (float) $price['base_amount'];
         $isSinta = $price['journal_target'] === 'sinta3';
@@ -43,6 +47,29 @@
                 <x-filament::button type="submit" color="gray">{{ $id ? 'Periksa Status Pembayaran' : 'Check Payment Status' }}</x-filament::button>
             </form>
         @endif
+        @if($journalLocked)
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-white/10 dark:bg-white/5">
+                <p class="text-sm font-semibold text-gray-950 dark:text-white">
+                    {{ $id ? 'Pilihan Jurnal SINTA 3 sedang terkunci' : 'The SINTA 3 journal choice is locked' }}
+                </p>
+                <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
+                    @if($record->status === 'paid')
+                        {{ $id
+                            ? 'Tagihan ini sudah lunas, jadi opsi penerbitan tidak dapat diubah lagi. Hubungi panitia bila Anda perlu mengubahnya.'
+                            : 'This invoice is settled, so the publication option can no longer be changed. Contact the committee if you need it changed.' }}
+                    @elseif($record->status === 'pending_verification')
+                        {{ $id
+                            ? 'Pembayaran Anda sedang diverifikasi panitia. Opsi penerbitan terbuka kembali bila verifikasinya selesai.'
+                            : 'Your payment is being verified by the committee. The publication option reopens once that is done.' }}
+                    @else
+                        {{ $id
+                            ? 'Ada pembayaran yang belum selesai, jadi total tagihan tidak bisa diubah sekarang. Selesaikan pembayarannya, atau tekan "Periksa Status Pembayaran" di atas bila Anda sudah membatalkannya — pilihan jurnal akan muncul kembali.'
+                            : 'A payment is still open, so the total cannot change right now. Finish that payment, or press "Check Payment Status" above if you abandoned it — the journal choice will come back.' }}
+                    @endif
+                </p>
+            </div>
+        @endif
+
         {{-- Kabar baik lebih dulu: paper direkomendasikan ke SINTA 3. --}}
         @if($canChooseJournal)
             <div class="rounded-xl border border-warning-300 bg-warning-50 p-5 dark:border-warning-500/30 dark:bg-warning-500/10">

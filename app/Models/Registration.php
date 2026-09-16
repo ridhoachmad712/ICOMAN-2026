@@ -178,9 +178,21 @@ class Registration extends Model implements HasMedia
             && now()->greaterThan($due);
     }
 
+    /**
+     * Ada pembayaran yang masih hidup, sehingga total tagihan tidak boleh
+     * berubah — mengubahnya akan membuat halaman bayar yang sudah dibuka
+     * menagih angka yang berbeda dari invoicenya.
+     *
+     * Order yang masa berlakunya di gateway sudah habis tidak ikut menahan:
+     * kalau ikut, satu percobaan bayar yang ditinggalkan akan mengunci pilihan
+     * jurnal dan voucher selamanya, tanpa penjelasan apa pun ke author.
+     */
     public function hasUnresolvedPayment(): bool
     {
-        return $this->payments()->whereIn('status', ['initiated', 'success'])->exists();
+        return $this->payments()
+            ->whereIn('status', ['initiated', 'success'])
+            ->get()
+            ->contains(fn (Payment $payment): bool => $payment->status === 'success' || ! $payment->hasExpired());
     }
 
     public function registerMediaCollections(): void
