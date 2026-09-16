@@ -30,6 +30,9 @@
         <div class="relative mx-auto flex min-h-[68svh] max-w-7xl flex-col justify-center px-4 py-20 sm:min-h-[76svh] sm:px-6 sm:py-28 lg:px-8">
             {{-- Ketiganya bisa ditimpa lewat Penyusun Halaman; bila dikosongkan,
                  isinya mengikuti data edisi dan Teks Website. --}}
+            {{-- Penanda yang sama dengan seluruh bagian lain; hero tidak
+                 dikecualikan, karena motif yang punya pengecualian bukan motif. --}}
+            <div class="section-mark"></div>
             <p class="eyebrow">
                 {{ $section->eyebrow ?: __('site.hero_eyebrow') }}
             </p>

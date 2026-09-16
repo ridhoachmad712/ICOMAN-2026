@@ -158,14 +158,29 @@
         text-transform: uppercase;
         color: var(--accent-ink);
     }
-    .eyebrow::before {
-        content: '';
-        width: 1.5rem;
-        height: 2px;
-        border-radius: 2px;
-        background: currentColor;
-        opacity: 0.7;
+    /*
+     * Penanda bagian: satu-satunya motif situs ini.
+     *
+     * Sebelumnya tiap bagian menandai dirinya dengan salah satu dari dua
+     * bentuk, dan yang dipakai bergantung pada apakah panitia kebetulan
+     * mengisi kolom eyebrow: yang mengisi mendapat garis kecil 24px di samping
+     * teks, yang tidak mendapat garis 64px di bawah judul. Penanda yang
+     * berubah-ubah bentuknya bukan motif.
+     *
+     * Satu bentuk, satu ukuran, satu warna, di tempat yang sama pada setiap
+     * bagian: tepat di atas judulnya. Warnanya warna logo, dan itu cukup
+     * terbaca pada kedua latar yang dipakai situs ini: 3,38:1 di atas biru
+     * tua dan 3,68:1 di atas putih, keduanya di atas ambang 3:1 untuk
+     * penanda bukan teks.
+     */
+    .section-mark {
+        width: 2.5rem;
+        height: 3px;
+        border-radius: 3px;
+        background: var(--brand);
+        margin-bottom: 1rem;
     }
+
     .chip {
         display: inline-flex;
         align-items: center;
