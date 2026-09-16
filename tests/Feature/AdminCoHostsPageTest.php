@@ -3,12 +3,15 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\CoHosts\Pages\ListCoHosts;
+use App\Filament\Resources\RegistrationFees\Pages\CreateRegistrationFee;
 use App\Models\Author;
 use App\Models\CoHost;
 use App\Models\Edition;
+use App\Models\PageSection;
 use App\Models\RegistrationFee;
 use App\Models\User;
 use App\Services\CoHostApproval;
+use App\Services\SectionContent;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Notification;
@@ -132,6 +135,69 @@ class AdminCoHostsPageTest extends TestCase
             ->set('activeTab', 'approved')
             ->mountAction(TestAction::make('review')->table($coHost))
             ->assertOk();
+    }
+
+    /**
+     * Menyetujui tanpa tarif kemitraan menyuruh panitia menambahkannya dengan
+     * audience "cohost" — jadi pilihan itu harus benar-benar ada di formnya.
+     * Sebelumnya tidak, sehingga pesannya menunjuk ke tempat yang buntu.
+     */
+    public function test_the_fee_form_offers_the_cohost_audience_the_message_names(): void
+    {
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-fee@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(CreateRegistrationFee::class)
+            ->assertOk()
+            ->fillForm([
+                'edition_id' => $this->edition->id,
+                'audience' => 'cohost',
+                'category.en' => 'Co-host Partnership',
+                'category.id' => 'Kemitraan Co-host',
+                'price_regular' => 5_000_000,
+                'currency' => 'IDR',
+            ])
+            ->call('create')
+            ->assertHasNoFormErrors();
+
+        $this->assertDatabaseHas('registration_fees', [
+            'edition_id' => $this->edition->id,
+            'audience' => 'cohost',
+        ]);
+
+        // Dan dengan tarif itu ada, persetujuan berjalan.
+        Notification::fake();
+        $coHost = $this->coHost('pj-fee@example.test');
+        app(CoHostApproval::class)->approve($coHost);
+
+        $this->assertSame('approved', $coHost->refresh()->status);
+    }
+
+    /**
+     * Biaya kemitraan adalah urusan panitia dan institusi, bukan harga bagi
+     * pengunjung. Blok tarif yang ada memang sudah menyaring per audience
+     * sendiri, jadi yang diuji di sini adalah sumber datanya — supaya blok
+     * baru yang menampilkan seluruh tarif tidak ikut membocorkannya.
+     */
+    public function test_the_partnership_fee_is_left_out_of_the_public_fee_records(): void
+    {
+        $partnership = $this->partnershipFee();
+        $public = RegistrationFee::create([
+            'edition_id' => $this->edition->id,
+            'category' => ['id' => 'Peserta Seminar', 'en' => 'Seminar Attendee'],
+            'audience' => 'participant',
+            'registrant_category' => 'general',
+            'price_regular' => 250_000,
+            'currency' => 'IDR',
+        ]);
+
+        $section = PageSection::create(['target' => 'home', 'type' => 'fees', 'order' => 0]);
+        $records = app(SectionContent::class)->records($section);
+
+        $this->assertTrue($records->contains('id', $public->id));
+        $this->assertFalse($records->contains('id', $partnership->id));
     }
 
     public function test_an_application_can_be_approved_from_the_page(): void

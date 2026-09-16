@@ -70,7 +70,9 @@ class SectionContent
         $query = match ($type) {
             'speakers' => Speaker::where('is_published', true)->with('media')->orderBy('order'),
             'topics' => Topic::query()->orderBy('order'),
-            'fees' => RegistrationFee::query()->orderBy('order'),
+            // Kemitraan co-host bukan harga pendaftaran: itu invoice antara
+            // panitia dan institusi, jadi tidak ditampilkan di tabel biaya publik.
+            'fees' => RegistrationFee::where('audience', '!=', 'cohost')->orderBy('order'),
             'important_dates' => ImportantDate::query()->orderBy('order'),
             'schedule' => Schedule::query()->orderBy('day_date')->orderBy('time_start'),
             'committee' => Committee::where('is_published', true)->with('media')->orderBy('order'),
