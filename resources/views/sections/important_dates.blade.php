@@ -12,7 +12,7 @@
     {{-- IMPORTANT DATES --}}
             <section class="py-16">
             <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
+                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" :center="false" />
 
                 @if($nextDeadline)
                     <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-6 py-4 shadow-lg">

@@ -4,7 +4,7 @@
 
 <section class="py-16">
     <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
-        <x-section-heading :section="$section" :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+        <x-section-heading :section="$section" :title="$section->heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" :center="false" />
         @foreach($records as $day => $items)
             <h3 class="mb-3 mt-8 font-display text-lg font-bold text-[var(--brand-2)]">{{ $day }}</h3>
             <div class="divide-y divide-slate-100 rounded-xl border border-slate-200 bg-white">

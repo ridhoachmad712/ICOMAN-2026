@@ -52,7 +52,7 @@
 @else
     <section class="bg-white py-16">
         <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-            <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" />
+            <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" :center="false" />
             <div class="prose prose-slate max-w-none">
                 {!! $page?->content !!}
             </div>

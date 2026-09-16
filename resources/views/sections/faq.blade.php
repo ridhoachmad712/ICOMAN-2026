@@ -12,7 +12,7 @@
     {{-- FAQ TEASER --}}
             <section class="section-tint py-16">
             <div class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
+                <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" :center="false" />
                 <div class="space-y-3">
                     @foreach($records as $faq)
                         <div x-data="{ open: false }" class="rounded-lg border border-slate-200 overflow-hidden">
