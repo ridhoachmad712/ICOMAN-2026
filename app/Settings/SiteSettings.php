@@ -85,6 +85,29 @@ class SiteSettings extends Settings
         'Source Serif 4' => 'Source Serif (serif)',
     ];
 
+    /**
+     * Warna yang dipakai bila Pengaturan dikosongkan.
+     *
+     * Sebelumnya tiap tempat memilih cadangannya sendiri: situs publik jatuh ke
+     * biru, portal author ke jingga. Selama Pengaturan terisi keduanya tampak
+     * sama dan selisih itu tersembunyi, tapi begitu dikosongkan satu produk
+     * berubah menjadi dua identitas. Nilainya diambil dari logo konferensi.
+     */
+    public const DEFAULT_BRAND = '#d9621c';
+
+    public const DEFAULT_BRAND_2 = '#13355c';
+
+    /** Warna merek yang berlaku, dari Pengaturan bila diisi. */
+    public function brandColor(): string
+    {
+        return $this->primary_color ?: self::DEFAULT_BRAND;
+    }
+
+    public function brandColor2(): string
+    {
+        return $this->secondary_color ?: self::DEFAULT_BRAND_2;
+    }
+
     public static function group(): string
     {
         return 'site';

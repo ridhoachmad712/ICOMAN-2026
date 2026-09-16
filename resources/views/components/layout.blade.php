@@ -8,8 +8,8 @@
 @php
     $settings = siteSettings();
     $confName = $settings->conference_name ?: 'ICOMAN 2026';
-    $brand = $settings->primary_color ?: '#1d4ed8';
-    $brand2 = $settings->secondary_color ?: '#0f172a';
+    $brand = $settings->brandColor();
+    $brand2 = $settings->brandColor2();
     $pageTitle = $title ? ($title.' \u00b7 '.$confName) : $confName;
     $disk = \Illuminate\Support\Facades\Storage::disk('public');
     $logoUrl = $settings->logo ? $disk->url($settings->logo) : null;

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use App\Settings\SiteSettings;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -11,6 +12,7 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
@@ -24,7 +26,7 @@ class AdminPanelProvider extends PanelProvider
     public function panel(Panel $panel): Panel
     {
         // Branding dari SiteSettings (rescue: aman saat migrasi belum jalan).
-        $brand = rescue(fn () => siteSettings()->primary_color, null, false) ?: '#d9621c';
+        $brand = rescue(fn () => siteSettings()->brandColor(), null, false) ?: SiteSettings::DEFAULT_BRAND;
         $logo = rescue(fn () => siteSettings()->logo, null, false);
         $favicon = rescue(fn () => siteSettings()->favicon, null, false);
 
@@ -48,7 +50,7 @@ class AdminPanelProvider extends PanelProvider
             // Pencarian global tidak dipakai panitia; topbar diisi badge peran.
             ->globalSearch(false)
             ->renderHook(
-                \Filament\View\PanelsRenderHook::USER_MENU_BEFORE,
+                PanelsRenderHook::USER_MENU_BEFORE,
                 fn () => view('filament.admin.role-badge'),
             )
             // Hanya tiga kelompok + Dashboard yang berdiri sendiri, sehingga bar

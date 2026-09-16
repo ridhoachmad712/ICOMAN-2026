@@ -6,6 +6,7 @@ use App\Filament\Author\Auth\Login;
 use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Pages\AuthorProfile;
 use App\Http\Middleware\SetLocale;
+use App\Settings\SiteSettings;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -27,8 +28,8 @@ class AuthorPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        $brand = rescue(fn () => siteSettings()->primary_color, null, false) ?: '#d9621c';
-        $brand2 = rescue(fn () => siteSettings()->secondary_color, null, false) ?: '#18315e';
+        $brand = rescue(fn () => siteSettings()->brandColor(), null, false) ?: SiteSettings::DEFAULT_BRAND;
+        $brand2 = rescue(fn () => siteSettings()->brandColor2(), null, false) ?: SiteSettings::DEFAULT_BRAND_2;
         $conference = rescue(fn () => siteSettings()->conference_name, null, false) ?: config('app.name', 'ICOMAN 2026');
 
         return $panel

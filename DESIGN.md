@@ -55,10 +55,10 @@ memberi kesan resmi. Dua warna itu sudah cukup: warna ketiga hanya boleh masuk
 kalau ada arti yang dibawanya (misalnya hijau untuk lunas, merah untuk gagal),
 bukan sebagai variasi.
 
-> **Catatan koreksi:** tata letak publik masih memakai biru `#1d4ed8` sebagai
-> nilai cadangan bila Pengaturan kosong, sementara portal author memakai jingga
-> `#d9621c`. Keduanya berasal dari identitas yang berbeda. Yang benar hanya satu,
-> dan pemiliknya perlu menentukan.
+Nilai cadangan bila Pengaturan dikosongkan tersimpan di satu tempat,
+`SiteSettings::DEFAULT_BRAND` dan `DEFAULT_BRAND_2`, dan dipakai situs publik,
+portal author, maupun panel admin. Sebelumnya tiap tempat memilih cadangannya
+sendiri sehingga satu produk bisa berubah menjadi dua identitas.
 
 ## Tipografi
 

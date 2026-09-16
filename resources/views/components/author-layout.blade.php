@@ -4,8 +4,8 @@
     $settings = siteSettings();
     $confName = $settings->conference_name ?: 'ICOMAN 2026';
     $locale = app()->getLocale();
-    $brand = $settings->primary_color ?: '#d9621c';
-    $brand2 = $settings->secondary_color ?: '#18315e';
+    $brand = $settings->brandColor();
+    $brand2 = $settings->brandColor2();
 @endphp
 <!DOCTYPE html>
 <html lang="{{ $locale }}" class="h-full" style="--brand:{{ $brand }};--brand-2:{{ $brand2 }}">
