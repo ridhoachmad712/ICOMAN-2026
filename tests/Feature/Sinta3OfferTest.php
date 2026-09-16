@@ -387,4 +387,55 @@ class Sinta3OfferTest extends TestCase
             'status' => 'pending',
         ]);
     }
+
+    // --- Diagnosa -------------------------------------------------------------
+
+    public function test_the_diagnosis_names_a_missing_paper_link(): void
+    {
+        $paper = $this->paper();
+        $this->review($paper, true);
+        $paper->changeStatus('accepted');
+
+        $registration = $this->invoiceFor($paper);
+        // Invoice yang tidak terhubung ke paper: pilihan jurnal mustahil muncul.
+        $registration->forceFill(['submission_id' => null])->save();
+
+        $this->artisan('icoman:diagnose-invoice', ['invoice' => $registration->id])
+            ->expectsOutputToContain('TIDAK terhubung ke paper')
+            ->expectsOutputToContain('punya paper yang sudah diterima')
+            ->assertSuccessful();
+    }
+
+    public function test_the_diagnosis_explains_a_closed_offer(): void
+    {
+        $paper = $this->paper();
+        $this->review($paper, false);
+        $paper->changeStatus('accepted');
+
+        $registration = $this->invoiceFor($paper);
+
+        $this->artisan('icoman:diagnose-invoice', ['invoice' => $registration->id])
+            ->expectsOutputToContain('Tawaran SINTA 3 terbuka pada papernya')
+            ->assertSuccessful();
+    }
+
+    public function test_the_diagnosis_reports_a_healthy_invoice(): void
+    {
+        $paper = $this->paper();
+        $this->review($paper, true);
+        $paper->changeStatus('accepted');
+
+        $registration = $this->invoiceFor($paper);
+
+        $this->artisan('icoman:diagnose-invoice', ['invoice' => $registration->id])
+            ->expectsOutputToContain($paper->submission_number)
+            ->assertSuccessful();
+    }
+
+    public function test_the_diagnosis_refuses_an_unknown_invoice(): void
+    {
+        $this->artisan('icoman:diagnose-invoice', ['invoice' => 999999])
+            ->expectsOutputToContain('tidak ditemukan')
+            ->assertFailed();
+    }
 }
