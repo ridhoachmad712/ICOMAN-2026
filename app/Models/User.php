@@ -83,6 +83,30 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     }
 
     /** Paper yang ditugaskan ke user ini sebagai reviewer. */
+    /**
+     * Sub-tema yang dikuasai reviewer ini. Kosong berarti "siap untuk semua
+     * sub-tema" — lihat scopeExpertIn().
+     */
+    public function topics(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Topic::class);
+    }
+
+    /**
+     * Reviewer yang pantas menilai sebuah sub-tema: yang kepakarannya mencakup
+     * topik itu, ditambah yang kepakarannya belum diisi sama sekali.
+     */
+    public function scopeExpertIn(\Illuminate\Database\Eloquent\Builder $query, ?int $topicId): \Illuminate\Database\Eloquent\Builder
+    {
+        if (! $topicId) {
+            return $query;
+        }
+
+        return $query->where(fn (\Illuminate\Database\Eloquent\Builder $inner) => $inner
+            ->whereHas('topics', fn (\Illuminate\Database\Eloquent\Builder $topics) => $topics->whereKey($topicId))
+            ->orWhereDoesntHave('topics'));
+    }
+
     public function reviewAssignments(): HasMany
     {
         return $this->hasMany(ReviewAssignment::class, 'reviewer_id');

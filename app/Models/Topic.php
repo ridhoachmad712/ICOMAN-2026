@@ -32,6 +32,12 @@ class Topic extends Model
         return $this->belongsTo(Edition::class);
     }
 
+    /** Reviewer yang menyatakan menguasai sub-tema ini. */
+    public function reviewers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class);
+    }
+
     public function submissions(): HasMany
     {
         return $this->hasMany(Submission::class);

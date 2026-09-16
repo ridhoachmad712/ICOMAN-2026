@@ -21,7 +21,9 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\HtmlString;
+use Illuminate\Validation\Rule;
 
 class SubmissionsTable
 {
@@ -103,13 +105,34 @@ class SubmissionsTable
                             ->where('phase', $record->currentReviewPhase())
                             ->where('status', 'completed')
                             ->exists())
+                    ->modalDescription(fn ($record) => static::assignDescription($record))
                     ->schema([
+                        Toggle::make('show_all')
+                            ->label('Tampilkan semua reviewer')
+                            ->helperText('Abaikan kepakaran dan tampilkan seluruh reviewer.')
+                            ->default(fn ($record): bool => static::expertReviewers($record)->isEmpty())
+                            ->live()
+                            ->dehydrated(false),
+
                         Select::make('reviewer_ids')
                             ->label('Pilih Reviewer')
                             ->multiple()
-                            ->options(fn () => User::role('reviewer')->orderBy('name')->pluck('name', 'id'))
+                            // Pilihan disaring ke kepakaran sub-tema paper ini;
+                            // reviewer yang kepakarannya belum diisi tetap ikut,
+                            // supaya penyaringan menyala bertahap.
+                            ->options(fn ($get, $record) => static::reviewerOptions($record, (bool) $get('show_all')))
+                            // Pilihan yang disaring hanya membatasi tampilan; tanpa ini
+                            // kiriman lama atau yang dirakit sendiri masih bisa
+                            // menugaskan reviewer di luar kepakarannya.
+                            ->nestedRecursiveRules([
+                                fn ($get, $record) => Rule::in(
+                                    static::reviewerOptions($record, (bool) $get('show_all'))->keys()->all()
+                                ),
+                            ])
                             ->required()
-                            ->helperText('Pilih 1–2 dosen internal dengan role reviewer.'),
+                            ->helperText(fn ($get, $record): string => $get('show_all')
+                                ? 'Seluruh reviewer ditampilkan, termasuk yang kepakarannya berbeda.'
+                                : 'Hanya reviewer dengan kepakaran pada sub-tema ini. Pilih 1–2 orang.'),
                     ])
                     ->fillForm(fn ($record) => [
                         'reviewer_ids' => $record->reviewAssignments()
@@ -357,5 +380,41 @@ class SubmissionsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Reviewer yang pantas menilai sub-tema paper ini. */
+    /** Daftar reviewer yang boleh dipilih untuk paper ini. */
+    private static function reviewerOptions($record, bool $showAll): Collection
+    {
+        return $showAll
+            ? User::role('reviewer')->orderBy('name')->pluck('name', 'id')
+            : static::expertReviewers($record);
+    }
+
+    private static function expertReviewers($record): Collection
+    {
+        return User::role('reviewer')
+            ->expertIn($record->topic_id)
+            ->orderBy('name')
+            ->pluck('name', 'id');
+    }
+
+    /**
+     * Sebutkan sub-temanya, dan katakan terus terang bila belum ada ahlinya —
+     * daftar yang mendadak pendek tanpa penjelasan hanya membingungkan.
+     */
+    private static function assignDescription($record): string
+    {
+        $topic = $record->topic?->title;
+
+        if (! $topic) {
+            return 'Paper ini belum memilih sub-tema, jadi seluruh reviewer ditampilkan.';
+        }
+
+        $experts = static::expertReviewers($record)->count();
+
+        return $experts > 0
+            ? 'Sub-tema: '.$topic.' — '.$experts.' reviewer tersedia untuk sub-tema ini.'
+            : 'Sub-tema: '.$topic.' — belum ada reviewer dengan kepakaran ini. Daftar penuh ditampilkan agar paper tidak tertahan.';
     }
 }

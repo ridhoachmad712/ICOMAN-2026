@@ -256,6 +256,15 @@ Co-author (bisa lebih dari satu; submitter utama juga tercatat di sini dengan `i
 | is_corresponding | boolean |
 | order | integer |
 
+## topic_user
+Kepakaran reviewer: sub-tema yang boleh dinilai seorang reviewer. Dipakai menyaring pilihan di dialog Assign Reviewer. Reviewer tanpa satu pun baris di sini dianggap siap untuk semua sub-tema, supaya penyaringannya bisa menyala bertahap.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| user_id | fk → users (role `reviewer`), cascade on delete |
+| topic_id | fk → topics, cascade on delete |
+| unique | (user_id, topic_id) |
+
 ## review_assignments
 | Kolom | Tipe |
 |---|---|
