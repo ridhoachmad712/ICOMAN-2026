@@ -72,7 +72,7 @@ class SubmissionsTable
                     ->wrap()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('reviewAssignments.reviewer.name')
-                    ->label('Reviewers')
+                    ->label('Reviewer')
                     ->badge()
                     ->separator(',')
                     ->color('info')
@@ -97,14 +97,18 @@ class SubmissionsTable
                 // LANGKAH BERIKUTNYA — hanya satu yang tampil (kondisinya saling eksklusif),
                 // sehingga admin selalu melihat tepat satu tombol aksi utama per baris.
                 Action::make('assignReviewer')
-                    ->label('Assign Reviewer')
-                    ->icon('heroicon-o-user-plus')
+                    // Satu paper dinilai satu reviewer, jadi tombolnya menyebut
+                    // apa yang sebenarnya terjadi: menugaskan, atau menggantikan.
+                    ->label(fn ($record): string => static::currentReviewer($record) ? 'Ganti Reviewer' : 'Assign Reviewer')
+                    ->icon(fn ($record): string => static::currentReviewer($record) ? 'heroicon-o-arrow-path' : 'heroicon-o-user-plus')
                     ->color('info')
                     ->visible(fn ($record) => $record->currentReviewPhase() !== null
                         && ! $record->reviewAssignments()
                             ->where('phase', $record->currentReviewPhase())
                             ->where('status', 'completed')
                             ->exists())
+                    ->modalHeading(fn ($record): string => static::currentReviewer($record) ? 'Ganti Reviewer' : 'Assign Reviewer')
+                    ->modalSubmitActionLabel(fn ($record): string => static::currentReviewer($record) ? 'Ganti' : 'Tugaskan')
                     ->modalDescription(fn ($record) => static::assignDescription($record))
                     ->schema([
                         Toggle::make('show_all')
@@ -114,9 +118,8 @@ class SubmissionsTable
                             ->live()
                             ->dehydrated(false),
 
-                        Select::make('reviewer_ids')
+                        Select::make('reviewer_id')
                             ->label('Pilih Reviewer')
-                            ->multiple()
                             // Pilihan disaring ke kepakaran sub-tema paper ini;
                             // reviewer yang kepakarannya belum diisi tetap ikut,
                             // supaya penyaringan menyala bertahap.
@@ -124,21 +127,18 @@ class SubmissionsTable
                             // Pilihan yang disaring hanya membatasi tampilan; tanpa ini
                             // kiriman lama atau yang dirakit sendiri masih bisa
                             // menugaskan reviewer di luar kepakarannya.
-                            ->nestedRecursiveRules([
+                            ->rules([
                                 fn ($get, $record) => Rule::in(
                                     static::reviewerOptions($record, (bool) $get('show_all'))->keys()->all()
                                 ),
                             ])
                             ->required()
-                            ->helperText(fn ($get, $record): string => $get('show_all')
+                            ->helperText(fn ($get): string => $get('show_all')
                                 ? 'Seluruh reviewer ditampilkan, termasuk yang kepakarannya berbeda.'
-                                : 'Hanya reviewer dengan kepakaran pada sub-tema ini. Pilih 1–2 orang.'),
+                                : 'Hanya reviewer dengan kepakaran pada sub-tema ini.'),
                     ])
                     ->fillForm(fn ($record) => [
-                        'reviewer_ids' => $record->reviewAssignments()
-                            ->where('phase', $record->currentReviewPhase())
-                            ->pluck('reviewer_id')
-                            ->toArray(),
+                        'reviewer_id' => static::currentReviewer($record),
                     ])
                     ->action(function (array $data, $record): void {
                         $phase = $record->currentReviewPhase();
@@ -146,27 +146,26 @@ class SubmissionsTable
                             return;
                         }
 
-                        $selected = $data['reviewer_ids'] ?? [];
+                        $selected = (int) $data['reviewer_id'];
                         $phaseAssignments = $record->reviewAssignments()->where('phase', $phase);
-                        $existing = (clone $phaseAssignments)->pluck('reviewer_id')->toArray();
+                        $previous = (clone $phaseAssignments)->value('reviewer_id');
 
-                        // Hapus reviewer yang tidak lagi dipilih
-                        $toRemove = array_diff($existing, $selected);
-                        if (! empty($toRemove)) {
-                            (clone $phaseAssignments)->whereIn('reviewer_id', $toRemove)->delete();
-                        }
+                        // Satu paper satu reviewer: penugasan lama dilepas, bukan ditumpuk.
+                        (clone $phaseAssignments)->where('reviewer_id', '!=', $selected)->delete();
 
-                        // Tambahkan reviewer baru
-                        foreach ($selected as $rid) {
-                            $record->reviewAssignments()->firstOrCreate(
-                                ['reviewer_id' => $rid, 'phase' => $phase],
-                                ['assigned_at' => now(), 'status' => 'pending'],
-                            );
-                        }
+                        $record->reviewAssignments()->firstOrCreate(
+                            ['reviewer_id' => $selected, 'phase' => $phase],
+                            ['assigned_at' => now(), 'status' => 'pending'],
+                        );
 
-                        $record->changeStatus(count($selected) > 0 ? 'extended_abstract_under_review' : 'extended_abstract_submitted');
+                        $record->changeStatus('extended_abstract_under_review');
 
-                        Notification::make()->title('Reviewer berhasil ditugaskan & status diperbarui.')->success()->send();
+                        Notification::make()
+                            ->title($previous && $previous !== $selected
+                                ? 'Reviewer diganti & status diperbarui.'
+                                : 'Reviewer berhasil ditugaskan & status diperbarui.')
+                            ->success()
+                            ->send();
                     }),
 
                 Action::make('decision')
@@ -383,6 +382,16 @@ class SubmissionsTable
     }
 
     /** Reviewer yang pantas menilai sub-tema paper ini. */
+    /** Reviewer yang sedang memegang paper ini pada fase berjalan, bila ada. */
+    private static function currentReviewer($record): ?int
+    {
+        $phase = $record->currentReviewPhase();
+
+        return $phase
+            ? $record->reviewAssignments()->where('phase', $phase)->value('reviewer_id')
+            : null;
+    }
+
     /** Daftar reviewer yang boleh dipilih untuk paper ini. */
     private static function reviewerOptions($record, bool $showAll): Collection
     {
@@ -412,6 +421,10 @@ class SubmissionsTable
         }
 
         $experts = static::expertReviewers($record)->count();
+
+        if (static::currentReviewer($record)) {
+            return 'Sub-tema: '.$topic.' — reviewer yang dipilih menggantikan penugasan sebelumnya.';
+        }
 
         return $experts > 0
             ? 'Sub-tema: '.$topic.' — '.$experts.' reviewer tersedia untuk sub-tema ini.'

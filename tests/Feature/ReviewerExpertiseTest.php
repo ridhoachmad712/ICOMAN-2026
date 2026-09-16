@@ -154,7 +154,7 @@ class ReviewerExpertiseTest extends TestCase
         Livewire::test(ListSubmissions::class)
             ->callAction(
                 TestAction::make('assignReviewer')->table($submission),
-                data: ['reviewer_ids' => [$expert->id]],
+                data: ['reviewer_id' => $expert->id],
             );
 
         $this->assertDatabaseHas('review_assignments', [
@@ -178,9 +178,9 @@ class ReviewerExpertiseTest extends TestCase
         Livewire::test(ListSubmissions::class)
             ->callAction(
                 TestAction::make('assignReviewer')->table($submission),
-                data: ['show_all' => false, 'reviewer_ids' => [$outsider->id]],
+                data: ['show_all' => false, 'reviewer_id' => $outsider->id],
             )
-            ->assertHasActionErrors(['reviewer_ids.0']);
+            ->assertHasActionErrors(['reviewer_id']);
 
         $this->assertSame(0, ReviewAssignment::where('submission_id', $submission->id)->count());
     }
@@ -195,7 +195,7 @@ class ReviewerExpertiseTest extends TestCase
         Livewire::test(ListSubmissions::class)
             ->callAction(
                 TestAction::make('assignReviewer')->table($submission),
-                data: ['show_all' => true, 'reviewer_ids' => [$other->id]],
+                data: ['show_all' => true, 'reviewer_id' => $other->id],
             );
 
         $this->assertDatabaseHas('review_assignments', [
@@ -204,7 +204,8 @@ class ReviewerExpertiseTest extends TestCase
         ]);
     }
 
-    public function test_removing_a_reviewer_drops_the_assignment(): void
+    /** Satu paper dipegang satu reviewer: pilihan baru menggantikan yang lama. */
+    public function test_choosing_another_reviewer_replaces_the_assignment(): void
     {
         $this->registrationAdmin();
         $first = $this->reviewer('Ahli Pemasaran', $this->marketing);
@@ -213,23 +214,47 @@ class ReviewerExpertiseTest extends TestCase
 
         Livewire::test(ListSubmissions::class)->callAction(
             TestAction::make('assignReviewer')->table($submission),
-            data: ['reviewer_ids' => [$first->id, $second->id]],
+            data: ['reviewer_id' => $first->id],
         );
-        $this->assertSame(2, ReviewAssignment::where('submission_id', $submission->id)->count());
 
         // Sesudah ditugaskan, papernya pindah dari tab "Perlu Tindakan".
         Livewire::test(ListSubmissions::class)
             ->set('activeTab', 'all')
             ->callAction(
                 TestAction::make('assignReviewer')->table($submission),
-                data: ['reviewer_ids' => [$first->id]],
+                data: ['reviewer_id' => $second->id],
             );
 
         $this->assertSame(1, ReviewAssignment::where('submission_id', $submission->id)->count());
-        $this->assertDatabaseMissing('review_assignments', [
+        $this->assertDatabaseHas('review_assignments', [
             'submission_id' => $submission->id,
             'reviewer_id' => $second->id,
         ]);
+        $this->assertDatabaseMissing('review_assignments', [
+            'submission_id' => $submission->id,
+            'reviewer_id' => $first->id,
+        ]);
+    }
+
+    /** Tombolnya menyebut apa yang terjadi, supaya admin tidak mengira bisa menambah. */
+    public function test_the_button_says_replace_once_a_reviewer_is_assigned(): void
+    {
+        $this->registrationAdmin();
+        $expert = $this->reviewer('Ahli Pemasaran', $this->marketing);
+        $submission = $this->submission($this->marketing);
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->assertSee('Assign Reviewer')
+            ->callAction(
+                TestAction::make('assignReviewer')->table($submission),
+                data: ['reviewer_id' => $expert->id],
+            );
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->assertSee('Ganti Reviewer')
+            ->assertDontSee('Assign Reviewer');
     }
 
     // --- Mengisi kepakaran di admin -----------------------------------------
