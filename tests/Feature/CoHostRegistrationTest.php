@@ -2,16 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Resources\CoHosts\CoHostResource;
 use App\Models\Author;
 use App\Models\CoHost;
 use App\Models\Edition;
+use App\Models\ImportantDate;
 use App\Models\PageSection;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\Submission;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Notifications\CoHostActivated;
 use App\Notifications\CoHostApproved;
 use App\Services\CoHostApproval;
 use App\Services\VoucherRedeemer;
@@ -279,6 +282,114 @@ class CoHostRegistrationTest extends TestCase
 
         $this->expectException(ValidationException::class);
         app(VoucherRedeemer::class)->redeem($invoice, $coHost->voucher->code);
+    }
+
+    // --- Kode voucher terbit setelah lunas -----------------------------------
+
+    /**
+     * Kode disembunyikan sampai biaya kemitraannya lunas. Sebelum itu kode
+     * memang ditolak saat dipakai, jadi memperlihatkannya lebih dulu hanya
+     * membuat penulis mereka mencobanya dan menyangka ada yang rusak.
+     */
+    public function test_the_code_is_hidden_until_the_fee_is_settled(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $coHost = app(CoHostApproval::class)->approve($this->apply());
+
+        $this->actingAs($coHost->author, 'author');
+
+        $this->get(AuthorDashboard::getUrl(panel: 'author'))
+            ->assertOk()
+            ->assertDontSee($coHost->voucher->code);
+    }
+
+    public function test_the_code_appears_once_the_fee_is_settled(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $coHost = app(CoHostApproval::class)->approve($this->apply());
+
+        $coHost->registration()->update(['status' => 'paid', 'paid_at' => now()]);
+
+        $this->actingAs($coHost->author, 'author');
+
+        $this->get(AuthorDashboard::getUrl(panel: 'author'))
+            ->assertOk()
+            ->assertSee($coHost->refresh()->voucher->code);
+    }
+
+    /** Email persetujuan tidak lagi membawa kode yang belum bisa dipakai. */
+    public function test_the_approval_email_withholds_the_code(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $coHost = app(CoHostApproval::class)->approve($this->apply());
+
+        Notification::assertSentTo(
+            $coHost->author,
+            CoHostApproved::class,
+            fn (CoHostApproved $mail) => ! str_contains(
+                json_encode($mail->toMail($coHost->author)->toArray()),
+                $coHost->voucher->code,
+            ),
+        );
+    }
+
+    /** Karena itu, pelunasan harus mengabarkan kodenya. */
+    public function test_settling_the_fee_sends_the_code(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $coHost = app(CoHostApproval::class)->approve($this->apply());
+
+        $coHost->registration()->update(['status' => 'paid', 'paid_at' => now()]);
+
+        Notification::assertSentTo(
+            $coHost->author,
+            CoHostActivated::class,
+            fn (CoHostActivated $mail) => str_contains(
+                json_encode($mail->toMail($coHost->author)->toArray()),
+                $coHost->refresh()->voucher->code,
+            ),
+        );
+    }
+
+    /**
+     * Tombol pembayaran di dasbor co-host pernah terlihat tidak bereaksi.
+     *
+     * Aksinya memang gagal dan mengirim alasannya lewat session, tapi dasbornya
+     * tidak pernah menampilkan pesan apa pun — jadi satu-satunya tanda adalah
+     * "too many requests" setelah tombolnya ditekan berkali-kali.
+     */
+    public function test_the_dashboard_shows_why_a_payment_could_not_start(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $coHost = app(CoHostApproval::class)->approve($this->apply());
+
+        // Tenggat pembayaran yang sudah lewat menolak setiap percobaan.
+        ImportantDate::create([
+            'edition_id' => $this->edition->id,
+            'kind' => 'payment',
+            'label' => ['en' => 'Registration payment', 'id' => 'Pembayaran registrasi'],
+            'date' => now()->subDay()->toDateString(),
+        ]);
+
+        // Tanpa ini, permintaan berhenti lebih awal di cabang "gateway belum disetel".
+        config()->set('services.kasera.api_key', 'kp_test_key');
+        $this->actingAs($coHost->author, 'author');
+
+        $this->from(AuthorDashboard::getUrl(panel: 'author'))
+            ->post(route('author.registration.pay', $coHost->registration()))
+            ->assertRedirect()
+            ->assertSessionHasErrors();
+
+        $this->followingRedirects()
+            ->from(AuthorDashboard::getUrl(panel: 'author'))
+            ->post(route('author.registration.pay', $coHost->registration()))
+            ->assertOk()
+            ->assertSee('deadline', escape: false);
     }
 
     // --- Tampilan publik ----------------------------------------------------

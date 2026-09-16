@@ -5,6 +5,8 @@
 @endphp
 
 <div class="space-y-6">
+    <x-author-flash />
+
     {{-- Status pengajuan --}}
     <x-filament::section icon="heroicon-o-building-office-2" icon-color="primary">
         <x-slot name="heading">{{ $coHost?->institution_name }}</x-slot>
@@ -29,8 +31,8 @@
         @else
             <p class="text-sm text-gray-600 dark:text-gray-300">
                 {{ $id
-                    ? 'Pengajuan disetujui. Selesaikan biaya kemitraan agar kode voucher Anda aktif.'
-                    : 'Your application is approved. Settle the partnership fee to activate your voucher code.' }}
+                    ? 'Pengajuan disetujui. Kode voucher Anda terbit setelah biaya kemitraan lunas.'
+                    : 'Your application is approved. Your voucher code is issued once the partnership fee is settled.' }}
             </p>
         @endif
     </x-filament::section>
@@ -69,7 +71,19 @@
             </x-slot>
 
             <div class="flex flex-wrap items-center gap-4">
-                <p class="font-mono text-2xl font-bold tracking-wide text-[var(--brand-2,#18315e)] dark:text-white">{{ $voucher->code }}</p>
+                {{-- Kode baru diperlihatkan setelah kemitraannya berjalan: sebelum
+                     lunas kode itu tidak bisa dipakai, dan menampilkannya lebih
+                     dulu hanya mengundang penulis mencobanya lalu ditolak. --}}
+                @if($voucher->is_active)
+                    <p class="font-mono text-2xl font-bold tracking-wide text-[var(--brand-2,#18315e)] dark:text-white">{{ $voucher->code }}</p>
+                @else
+                    <p class="font-mono text-2xl font-bold tracking-wide text-gray-400 dark:text-gray-600" aria-hidden="true">••••••••</p>
+                    <p class="mt-1 text-xs leading-relaxed text-gray-500">
+                        {{ $id
+                            ? 'Kode terbit di sini segera setelah biaya kemitraan lunas.'
+                            : 'The code appears here as soon as the partnership fee is settled.' }}
+                    </p>
+                @endif
                 <x-filament::badge :color="$voucher->is_active ? 'success' : 'gray'">
                     {{ $voucher->is_active ? ($id ? 'Aktif' : 'Active') : ($id ? 'Menunggu pembayaran' : 'Awaiting payment') }}
                 </x-filament::badge>

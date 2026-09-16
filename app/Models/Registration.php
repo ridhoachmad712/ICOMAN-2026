@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Notifications\CoHostActivated;
 use App\Services\ConferenceDeadlines;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -69,6 +70,10 @@ class Registration extends Model implements HasMedia
 
             $coHost->voucher?->update(['is_active' => true]);
             $coHost->sponsor?->update(['is_published' => true]);
+
+            // Kodenya baru terbit sekarang, dan tidak pernah dikirim
+            // sebelumnya, jadi inilah satu-satunya kabar yang membawanya.
+            $coHost->author?->notify(new CoHostActivated($coHost->fresh()));
         });
 
         static::creating(function (Registration $registration): void {

@@ -30,9 +30,7 @@
     @endphp
 
     <div class="space-y-6">
-        @if(session('error'))<div role="alert" class="rounded-xl bg-red-50 p-4 text-red-800">{{ session('error') }}</div>@endif
-        @if(session('status'))<div role="status" class="rounded-xl bg-emerald-50 p-4 text-emerald-800">{{ session('status') }}</div>@endif
-        @if($errors->any())<div role="alert" class="rounded-xl bg-red-50 p-4 text-red-800">{{ $errors->first() }}</div>@endif
+        <x-author-flash />
         @if(($price['source_currency'] ?? 'IDR') === 'USD')
             <p class="text-sm">{{ $id ? 'Harga asal' : 'Listed price' }}: USD {{ number_format((float) $price['source_amount'], 2) }}.
                 {{ $id ? 'Kurs tetap pada invoice ini' : 'Exchange rate fixed for this invoice' }}: IDR {{ number_format((float) $price['exchange_rate'], 0, ',', '.') }} / USD.</p>
