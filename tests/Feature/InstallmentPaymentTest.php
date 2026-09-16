@@ -335,7 +335,8 @@ class InstallmentPaymentTest extends TestCase
         $this->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
             ->assertOk()
             ->assertSee('Pay First Instalment', escape: false)
-            ->assertSee('Continue to Payment', escape: false);
+            ->assertSee('Pay in Full', escape: false)
+            ->assertSee('Choose how to pay', escape: false);
     }
 
     /** Presenter non-mahasiswa tidak boleh ditawari cicilan. */

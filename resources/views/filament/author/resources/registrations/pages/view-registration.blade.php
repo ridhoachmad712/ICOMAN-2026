@@ -188,69 +188,119 @@
                         </p>
                     </div>
                 @elseif($record->status !== 'pending_verification')
-                    <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10">
-                        <p class="mb-3 text-xs leading-relaxed text-gray-500">
-                            {{ $id ? 'Anda akan diarahkan ke halaman pembayaran aman Kasera Pay untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.' : 'You will be redirected to Kasera Pay secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.' }}
-                        </p>
-                        @php
-                            $canInstall = $record->allowsInstallments();
-                            $firstAmount = (float) ($record->registrationFee?->installment_first_amount ?? 0);
-                            $secondAmount = (float) $record->amount - $firstAmount;
-                            $installmentDue = $record->installmentDueAt();
-                            $dueNow = $record->amountDueNow();
-                        @endphp
+                    @php
+                        $canInstall = $record->allowsInstallments();
+                        $firstAmount = (float) ($record->registrationFee?->installment_first_amount ?? 0);
+                        $secondAmount = (float) $record->amount - $firstAmount;
+                        $installmentDue = $record->installmentDueAt();
+                        $dueNow = $record->amountDueNow();
+                        $card = 'flex h-full flex-col rounded-xl border p-4';
+                        $gatewayNote = $id
+                            ? 'Anda akan diarahkan ke halaman pembayaran aman Kasera Pay untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.'
+                            : 'You will be redirected to Kasera Pay secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.';
+                    @endphp
 
+                    <div class="mt-5 border-t border-gray-200 pt-5 dark:border-white/10">
                         @if($record->isPartiallyPaid())
-                            <div class="mb-4 rounded-xl border border-info-200 bg-info-50 p-4 dark:border-info-500/20 dark:bg-info-500/10">
-                                <p class="text-sm font-semibold text-info-800 dark:text-info-300">
-                                    {{ $id ? 'Cicilan pertama sudah diterima' : 'First instalment received' }}
-                                </p>
-                                <p class="mt-1 text-xs leading-relaxed text-info-700 dark:text-info-400">
-                                    {{ $id ? 'Sudah dibayar' : 'Paid so far' }}: {{ $money($record->paidAmount()) }} ·
-                                    {{ $id ? 'sisa' : 'outstanding' }}: <strong>{{ $money($record->outstandingAmount()) }}</strong>.
-                                    @if($installmentDue)
-                                        {{ $id ? 'Lunasi paling lambat' : 'Settle by' }} {{ $installmentDue->format('d M Y') }}.
-                                    @endif
-                                    {{ $id
-                                        ? 'Registrasi baru aktif setelah seluruh tagihan lunas.'
-                                        : 'Your registration becomes active once the invoice is settled in full.' }}
-                                </p>
+                            {{-- Cicilan berjalan: yang tersisa hanya satu langkah, jadi tidak ada pilihan lagi. --}}
+                            <p class="text-sm font-semibold text-gray-950 dark:text-white">
+                                {{ $id ? 'Cicilan 1 dari 2 sudah lunas' : 'Instalment 1 of 2 settled' }}
+                            </p>
+
+                            <ol class="mt-3 space-y-2 text-sm">
+                                <li class="flex items-center justify-between gap-3 rounded-lg bg-success-50 px-3 py-2 dark:bg-success-500/10">
+                                    <span class="flex items-center gap-2 text-success-800 dark:text-success-300">
+                                        <x-filament::icon icon="heroicon-m-check-circle" class="h-5 w-5" />
+                                        {{ $id ? 'Cicilan pertama' : 'First instalment' }}
+                                    </span>
+                                    <span class="font-semibold text-success-800 dark:text-success-300">{{ $money($record->paidAmount()) }}</span>
+                                </li>
+                                <li class="flex items-center justify-between gap-3 rounded-lg bg-gray-50 px-3 py-2 dark:bg-white/5">
+                                    <span class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                                        <x-filament::icon icon="heroicon-m-clock" class="h-5 w-5" />
+                                        {{ $id ? 'Sisa yang harus dilunasi' : 'Still to settle' }}
+                                        @if($installmentDue)
+                                            <span class="text-xs text-gray-500">· {{ $id ? 'sebelum' : 'by' }} {{ $installmentDue->format('d M Y') }}</span>
+                                        @endif
+                                    </span>
+                                    <span class="font-semibold text-gray-950 dark:text-white">{{ $money($record->outstandingAmount()) }}</span>
+                                </li>
+                            </ol>
+
+                            <p class="mt-3 text-xs leading-relaxed text-gray-500">
+                                {{ $id
+                                    ? 'Registrasi Anda aktif setelah sisa ini lunas. Unggah full paper terbuka setelah itu.'
+                                    : 'Your registration becomes active once this balance is settled. Full paper upload opens then.' }}
+                            </p>
+
+                            <form method="POST" action="{{ route('author.registration.pay', $record) }}" class="mt-4" x-data="{ submitting: false }" @submit="submitting = true">
+                                @csrf
+                                <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
+                                    {{ $id ? 'Lunasi Sisa' : 'Settle the Balance' }} ({{ $money($dueNow) }})
+                                </x-filament::button>
+                            </form>
+
+                        @elseif($canInstall)
+                            {{-- Dua cara membayar, ditampilkan setara supaya pilihannya jelas
+                                 dan bukan terbaca sebagai catatan kaki di bawah satu tombol. --}}
+                            <p class="text-sm font-semibold text-gray-950 dark:text-white">
+                                {{ $id ? 'Pilih cara pembayaran' : 'Choose how to pay' }}
+                            </p>
+
+                            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                                <div class="{{ $card }} border-primary-300 bg-primary-50/40 dark:border-primary-500/30 dark:bg-primary-500/5">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-400">
+                                        {{ $id ? 'Bayar lunas' : 'Pay in full' }}
+                                    </p>
+                                    <p class="mt-1 text-2xl font-bold text-gray-950 dark:text-white">{{ $money($record->amount) }}</p>
+                                    <p class="mt-2 grow text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                                        {{ $id
+                                            ? 'Sekali bayar. Registrasi Anda langsung aktif dan unggah full paper terbuka.'
+                                            : 'One payment. Your registration is active straight away and full paper upload opens.' }}
+                                    </p>
+                                    <form method="POST" action="{{ route('author.registration.pay', $record) }}" class="mt-4" x-data="{ submitting: false }" @submit="submitting = true">
+                                        @csrf
+                                        <x-filament::button type="submit" x-bind:disabled="submitting" class="w-full justify-center">
+                                            {{ $id ? 'Bayar Lunas' : 'Pay in Full' }}
+                                        </x-filament::button>
+                                    </form>
+                                </div>
+
+                                <div class="{{ $card }} border-gray-200 dark:border-white/10">
+                                    <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                        {{ $id ? 'Bayar dua tahap' : 'Pay in two instalments' }}
+                                    </p>
+                                    <p class="mt-1 text-2xl font-bold text-gray-950 dark:text-white">
+                                        {{ $money($firstAmount) }}
+                                        <span class="text-sm font-normal text-gray-500">{{ $id ? 'sekarang' : 'now' }}</span>
+                                    </p>
+                                    <p class="mt-2 grow text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                                        {{ $id ? 'Lalu' : 'Then' }} <strong>{{ $money($secondAmount) }}</strong>@if($installmentDue) {{ $id ? 'paling lambat' : 'by' }} {{ $installmentDue->format('d M Y') }}@endif.
+                                        {{ $id ? 'Totalnya sama' : 'The total is the same' }} ({{ $money($record->amount) }}).
+                                        {{ $id
+                                            ? 'Registrasi baru aktif setelah cicilan kedua, jadi unggah full paper terbuka setelah itu.'
+                                            : 'Your registration only becomes active after the second instalment, so full paper upload opens then.' }}
+                                    </p>
+                                    <form method="POST" action="{{ route('author.registration.pay', $record) }}" class="mt-4" x-data="{ submitting: false }" @submit="submitting = true">
+                                        @csrf
+                                        <input type="hidden" name="plan" value="installment">
+                                        <x-filament::button type="submit" color="gray" x-bind:disabled="submitting" class="w-full justify-center">
+                                            {{ $id ? 'Bayar Cicilan Pertama' : 'Pay First Instalment' }}
+                                        </x-filament::button>
+                                    </form>
+                                </div>
                             </div>
+
+                        @else
+                            <form method="POST" action="{{ route('author.registration.pay', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
+                                @csrf
+                                <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
+                                    {{ $id ? 'Lanjutkan Pembayaran' : 'Continue to Payment' }} ({{ $money($dueNow) }})
+                                </x-filament::button>
+                            </form>
                         @endif
 
-                        <form method="POST" action="{{ route('author.registration.pay', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
-                            @csrf
-                            <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
-                                {{ $id ? 'Lanjutkan Pembayaran' : 'Continue to Payment' }}
-                                @if($record->isPartiallyPaid()) ({{ $money($dueNow) }}) @endif
-                            </x-filament::button>
-                        </form>
-
-                        @if($canInstall)
-                            {{-- Khusus presenter mahasiswa: boleh dibayar dua tahap. --}}
-                            <div class="mt-3 rounded-xl border border-gray-200 p-4 dark:border-white/10">
-                                <p class="text-sm font-semibold text-gray-950 dark:text-white">
-                                    {{ $id ? 'Atau bayar dua tahap' : 'Or pay in two instalments' }}
-                                </p>
-                                <p class="mt-1 text-xs leading-relaxed text-gray-500">
-                                    {{ $id ? 'Sekarang' : 'Now' }} {{ $money($firstAmount) }},
-                                    {{ $id ? 'sisanya' : 'then' }} {{ $money($secondAmount) }}
-                                    @if($installmentDue)
-                                        {{ $id ? 'paling lambat' : 'by' }} {{ $installmentDue->format('d M Y') }}
-                                    @endif
-                                    . {{ $id
-                                        ? 'Totalnya sama. Registrasi baru aktif setelah cicilan kedua lunas, jadi unggah full paper baru terbuka setelah itu.'
-                                        : 'The total is the same. Your registration only becomes active after the second instalment, so full paper upload opens then.' }}
-                                </p>
-                                <form method="POST" action="{{ route('author.registration.pay', $record) }}" class="mt-3" x-data="{ submitting: false }" @submit="submitting = true">
-                                    @csrf
-                                    <input type="hidden" name="plan" value="installment">
-                                    <x-filament::button type="submit" color="gray" x-bind:disabled="submitting" class="w-full justify-center">
-                                        {{ $id ? 'Bayar Cicilan Pertama' : 'Pay First Instalment' }} ({{ $money($firstAmount) }})
-                                    </x-filament::button>
-                                </form>
-                            </div>
-                        @endif
+                        <p class="mt-3 text-xs leading-relaxed text-gray-500">{{ $gatewayNote }}</p>
                     </div>
                 @endif
             </x-filament::section>
