@@ -54,7 +54,7 @@
                     @endforeach
                 </div>
                 <div class="mt-8 text-center">
-                    <a href="{{ route('registration') }}" class="inline-flex items-center gap-1.5 font-medium text-[var(--brand-ink)] hover:underline">{{ __('site.view_fees') }} <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
+                    <a href="{{ route('registration') }}" class="link-more">{{ __('site.view_fees') }} <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
                 </div>
             </div>
         </section>

@@ -13,7 +13,7 @@
 <header x-data="{ open: false }" class="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
     <nav class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="{{ $locale === 'id' ? 'Navigasi utama' : 'Main navigation' }}">
         <div class="flex h-[4.5rem] items-center justify-between gap-4">
-            <a href="{{ route('home') }}" class="flex shrink-0 items-center gap-2.5">
+            <a href="{{ route('home') }}" class="flex min-h-11 shrink-0 items-center gap-2.5">
                 @if($logo)
                     <img src="{{ $logo }}" alt="{{ $name }}" class="h-10 w-auto">
                 @else

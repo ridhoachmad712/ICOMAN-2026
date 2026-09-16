@@ -25,7 +25,7 @@
             <a href="{{ route('news.show', $item->slug) }}" class="hover:text-[var(--brand-ink)]">{{ $displayTitle }}</a>
         </h3>
         @if($displayExcerpt)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ $displayExcerpt }}</p>@endif
-        <a href="{{ route('news.show', $item->slug) }}" class="mt-3 inline-block text-sm font-medium text-[var(--brand-ink)] hover:underline">
+        <a href="{{ route('news.show', $item->slug) }}" class="link-more mt-3 text-sm">
             {{ __('site.read_more') }} →
         </a>
     </div>

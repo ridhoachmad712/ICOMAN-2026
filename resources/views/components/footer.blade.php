@@ -41,7 +41,7 @@
 
         <div class="space-y-1 text-sm">
             <h4 class="mb-3 font-semibold text-white">{{ __('site.contact_us') }}</h4>
-            @if($s->contact_email)<p class="flex items-start gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><a href="mailto:{{ $s->contact_email }}" class="break-all hover:text-white">{{ $s->contact_email }}</a></p>@endif
+            @if($s->contact_email)<p class="flex items-start gap-2"><svg class="mt-0.5 h-4 w-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><a href="mailto:{{ $s->contact_email }}" class="inline-flex min-h-11 items-center break-all hover:text-white">{{ $s->contact_email }}</a></p>@endif
             @if($s->contact_whatsapp)<p>{{ $s->contact_whatsapp }}</p>@endif
             @if($s->contact_address)<p class="text-slate-400">{{ $s->contact_address }}</p>@endif
         </div>
@@ -51,7 +51,7 @@
             @if(count($socials))
                 <div class="flex flex-wrap gap-3">
                     @foreach($socials as $label => $url)
-                        <a href="{{ $url }}" target="_blank" rel="noopener" class="rounded-lg bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20">{{ $label }}</a>
+                        <a href="{{ $url }}" target="_blank" rel="noopener" class="inline-flex min-h-11 items-center rounded-lg bg-white/10 px-3 py-1.5 transition-colors hover:bg-white/20">{{ $label }}</a>
                     @endforeach
                 </div>
             @else
