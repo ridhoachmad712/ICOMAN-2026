@@ -1,5 +1,5 @@
 @php
-    $records = app(\App\Services\SectionContent::class)->records($section)->groupBy(fn ($item) => optional($item->day_date)->translatedFormat('l, d F Y') ?? '—');
+    $records = app(\App\Services\SectionContent::class)->records($section)->groupBy(fn ($item) => optional($item->day_date)->translatedFormat('l, d F Y') ?? '-');
 @endphp
 
 <section class="py-16">

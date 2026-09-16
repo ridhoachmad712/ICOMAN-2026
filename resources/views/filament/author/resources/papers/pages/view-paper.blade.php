@@ -79,7 +79,7 @@
         @if($record->status === 'accepted' && ! $record->isLoaIssued())
             <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
                 <x-slot name="heading">Accepted</x-slot>
-                <x-slot name="description">{{ $id ? 'Abstract Anda diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA) — akan otomatis muncul di sini.' : 'Your abstract is accepted. The committee is preparing your Letter of Acceptance (LOA) — it will appear here automatically.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Abstract Anda diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA), yang akan otomatis muncul di sini.' : 'Your abstract is accepted. The committee is preparing your Letter of Acceptance (LOA). It will appear here automatically.' }}</x-slot>
                 <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
             </x-filament::section>
         @endif

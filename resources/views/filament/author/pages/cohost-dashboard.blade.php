@@ -105,8 +105,8 @@
                         <tbody class="divide-y divide-gray-100 dark:divide-white/5">
                             @foreach($voucher->redemptions as $redemption)
                                 <tr>
-                                    <td class="py-3 pr-4 text-gray-950 dark:text-white">{{ $redemption->author?->name ?? '—' }}</td>
-                                    <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ $redemption->author?->email ?? '—' }}</td>
+                                    <td class="py-3 pr-4 text-gray-950 dark:text-white">{{ $redemption->author?->name ?? '-' }}</td>
+                                    <td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ $redemption->author?->email ?? '-' }}</td>
                                     <td class="py-3 text-gray-600 dark:text-gray-300">{{ $redemption->redeemed_at?->format('d M Y') }}</td>
                                 </tr>
                             @endforeach

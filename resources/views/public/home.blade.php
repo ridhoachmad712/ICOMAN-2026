@@ -10,7 +10,7 @@
         $ld = array_filter([
             '@context' => 'https://schema.org',
             '@type' => 'Event',
-            'name' => ($edition?->name ?? $s->conference_name).($edition?->theme ? ' — '.$edition->theme : ''),
+            'name' => ($edition?->name ?? $s->conference_name).($edition?->theme ? ': '.$edition->theme : ''),
             'startDate' => $edition?->start_date?->toIso8601String(),
             'endDate' => ($edition?->end_date ?? $edition?->start_date)?->toIso8601String(),
             'eventAttendanceMode' => 'https://schema.org/'.$attendance,

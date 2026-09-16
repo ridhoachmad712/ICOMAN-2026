@@ -4,7 +4,7 @@
             {!! $section->content !!}
         </blockquote>
         @if(filled($section->subheading))
-            <p class="mt-6 text-sm font-semibold tracking-wide text-slate-500">— {{ $section->subheading }}</p>
+            <p class="mt-6 text-sm font-semibold tracking-wide text-slate-500">- {{ $section->subheading }}</p>
         @endif
     </div>
 </section>

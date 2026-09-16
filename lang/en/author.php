@@ -63,7 +63,7 @@ return [
     // Submit paper
     'paper_title' => 'Paper Title',
     'topic' => 'Topic',
-    'select_topic' => '— Select topic —',
+    'select_topic' => 'Select topic',
     'abstract_en' => 'Abstract (EN)',
     'abstract_id' => 'Abstract (ID)',
     'optional' => 'optional',

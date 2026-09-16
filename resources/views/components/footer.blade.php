@@ -55,7 +55,7 @@
                     @endforeach
                 </div>
             @else
-                <p class="text-slate-500">—</p>
+                <p class="text-slate-500">-</p>
             @endif
             <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary mt-5 inline-flex text-sm">{{ __('site.footer_submit_abstract') }}</a>
         </div>

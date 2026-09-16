@@ -63,7 +63,7 @@ return [
     // Submit paper
     'paper_title' => 'Judul Paper',
     'topic' => 'Topik',
-    'select_topic' => '— Pilih topik —',
+    'select_topic' => 'Pilih topik',
     'abstract_en' => 'Abstrak (EN)',
     'abstract_id' => 'Abstrak (ID)',
     'optional' => 'opsional',

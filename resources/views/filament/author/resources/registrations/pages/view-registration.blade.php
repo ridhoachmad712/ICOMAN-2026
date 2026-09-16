@@ -69,8 +69,8 @@
                             : 'Your payment is being verified by the committee. The publication option reopens once that is done.' }}
                     @else
                         {{ $id
-                            ? 'Ada pembayaran yang belum selesai, jadi total tagihan tidak bisa diubah sekarang. Selesaikan pembayarannya, atau tekan "Periksa Status Pembayaran" di atas bila Anda sudah membatalkannya — pilihan jurnal akan muncul kembali.'
-                            : 'A payment is still open, so the total cannot change right now. Finish that payment, or press "Check Payment Status" above if you abandoned it — the journal choice will come back.' }}
+                            ? 'Ada pembayaran yang belum selesai, jadi total tagihan tidak bisa diubah sekarang. Selesaikan pembayarannya, atau tekan "Periksa Status Pembayaran" di atas bila Anda sudah membatalkannya, dan pilihan jurnal akan muncul kembali.'
+                            : 'A payment is still open, so the total cannot change right now. Finish that payment, or press "Check Payment Status" above if you abandoned it, and the journal choice will come back.' }}
                     @endif
                 </p>
             </div>
@@ -82,8 +82,8 @@
                 <x-slot name="heading">{{ $id ? 'Pilih opsi penerbitan jurnal' : 'Choose your journal publication option' }}</x-slot>
                 <x-slot name="description">
                     {{ $id
-                        ? 'Reviewer merekomendasikan naskah Anda untuk jurnal terakreditasi SINTA 3. Tentukan pilihan Anda dulu — tagihan disusun mengikuti pilihan ini.'
-                        : 'The reviewers recommended your manuscript for a SINTA 3 accredited journal. Make your choice first — your invoice is built from it.' }}
+                        ? 'Reviewer merekomendasikan naskah Anda untuk jurnal terakreditasi SINTA 3. Tentukan pilihan Anda dulu, sebab tagihan disusun mengikuti pilihan ini.'
+                        : 'The reviewers recommended your manuscript for a SINTA 3 accredited journal. Make your choice first, because your invoice is built from it.' }}
                 </x-slot>
 
                 <form method="POST" action="{{ route('author.registration.journal', $record) }}" class="space-y-3" x-data="{ submitting: false }" @submit="submitting = true">
@@ -203,8 +203,8 @@
                             <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Kode voucher co-host' : 'Co-host voucher code' }}</p>
                             <p class="mt-1 text-xs leading-relaxed text-gray-500">
                                 {{ $id
-                                    ? 'Voucher membebaskan biaya registrasi dasar. Bila Anda memilih penerbitan Jurnal SINTA 3, biaya tambahannya tetap dibayar. Tentukan pilihan jurnal lebih dulu — setelah tagihan lunas, pilihan itu tidak bisa diubah sendiri.'
-                                    : 'The voucher waives your base registration fee. If you choose SINTA 3 publication, its add-on remains payable. Settle your journal choice first — once the invoice is paid you cannot change it yourself.' }}
+                                    ? 'Voucher membebaskan biaya registrasi dasar. Bila Anda memilih penerbitan Jurnal SINTA 3, biaya tambahannya tetap dibayar. Tentukan pilihan jurnal lebih dulu. Setelah tagihan lunas, pilihan itu tidak bisa diubah sendiri.'
+                                    : 'The voucher waives your base registration fee. If you choose SINTA 3 publication, its add-on remains payable. Settle your journal choice first. Once the invoice is paid you cannot change it yourself.' }}
                             </p>
 
                             <form method="POST" action="{{ route('author.registration.voucher', $record) }}" class="mt-3 flex flex-wrap items-start gap-2" x-data="{ submitting: false }" @submit="submitting = true">
@@ -359,7 +359,7 @@
                 <table class="w-full text-left text-sm">
                     <thead><tr class="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-500 dark:border-white/10"><th class="pb-3 pr-4">{{ $id ? 'Waktu' : 'Time' }}</th><th class="pb-3 pr-4">{{ $id ? 'Metode' : 'Method' }}</th><th class="pb-3 pr-4">Reference</th><th class="pb-3">Status</th></tr></thead>
                     <tbody class="divide-y divide-gray-100 dark:divide-white/5">
-                        @forelse($record->payments->sortByDesc('created_at') as $payment)<tr><td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ $payment->created_at->format('d M Y, H:i') }}</td><td class="py-3 pr-4 text-gray-950 dark:text-white">{{ ucfirst($payment->method) }}</td><td class="py-3 pr-4 font-mono text-xs text-gray-500">{{ $payment->gateway_reference ?: '—' }}</td><td class="py-3"><x-filament::badge :color="$payment->status === 'success' ? 'success' : ($payment->status === 'failed' ? 'danger' : 'gray')">{{ ucfirst($payment->status) }}</x-filament::badge></td></tr>@empty<tr><td colspan="4" class="py-4 text-gray-500">{{ $id ? 'Belum ada percobaan pembayaran.' : 'No payment attempts yet.' }}</td></tr>@endforelse
+                        @forelse($record->payments->sortByDesc('created_at') as $payment)<tr><td class="py-3 pr-4 text-gray-600 dark:text-gray-300">{{ $payment->created_at->format('d M Y, H:i') }}</td><td class="py-3 pr-4 text-gray-950 dark:text-white">{{ ucfirst($payment->method) }}</td><td class="py-3 pr-4 font-mono text-xs text-gray-500">{{ $payment->gateway_reference ?: '-' }}</td><td class="py-3"><x-filament::badge :color="$payment->status === 'success' ? 'success' : ($payment->status === 'failed' ? 'danger' : 'gray')">{{ ucfirst($payment->status) }}</x-filament::badge></td></tr>@empty<tr><td colspan="4" class="py-4 text-gray-500">{{ $id ? 'Belum ada percobaan pembayaran.' : 'No payment attempts yet.' }}</td></tr>@endforelse
                     </tbody>
                 </table>
             </div>

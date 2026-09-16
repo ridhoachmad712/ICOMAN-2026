@@ -10,7 +10,7 @@
     $confName = $settings->conference_name ?: 'ICOMAN 2026';
     $brand = $settings->primary_color ?: '#1d4ed8';
     $brand2 = $settings->secondary_color ?: '#0f172a';
-    $pageTitle = $title ? ($title.' — '.$confName) : $confName;
+    $pageTitle = $title ? ($title.' \u00b7 '.$confName) : $confName;
     $disk = \Illuminate\Support\Facades\Storage::disk('public');
     $logoUrl = $settings->logo ? $disk->url($settings->logo) : null;
     $faviconUrl = $settings->favicon ? $disk->url($settings->favicon) : null;
