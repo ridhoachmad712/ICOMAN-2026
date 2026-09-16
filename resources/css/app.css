@@ -136,12 +136,15 @@
             0 12px 28px -14px rgba(15, 23, 42, 0.14);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
+    /*
+     * Kartu yang bisa diklik menjawab sentuhan, tapi tidak melompat. Angkatan
+     * empat piksel dengan bayangan besar pada setiap kartu membuat halaman
+     * terasa melayang, yang justru ciri situs yang berusaha memukau.
+     */
     .card-hover:hover {
-        transform: translateY(-4px);
         box-shadow:
-            inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent),
-            0 8px 16px -8px rgba(15, 23, 42, 0.12),
-            0 28px 50px -18px rgba(15, 23, 42, 0.28);
+            inset 0 0 0 1px color-mix(in srgb, var(--brand) 45%, transparent),
+            0 4px 10px -6px rgba(15, 23, 42, 0.14);
     }
 
     /* ── Eyebrow / chip / divider ───────────────────────── */
@@ -177,12 +180,13 @@
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent);
     }
 
-    /* Section ber-tint lembut warna brand. */
+    /*
+     * Tint yang memisahkan satu bagian dari bagian sebelahnya. Dulu dua sapuan
+     * radial; keduanya tidak menyampaikan apa-apa selain "ada gradien di sini".
+     * Satu bidang rata mengerjakan pemisahan itu tanpa menarik perhatian.
+     */
     .section-tint {
-        background:
-            radial-gradient(1200px 480px at 100% 0%, color-mix(in srgb, var(--brand) 7%, transparent), transparent),
-            radial-gradient(900px 420px at 0% 100%, color-mix(in srgb, var(--brand-2) 5%, transparent), transparent),
-            #f8fafc;
+        background: #f8fafc;
     }
 
     /* Avatar inisial gradient (fallback tanpa foto). */

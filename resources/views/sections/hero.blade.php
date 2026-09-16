@@ -10,6 +10,10 @@
 
     {{-- HERO --}}
     <section class="on-dark relative bg-[var(--brand-2)] text-white overflow-hidden">
+        {{-- Ketiga lapisan di bawah ini bertugas SATU hal: menjaga teks putih
+             tetap terbaca di atas gambar apa pun yang dipasang panitia. Tanpa
+             lapisan itu rasio kontrasnya berubah-ubah mengikuti gambarnya.
+             Karena itu ia bertahan sementara hiasan lain dilepas. --}}
         @if($heroImage)
             <img src="{{ $heroImage }}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-40">
             <div class="absolute inset-0 bg-gradient-to-t from-[var(--brand-2)] via-[var(--brand-2)]/80 to-[var(--brand-2)]/40"></div>
@@ -18,9 +22,7 @@
             <img src="{{ asset('images/hero-pattern.svg') }}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full object-cover">
             <div class="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/25 via-transparent to-[var(--brand-2)]/60"></div>
         @endif
-        {{-- Glow duotone (biru + aksen hangat) + vignette untuk kedalaman --}}
-        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand-ink)] opacity-25 blur-[120px]"></div>
-        <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[var(--accent)] opacity-[0.14] blur-[130px]"></div>
+        {{-- Vignette: menggelapkan tepi bawah tempat teks berada. --}}
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 
         {{-- Hero tinggi: konten dipusatkan vertikal agar terasa lapang & formal.

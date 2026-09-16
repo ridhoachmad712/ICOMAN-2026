@@ -25,6 +25,8 @@
         <p {!! $editAttributes('subheading') !!} class="mt-4 text-base leading-relaxed text-slate-500">{{ $subtitle }}</p>
     @endif
     @unless($eyebrow)
-        <div class="mt-5 h-1 w-16 rounded-full bg-gradient-to-r from-[var(--accent)] to-[var(--brand)] {{ $center ? 'mx-auto' : '' }}"></div>
+        {{-- Garis penanda, bukan hiasan: satu warna merek yang tegas, bukan
+             peralihan dua warna yang meleburkannya. --}}
+        <div class="mt-5 h-1 w-16 rounded-full bg-[var(--brand)] {{ $center ? 'mx-auto' : '' }}"></div>
     @endunless
 </div>

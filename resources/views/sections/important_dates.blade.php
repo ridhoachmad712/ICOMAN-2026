@@ -15,7 +15,7 @@
                 <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" :center="false" />
 
                 @if($nextDeadline)
-                    <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-gradient-to-r from-[var(--accent)] to-[var(--accent-strong)] text-white px-6 py-4 shadow-lg">
+                    <div class="mb-6 flex flex-col sm:flex-row items-center justify-between gap-3 rounded-xl bg-[var(--brand-ink)] text-white px-6 py-4">
                         <div>
                             <div class="text-xs uppercase tracking-widest text-white/80">{{ __('site.next_deadline') }}</div>
                             <div class="font-semibold">{{ $nextDeadline->label }}</div>

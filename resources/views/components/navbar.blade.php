@@ -18,7 +18,7 @@
                     <img src="{{ $logo }}" alt="{{ $name }}" class="h-10 w-auto">
                 @else
                     @php $monogram = \Illuminate\Support\Str::of($name)->explode(' ')->filter()->take(2)->map(fn ($w) => mb_substr($w, 0, 1))->implode(''); @endphp
-                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-[var(--brand)] to-[var(--brand-2)] font-display text-sm font-bold text-white shadow-sm">{{ strtoupper($monogram) ?: 'IC' }}</span>
+                    <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--brand-2)] font-display text-sm font-bold text-[var(--brand)]">{{ strtoupper($monogram) ?: 'IC' }}</span>
                     <span class="font-display text-lg font-bold leading-none tracking-tight text-[var(--brand-2)]">{{ $name }}</span>
                 @endif
             </a>
