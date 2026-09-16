@@ -15,6 +15,14 @@
         .extended-abstract-content .equation { display: block; margin: 1rem 0; overflow-x: auto; text-align: center; }
         .extended-abstract-content .equation-inline { display: inline; margin: 0 .2rem; }
         .extended-abstract-content .equation code { background: #f3f4f6; border-radius: .3rem; color: #111827; padding: .25rem .5rem; }
+
+        /* Panel admin punya mode gelap; warna tetap di atas dibuat untuk kertas. */
+        .dark .extended-abstract-document { color: #d1d5db; }
+        .dark .extended-abstract-section + .extended-abstract-section { border-top-color: #374151; }
+        .dark .extended-abstract-section > h2 { color: #f9fafb; }
+        .dark .extended-abstract-content td, .dark .extended-abstract-content th { border-color: #4b5563; }
+        .dark .extended-abstract-content blockquote { border-left-color: #6b7280; color: #9ca3af; }
+        .dark .extended-abstract-content .equation code { background: #374151; color: #f9fafb; }
     </style>
 @endonce
 

@@ -2,10 +2,16 @@
 
 namespace App\Filament\Resources\Submissions\Schemas;
 
+use App\Models\Submission;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Placeholder;
-use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Text;
 use Filament\Schemas\Schema;
+use Filament\Support\Enums\FontWeight;
+use Filament\Support\Enums\TextSize;
 use Illuminate\Support\HtmlString;
 
 class SubmissionForm
@@ -13,92 +19,167 @@ class SubmissionForm
     public static function configure(Schema $schema): Schema
     {
         return $schema
+            // Dua kolom dengan pembagian tugas yang jelas: yang berupa prosa
+            // panjang — naskah dan komentar reviewer — mengisi kolom lebar,
+            // sedangkan keterangan pendek menumpuk di kolom sempit. Sebelumnya
+            // semuanya bertumpuk di satu sisi dan sisi lainnya nyaris kosong.
+            ->columns(3)
             ->components([
-                Section::make('Paper')
-                    ->columns(2)
+                Group::make()
+                    ->columnSpan(2)
                     ->schema([
-                        TextInput::make('submission_number')->disabled(),
-                        TextInput::make('status')->disabled(),
-                        TextInput::make('title')->disabled()->columnSpanFull(),
-                        Placeholder::make('keywords_display')
-                            ->label('Keywords')
-                            ->content(fn ($record) => filled($record?->keywords) ? implode(', ', $record->keywords) : '—')
-                            ->columnSpanFull(),
-                        Placeholder::make('extended_abstract_document')
-                            ->label('Abstract')
-                            ->content(function ($record): HtmlString {
-                                if (! $record || (! filled($record->abstract) && ! $record->extended_abstract_draft_saved_at)) {
-                                    return new HtmlString('<p class="text-sm italic text-gray-500">Belum diinput oleh author.</p>');
-                                }
+                        Section::make()
+                            ->schema([
+                                Text::make(fn ($record): string => $record?->title ?: 'Tanpa judul')
+                                    ->size(TextSize::Large)
+                                    ->weight(FontWeight::Bold),
+                                Placeholder::make('keywords_display')
+                                    ->label('Keywords')
+                                    ->content(fn ($record): string => filled($record?->keywords)
+                                        ? implode(', ', $record->keywords)
+                                        : '—'),
+                            ]),
 
-                                $pdfUrl = route('admin.submissions.extended-abstract.preview', $record);
-                                $document = view('components.extended-abstract-document', ['submission' => $record])->render();
+                        Section::make('Extended Abstract')
+                            ->headerActions([
+                                Action::make('previewPdf')
+                                    ->label('Buka Preview PDF')
+                                    ->icon('heroicon-o-document-arrow-down')
+                                    ->color('gray')
+                                    ->url(fn ($record): ?string => $record
+                                        ? route('admin.submissions.extended-abstract.preview', $record)
+                                        : null)
+                                    ->openUrlInNewTab()
+                                    ->visible(fn ($record): bool => static::hasAbstract($record)),
+                            ])
+                            ->schema([
+                                Placeholder::make('extended_abstract_document')
+                                    ->hiddenLabel()
+                                    ->content(function ($record): HtmlString {
+                                        if (! static::hasAbstract($record)) {
+                                            return new HtmlString('Belum diinput oleh author.');
+                                        }
 
-                                return new HtmlString(
-                                    '<div class="mb-4"><a class="fi-btn fi-btn-color-gray fi-size-sm inline-flex items-center rounded-lg border border-gray-300 px-3 py-2 text-sm font-semibold" href="'.e($pdfUrl).'" target="_blank">Buka Preview PDF</a></div>'.$document,
-                                );
-                            })
-                            ->columnSpanFull(),
+                                        return new HtmlString(
+                                            view('components.extended-abstract-document', ['submission' => $record])->render()
+                                        );
+                                    }),
+                            ]),
+
+                        Section::make('Reviewer & Hasil Review')
+                            ->schema(fn ($record): array => static::reviewBlocks($record)),
                     ]),
 
-                Section::make('Authors')
+                Group::make()
+                    ->columnSpan(1)
                     ->schema([
-                        Placeholder::make('authors_list')
-                            ->hiddenLabel()
-                            ->content(function ($record): HtmlString {
-                                if (! $record) {
-                                    return new HtmlString('—');
-                                }
-                                $rows = $record->authors()->orderBy('order')->get()->map(function ($a) {
-                                    $corr = $a->is_corresponding ? ' <span class="text-primary-600">(corresponding)</span>' : '';
+                        Section::make('Ringkasan')
+                            ->schema([
+                                Placeholder::make('submission_number_display')
+                                    ->label('Kode')
+                                    ->content(fn ($record): string => $record?->submission_number ?: '—'),
+                                Placeholder::make('status_display')
+                                    ->label('Status')
+                                    ->content(fn ($record): string => Submission::STATUS_LABELS[$record?->status] ?? '—'),
+                                Placeholder::make('topic_display')
+                                    ->label('Sub-tema')
+                                    ->content(fn ($record): string => $record?->topic?->title ?: 'Belum dipilih'),
+                                Placeholder::make('journal_target_display')
+                                    ->label('Target jurnal')
+                                    ->content(fn ($record): string => $record?->journalTargetLabel() ?? '—'),
+                                Placeholder::make('submitted_at_display')
+                                    ->label('Dikirim')
+                                    ->content(fn ($record): string => $record?->extended_abstract_submitted_at?->format('d M Y H:i')
+                                        ?? $record?->submitted_at?->format('d M Y H:i')
+                                        ?? 'Belum dikirim'),
+                                Placeholder::make('loa_display')
+                                    ->label('LOA terbit')
+                                    ->content(fn ($record): string => $record?->loa_issued_at?->format('d M Y') ?? 'Belum terbit'),
+                            ]),
 
-                                    return '<li>'.e($a->name).' &lt;'.e($a->email).'&gt; — '.e($a->affiliation ?? '').$corr.'</li>';
-                                })->implode('');
-
-                                return new HtmlString('<ul class="list-disc ps-5 space-y-1">'.$rows.'</ul>');
-                            }),
-                    ]),
-
-                Section::make('Reviewers & Hasil Review')
-                    ->schema([
-                        Placeholder::make('reviewers_list')
-                            ->hiddenLabel()
-                            ->content(function ($record): HtmlString {
-                                if (! $record || $record->reviewAssignments->isEmpty()) {
-                                    return new HtmlString('<p class="text-sm text-gray-500 italic">Belum ada reviewer yang ditugaskan.</p>');
-                                }
-
-                                $items = $record->reviewAssignments->map(function ($ra) {
-                                    $rev = $ra->review;
-                                    $statusBadge = $ra->status === 'completed'
-                                        ? '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800">Completed</span>'
-                                        : '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800">Pending</span>';
-
-                                    $rec = $rev?->recommendation
-                                        ? ' &bull; <strong>Rekomendasi:</strong> '.ucwords(str_replace('_', ' ', $rev->recommendation))
-                                        : '';
-                                    $score = $rev?->score ? ' &bull; <strong>Skor:</strong> '.$rev->score.'/100' : '';
-                                    $comments = $rev?->comments_for_author
-                                        ? '<div class="mt-2 text-xs bg-gray-50 p-3 rounded border border-gray-200"><strong>Komentar untuk Author:</strong><br><span class="whitespace-pre-line text-gray-700">'.e($rev->comments_for_author).'</span></div>'
-                                        : '';
-                                    $internal = $rev?->comments_for_committee
-                                        ? '<div class="mt-1 text-xs bg-blue-50 p-3 rounded border border-blue-200"><strong>Catatan Internal Panitia:</strong><br><span class="whitespace-pre-line text-blue-900">'.e($rev->comments_for_committee).'</span></div>'
-                                        : '';
-
-                                    return '<div class="p-3.5 rounded-lg border border-gray-200 bg-white mb-3">'
-                                        .'<div class="flex items-center justify-between gap-2 mb-1">'
-                                        .'<span class="font-bold text-sm text-gray-900">'.e($ra->reviewer?->name ?? 'Reviewer #'.$ra->reviewer_id).'</span>'
-                                        .$statusBadge
-                                        .'</div>'
-                                        .'<div class="text-xs text-gray-600">Ditugaskan: '.$ra->assigned_at?->format('d M Y H:i').$score.$rec.'</div>'
-                                        .$comments
-                                        .$internal
-                                        .'</div>';
-                                })->implode('');
-
-                                return new HtmlString($items);
-                            }),
+                        Section::make('Authors')
+                            ->schema(fn ($record): array => static::authorBlocks($record)),
                     ]),
             ]);
+    }
+
+    /**
+     * Daftar author dan hasil review dirakit dari komponen Filament, bukan HTML
+     * sendiri: panel admin memakai CSS bawaan Filament, jadi kelas Tailwind
+     * lepas yang ditulis di sini tidak ikut dikompilasi — badge "Completed"
+     * sebelumnya cuma muncul sebagai teks polos yang menempel ke nama reviewer.
+     *
+     * @return array<int, Component>
+     */
+    private static function authorBlocks($record): array
+    {
+        $authors = $record?->authors()->orderBy('order')->get();
+
+        if (blank($authors)) {
+            return [Text::make('Belum ada author yang dicatat.')->color('gray')];
+        }
+
+        return $authors->map(fn ($author) => Section::make($author->name)
+            ->description($author->is_corresponding ? 'Corresponding author' : null)
+            ->compact()
+            ->secondary()
+            ->schema(array_values(array_filter([
+                Text::make($author->email)->size(TextSize::Small)->color('gray'),
+                $author->affiliation
+                    ? Text::make($author->affiliation)->size(TextSize::Small)->color('gray')
+                    : null,
+            ]))))->all();
+    }
+
+    /** @return array<int, Component> */
+    private static function reviewBlocks($record): array
+    {
+        if (! $record || $record->reviewAssignments->isEmpty()) {
+            return [Text::make('Belum ada reviewer yang ditugaskan.')->color('gray')];
+        }
+
+        return $record->reviewAssignments->map(function ($assignment) {
+            $review = $assignment->review;
+
+            $facts = [];
+            if ($assignment->assigned_at) {
+                $facts[] = 'Ditugaskan '.$assignment->assigned_at->format('d M Y');
+            }
+            if ($review?->score) {
+                $facts[] = 'Skor '.$review->score.'/100';
+            }
+            if ($review?->recommendation) {
+                $facts[] = ucwords(str_replace('_', ' ', $review->recommendation));
+            }
+
+            $isDone = $assignment->status === 'completed';
+
+            return Section::make($assignment->reviewer?->name ?? 'Reviewer #'.$assignment->reviewer_id)
+                ->description($facts ? implode(' • ', $facts) : null)
+                ->compact()
+                ->secondary()
+                ->afterHeader([
+                    Text::make($isDone ? 'Completed' : 'Pending')
+                        ->badge()
+                        ->color($isDone ? 'success' : 'warning'),
+                ])
+                ->schema(array_values(array_filter([
+                    $review?->comments_for_author
+                        ? Placeholder::make('comments_for_author_'.$assignment->id)
+                            ->label('Untuk author')
+                            ->content($review->comments_for_author)
+                        : null,
+                    $review?->comments_for_committee
+                        ? Placeholder::make('comments_for_committee_'.$assignment->id)
+                            ->label('Catatan internal panitia')
+                            ->content($review->comments_for_committee)
+                        : null,
+                ])));
+        })->all();
+    }
+
+    private static function hasAbstract($record): bool
+    {
+        return (bool) $record && (filled($record->abstract) || $record->extended_abstract_draft_saved_at);
     }
 }

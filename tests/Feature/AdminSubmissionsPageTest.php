@@ -2,11 +2,15 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Submissions\Pages\EditSubmission;
 use App\Filament\Resources\Submissions\Pages\ListSubmissions;
 use App\Filament\Resources\Submissions\Tables\SubmissionsTable;
 use App\Models\Author;
 use App\Models\Edition;
+use App\Models\ReviewAssignment;
 use App\Models\Submission;
+use App\Models\SubmissionAuthor;
+use App\Models\Topic;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -110,6 +114,71 @@ class AdminSubmissionsPageTest extends TestCase
             ->searchTable($wanted->submission_number)
             ->assertCanSeeTableRecords([$wanted])
             ->assertCanNotSeeTableRecords([$other]);
+    }
+
+    /**
+     * Halaman detail menaruh naskah di kolom lebar dan keterangan pendek di
+     * kolom sempit. Tesnya menjaga isi tiap sisi tetap sampai ke halaman —
+     * termasuk status yang dibaca manusia, bukan nama status mentahnya.
+     */
+    public function test_the_detail_page_shows_both_columns(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        Role::findOrCreate('reviewer', 'web');
+
+        $admin = User::create(['name' => 'Admin', 'email' => 'admin-detail@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $reviewer = User::create(['name' => 'Penilai Satu', 'email' => 'penilai@example.test', 'password' => 'secret-password']);
+        $reviewer->assignRole('reviewer');
+
+        $edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+        $topic = Topic::create(['edition_id' => $edition->id, 'title' => ['id' => 'Pemasaran', 'en' => 'Marketing'], 'order' => 1]);
+        $author = Author::create([
+            'name' => 'Presenter Detail', 'email' => 'presenter-detail@example.test',
+            'password' => 'secret-password', 'participation_type' => 'presenter',
+        ]);
+        $submission = Submission::create([
+            'edition_id' => $edition->id,
+            'author_id' => $author->id,
+            'topic_id' => $topic->id,
+            'title' => 'Judul Paper Yang Panjang',
+            'abstract' => str_repeat('kata ', 200),
+            'keywords' => ['Content Quality', 'Brand Awareness'],
+            'status' => 'extended_abstract_under_review',
+            'extended_abstract_submitted_at' => now(),
+        ]);
+        SubmissionAuthor::create([
+            'submission_id' => $submission->id,
+            'name' => 'Presenter Detail',
+            'email' => 'presenter-detail@example.test',
+            'affiliation' => 'Universitas Contoh',
+            'is_corresponding' => true,
+            'order' => 1,
+        ]);
+        ReviewAssignment::create([
+            'submission_id' => $submission->id,
+            'reviewer_id' => $reviewer->id,
+            'phase' => 'extended_abstract',
+            'assigned_at' => now(),
+            'status' => 'pending',
+        ]);
+
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(EditSubmission::class, ['record' => $submission->getRouteKey()])
+            ->assertOk()
+            // Kolom lebar: naskahnya.
+            ->assertSee('Judul Paper Yang Panjang')
+            ->assertSee('Content Quality')
+            ->assertSee('Extended Abstract')
+            // Kolom sempit: keterangan pendeknya.
+            ->assertSee($submission->submission_number)
+            ->assertSee('Verifikasi reviewer')
+            ->assertDontSee('extended_abstract_under_review')
+            ->assertSee($topic->title)
+            ->assertSee('Presenter Detail')
+            ->assertSee('Penilai Satu');
     }
 
     /**
