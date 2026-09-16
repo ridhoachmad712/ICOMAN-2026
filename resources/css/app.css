@@ -17,9 +17,35 @@
 }
 
 :root {
-    /* Aksen hangat (dari logo) untuk highlight — melengkapi --brand (biru). */
+    /* Aksen hangat (dari logo) untuk highlight, melengkapi --brand. */
     --accent: #f26522;
     --accent-strong: #d84c12;
+
+    /*
+     * Warna merek dipakai untuk dua peran yang tuntutannya berbeda.
+     *
+     * Sebagai BIDANG (latar tombol, garis, hiasan) jingga terang itu justru
+     * yang dikenali orang. Sebagai TEKS, atau sebagai latar yang memikul teks
+     * putih, jingga yang sama hanya mencapai 3,68:1 terhadap putih, di bawah
+     * ambang 4,5:1. Varian yang lebih pekat ini dipakai khusus untuk peran
+     * kedua itu, sehingga identitasnya tetap tapi teksnya terbaca.
+     *
+     * Diturunkan dari --brand, jadi ikut berubah bila panitia mengganti warna
+     * mereknya di Pengaturan. Catatan: penurunan ini tidak menjamin ambang itu
+     * untuk warna terang mana pun; warna yang sangat muda tetap perlu diperiksa.
+     */
+    --brand-ink: color-mix(in srgb, var(--brand, #d9621c) 78%, #000);
+    --accent-ink: color-mix(in srgb, var(--accent) 72%, #000);
+}
+
+/*
+ * Di atas bidang GELAP arahnya terbalik: varian pekat justru menghilang, dan
+ * yang terbaca adalah varian yang lebih terang. Bagian gelap menandai dirinya
+ * dengan .on-dark, lalu kedua varian di atas didefinisikan ulang di sana.
+ */
+.on-dark {
+    --brand-ink: color-mix(in srgb, var(--brand, #d9621c) 72%, #fff);
+    --accent-ink: color-mix(in srgb, var(--accent) 66%, #fff);
 }
 
 @layer base {
@@ -57,7 +83,7 @@
     }
     .btn:hover { transform: translateY(-1px); }
     .btn-primary {
-        background: var(--brand);
+        background: var(--brand-ink);
         color: #fff;
         box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--brand) 70%, transparent);
     }
@@ -70,11 +96,11 @@
     .btn-ghost:hover { background: color-mix(in srgb, #fff 22%, transparent); }
     .btn-outline {
         background: #fff;
-        color: var(--brand);
+        color: var(--brand-ink);
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
     }
     .btn-accent {
-        background: var(--accent);
+        background: var(--accent-ink);
         color: #fff;
         box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 70%, transparent);
     }
@@ -107,7 +133,7 @@
         font-weight: 700;
         letter-spacing: 0.16em;
         text-transform: uppercase;
-        color: var(--accent);
+        color: var(--accent-ink);
     }
     .eyebrow::before {
         content: '';

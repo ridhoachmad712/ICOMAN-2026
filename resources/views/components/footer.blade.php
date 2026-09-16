@@ -17,7 +17,7 @@
     ];
 @endphp
 
-<footer class="bg-[var(--brand-2)] text-slate-300">
+<footer class="on-dark bg-[var(--brand-2)] text-slate-300">
     <div class="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-4 lg:px-8">
         <div>
             <h3 class="font-display text-xl font-bold text-white">{{ $name }}</h3>

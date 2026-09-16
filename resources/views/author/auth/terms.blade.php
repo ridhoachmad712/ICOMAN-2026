@@ -15,7 +15,7 @@
         };
     @endphp
     <div class="card mx-auto max-w-3xl p-6 sm:p-8">
-        <p class="text-sm font-semibold text-[var(--brand)]">{{ siteSettings()->conference_name }} · {{ $roleLabel }}</p>
+        <p class="text-sm font-semibold text-[var(--brand-ink)]">{{ siteSettings()->conference_name }} · {{ $roleLabel }}</p>
         <h1 class="mt-3 text-2xl font-bold">{{ $isId ? 'Syarat dan Ketentuan' : 'Terms and Conditions' }}</h1>
         <p class="mt-2 text-xs text-slate-500">{{ $isId ? 'Versi' : 'Version' }} 2026-09-05</p>
         <ol class="mt-6 list-decimal space-y-5 pl-5 text-sm leading-7 text-slate-600">

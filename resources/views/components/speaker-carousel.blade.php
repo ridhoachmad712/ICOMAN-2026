@@ -118,7 +118,7 @@
                         :aria-label="'{{ app()->getLocale() === 'id' ? 'Ke halaman ' : 'Go to page ' }}' + page"
                         :aria-current="index === page - 1"
                         class="h-2 rounded-full transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--brand)]"
-                        :class="index === page - 1 ? 'w-6 bg-[var(--brand)]' : 'w-2 bg-slate-300 hover:bg-slate-400'"></button>
+                        :class="index === page - 1 ? 'w-6 bg-[var(--brand-ink)]' : 'w-2 bg-slate-300 hover:bg-slate-400'"></button>
             </template>
         </div>
     </div>

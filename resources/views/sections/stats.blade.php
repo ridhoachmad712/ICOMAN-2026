@@ -13,7 +13,7 @@
             @foreach($stats as $stat)
                 @php $label = $stat['label_'.$locale] ?? $stat['label_id'] ?? $stat['label_en'] ?? null; @endphp
                 <div class="text-center">
-                    <p class="font-display text-4xl font-bold text-[var(--brand)]">{{ $stat['value'] ?? '' }}</p>
+                    <p class="font-display text-4xl font-bold text-[var(--brand-ink)]">{{ $stat['value'] ?? '' }}</p>
                     @if(filled($label))<p class="mt-2 text-sm text-slate-600">{{ $label }}</p>@endif
                 </div>
             @endforeach

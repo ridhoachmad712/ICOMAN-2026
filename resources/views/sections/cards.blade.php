@@ -17,7 +17,7 @@
                 @endphp
                 <div class="card p-6">
                     @if(filled($card['icon'] ?? null))
-                        <span class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                        <span class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
                             <x-ui-icon :name="$card['icon']" class="h-6 w-6" />
                         </span>
                     @endif

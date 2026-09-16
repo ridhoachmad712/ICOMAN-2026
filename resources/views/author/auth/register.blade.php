@@ -11,7 +11,7 @@
         <div class="card p-6 sm:p-8">
             {{-- Header --}}
             <div class="mb-6 text-center">
-                <span class="text-xs font-semibold uppercase tracking-widest text-[var(--brand)]">
+                <span class="text-xs font-semibold uppercase tracking-widest text-[var(--brand-ink)]">
                     {{ siteSettings()->conference_name ?: 'ICOMAN 2026' }}
                 </span>
                 <h1 class="mt-2 font-display text-2xl font-bold tracking-tight text-[var(--brand-2)]">
@@ -25,10 +25,10 @@
             {{-- Chosen registration type --}}
             <div class="mb-6 flex items-center justify-between gap-3 rounded-xl border border-[var(--brand)]/30 bg-[var(--brand)]/5 px-4 py-3">
                 <div class="min-w-0">
-                    <span class="block text-[11px] font-semibold uppercase tracking-wider text-[var(--brand)]">{{ $isId ? 'Jenis registrasi' : 'Registration type' }}</span>
+                    <span class="block text-[11px] font-semibold uppercase tracking-wider text-[var(--brand-ink)]">{{ $isId ? 'Jenis registrasi' : 'Registration type' }}</span>
                     <span class="mt-0.5 block truncate text-sm font-semibold text-slate-900">{{ $roleLabel }}</span>
                 </div>
-                <a href="{{ route('author.register') }}" class="shrink-0 text-xs font-semibold text-[var(--brand)] hover:underline">{{ $isId ? 'Ubah' : 'Change' }}</a>
+                <a href="{{ route('author.register') }}" class="shrink-0 text-xs font-semibold text-[var(--brand-ink)] hover:underline">{{ $isId ? 'Ubah' : 'Change' }}</a>
             </div>
 
             <form method="POST" action="{{ route('author.register') }}" class="space-y-5" x-data="{ showPass: false, showPassConf: false }">
@@ -37,7 +37,7 @@
 
                 {{-- Participant category --}}
                 <div>
-                    <label for="field-name" class="{{ $label }}">{{ $isId ? 'Kategori peserta' : 'Participant category' }} <span class="text-[var(--brand)]">*</span></label>
+                    <label for="field-name" class="{{ $label }}">{{ $isId ? 'Kategori peserta' : 'Participant category' }} <span class="text-[var(--brand-ink)]">*</span></label>
                     <select name="registrant_category" required class="{{ $input }}">
                         <option value="" disabled @selected(! old('registrant_category'))>{{ $isId ? 'Pilih kategori…' : 'Select a category…' }}</option>
                         @foreach(\App\Models\Author::CATEGORIES as $key => $lbl)
@@ -50,14 +50,14 @@
 
                 {{-- Full name --}}
                 <div>
-                    <label class="{{ $label }}">{{ __('author.name') }} <span class="text-[var(--brand)]">*</span></label>
+                    <label class="{{ $label }}">{{ __('author.name') }} <span class="text-[var(--brand-ink)]">*</span></label>
                     <input id="field-name" type="text" name="name" value="{{ old('name') }}" required class="{{ $input }}" placeholder="Dr. Jane Doe / John Doe, M.M.">
                     @error('name')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
 
                 {{-- Email --}}
                 <div>
-                    <label for="field-email" class="{{ $label }}">{{ __('author.email') }} <span class="text-[var(--brand)]">*</span></label>
+                    <label for="field-email" class="{{ $label }}">{{ __('author.email') }} <span class="text-[var(--brand-ink)]">*</span></label>
                     <input id="field-email" type="email" name="email" value="{{ old('email') }}" required class="{{ $input }}" placeholder="name@university.ac.id">
                     @error('email')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                 </div>
@@ -88,7 +88,7 @@
                 {{-- Passwords --}}
                 <div class="grid gap-4 sm:grid-cols-2">
                     <div>
-                        <label class="{{ $label }}">{{ __('author.password') }} <span class="text-[var(--brand)]">*</span></label>
+                        <label class="{{ $label }}">{{ __('author.password') }} <span class="text-[var(--brand-ink)]">*</span></label>
                         <div class="relative">
                             <input :type="showPass ? 'text' : 'password'" name="password" required class="{{ $input }} pr-10" placeholder="••••••••">
                             <button type="button" @click="showPass = !showPass" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none" aria-label="{{ $isId ? 'Tampilkan kata sandi' : 'Show password' }}">
@@ -99,7 +99,7 @@
                         @error('password')<p class="mt-1.5 text-xs font-medium text-red-600">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label class="{{ $label }}">{{ __('author.password_confirm') }} <span class="text-[var(--brand)]">*</span></label>
+                        <label class="{{ $label }}">{{ __('author.password_confirm') }} <span class="text-[var(--brand-ink)]">*</span></label>
                         <div class="relative">
                             <input :type="showPassConf ? 'text' : 'password'" name="password_confirmation" required class="{{ $input }} pr-10" placeholder="••••••••">
                             <button type="button" @click="showPassConf = !showPassConf" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 focus:outline-none" aria-label="{{ $isId ? 'Tampilkan kata sandi' : 'Show password' }}">
@@ -116,13 +116,13 @@
             {{-- Login switch --}}
             <p class="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-500">
                 {{ __('author.have_account') }}
-                <a href="{{ route('filament.author.auth.login') }}" class="ml-1 font-semibold text-[var(--brand)] hover:underline">{{ __('author.login') }} →</a>
+                <a href="{{ route('filament.author.auth.login') }}" class="ml-1 font-semibold text-[var(--brand-ink)] hover:underline">{{ __('author.login') }} →</a>
             </p>
 
             @if(siteSettings()->contact_email)
                 <p class="mt-3 text-center text-xs text-slate-400">
                     {{ __('author.need_help') }}
-                    <a href="mailto:{{ siteSettings()->contact_email }}" class="text-slate-500 underline hover:text-[var(--brand)]">{{ siteSettings()->contact_email }}</a>
+                    <a href="mailto:{{ siteSettings()->contact_email }}" class="text-slate-500 underline hover:text-[var(--brand-ink)]">{{ siteSettings()->contact_email }}</a>
                 </p>
             @endif
         </div>

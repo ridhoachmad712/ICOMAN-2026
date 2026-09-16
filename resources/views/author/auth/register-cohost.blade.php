@@ -8,7 +8,7 @@
     <div class="mx-auto max-w-2xl">
         <div class="card p-6 sm:p-8">
             <div class="mb-6 text-center">
-                <span class="text-xs font-semibold uppercase tracking-widest text-[var(--brand)]">
+                <span class="text-xs font-semibold uppercase tracking-widest text-[var(--brand-ink)]">
                     {{ siteSettings()->conference_name ?: 'ICOMAN 2026' }}
                 </span>
                 <h1 class="mt-2 font-display text-2xl font-bold tracking-tight text-[var(--brand-2)]">
@@ -128,7 +128,7 @@
 
             <p class="mt-6 text-center text-sm text-slate-500">
                 {{ $isId ? 'Sudah punya akun?' : 'Already have an account?' }}
-                <a href="{{ route('filament.author.auth.login') }}" class="font-semibold text-[var(--brand)] hover:underline">
+                <a href="{{ route('filament.author.auth.login') }}" class="font-semibold text-[var(--brand-ink)] hover:underline">
                     {{ $isId ? 'Masuk' : 'Sign in' }}
                 </a>
             </p>

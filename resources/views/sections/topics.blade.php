@@ -16,13 +16,13 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     @foreach($records->take(8) as $topic)
                         <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
-                            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--brand)] shrink-0"></span>
+                            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--brand-ink)] shrink-0"></span>
                             <span class="text-slate-700">{{ $topic->title }}</span>
                         </div>
                     @endforeach
                 </div>
                 <div class="text-center mt-8">
-                    <a href="{{ route('call-for-papers') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_topics') }} →</a>
+                    <a href="{{ route('call-for-papers') }}" class="text-[var(--brand-ink)] font-medium hover:underline">{{ __('site.view_topics') }} →</a>
                 </div>
             </div>
         </section>

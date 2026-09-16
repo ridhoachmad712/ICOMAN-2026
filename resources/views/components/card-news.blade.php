@@ -22,10 +22,10 @@
             <time class="text-xs text-slate-400">{{ $item->published_at->translatedFormat('d M Y') }}</time>
         @endif
         <h3 class="mt-1 font-semibold text-slate-900 leading-snug">
-            <a href="{{ route('news.show', $item->slug) }}" class="hover:text-[var(--brand)]">{{ $displayTitle }}</a>
+            <a href="{{ route('news.show', $item->slug) }}" class="hover:text-[var(--brand-ink)]">{{ $displayTitle }}</a>
         </h3>
         @if($displayExcerpt)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ $displayExcerpt }}</p>@endif
-        <a href="{{ route('news.show', $item->slug) }}" class="mt-3 inline-block text-sm font-medium text-[var(--brand)] hover:underline">
+        <a href="{{ route('news.show', $item->slug) }}" class="mt-3 inline-block text-sm font-medium text-[var(--brand-ink)] hover:underline">
             {{ __('site.read_more') }} →
         </a>
     </div>

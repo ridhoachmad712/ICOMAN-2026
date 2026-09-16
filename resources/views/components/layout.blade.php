@@ -79,7 +79,7 @@
     @livewireStyles
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-800 antialiased flex flex-col">
-    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-md focus:bg-[var(--brand)] focus:px-4 focus:py-2 focus:text-white">
+    <a href="#main-content" class="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-md focus:bg-[var(--brand-ink)] focus:px-4 focus:py-2 focus:text-white">
         {{ __('site.layout_skip_to_content') }}
     </a>
 
@@ -94,7 +94,7 @@
     @if(canEditPages() && ! pageEditMode() && ! request()->has('preview'))
         {{-- Pintu masuk mode sunting, hanya untuk penyunting yang sedang login. --}}
         <a href="{{ request()->fullUrlWithQuery(['edit' => 1]) }}"
-           class="fixed bottom-5 left-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--brand-2)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg hover:bg-[var(--brand)]">
+           class="fixed bottom-5 left-5 z-50 inline-flex items-center gap-2 rounded-full bg-[var(--brand-2)] px-4 py-2.5 text-xs font-semibold text-white shadow-lg hover:bg-[var(--brand-ink)]">
             ✎ Sunting halaman
         </a>
     @endif

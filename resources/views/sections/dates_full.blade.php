@@ -9,7 +9,7 @@
             <ol class="relative border-s-2 border-slate-200 ms-3 space-y-8">
                 @foreach($importantDates as $d)
                     <li class="ms-6">
-                        <span class="absolute -start-2.5 flex h-5 w-5 items-center justify-center rounded-full {{ $d->is_highlighted ? 'bg-[var(--brand)]' : 'bg-slate-300' }} ring-4 ring-slate-50"></span>
+                        <span class="absolute -start-2.5 flex h-5 w-5 items-center justify-center rounded-full {{ $d->is_highlighted ? 'bg-[var(--brand-ink)]' : 'bg-slate-300' }} ring-4 ring-slate-50"></span>
                         <div class="card px-5 py-4 {{ $d->is_highlighted ? 'ring-1 ring-[var(--brand)]/40' : '' }}">
                             <p class="text-sm font-semibold text-[var(--brand-2)]">{{ $d->closes_at?->format('d M Y H:i') ?? $d->date?->translatedFormat('l, d F Y') ?? (__('site.dates_to_be_announced')) }}</p>
                             <p class="text-slate-600">{{ $d->label }}</p>

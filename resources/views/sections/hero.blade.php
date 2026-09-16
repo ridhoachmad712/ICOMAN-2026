@@ -9,7 +9,7 @@
 @endphp
 
     {{-- HERO --}}
-    <section class="relative bg-[var(--brand-2)] text-white overflow-hidden">
+    <section class="on-dark relative bg-[var(--brand-2)] text-white overflow-hidden">
         @if($heroImage)
             <img src="{{ $heroImage }}" alt="" class="absolute inset-0 h-full w-full object-cover opacity-40">
             <div class="absolute inset-0 bg-gradient-to-t from-[var(--brand-2)] via-[var(--brand-2)]/80 to-[var(--brand-2)]/40"></div>
@@ -19,7 +19,7 @@
             <div class="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/25 via-transparent to-[var(--brand-2)]/60"></div>
         @endif
         {{-- Glow duotone (biru + aksen hangat) + vignette untuk kedalaman --}}
-        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand)] opacity-25 blur-[120px]"></div>
+        <div aria-hidden="true" class="pointer-events-none absolute -top-32 -right-24 h-[32rem] w-[32rem] rounded-full bg-[var(--brand-ink)] opacity-25 blur-[120px]"></div>
         <div aria-hidden="true" class="pointer-events-none absolute -bottom-40 -left-32 h-[34rem] w-[34rem] rounded-full bg-[var(--accent)] opacity-[0.14] blur-[130px]"></div>
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 

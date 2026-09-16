@@ -23,7 +23,7 @@
     </div>
     <div class="p-4">
         <div class="flex items-center gap-2">
-            <span class="inline-block text-[10px] uppercase tracking-wide font-semibold text-[var(--brand)] bg-[var(--brand)]/10 px-2 py-0.5 rounded">
+            <span class="inline-block text-[10px] uppercase tracking-wide font-semibold text-[var(--brand-ink)] bg-[var(--brand)]/10 px-2 py-0.5 rounded">
                 {{ ucfirst($speaker->type) }}
             </span>
             @if($countryLabel)

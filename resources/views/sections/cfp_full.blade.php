@@ -20,7 +20,7 @@
                 <div class="grid gap-3 sm:grid-cols-2">
                     @foreach($topics as $topic)
                         <div class="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
-                            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--brand)] shrink-0"></span>
+                            <span class="mt-1 h-2 w-2 rounded-full bg-[var(--brand-ink)] shrink-0"></span>
                             <span class="text-slate-700">{{ $topic->title }}</span>
                         </div>
                     @endforeach
@@ -43,7 +43,7 @@
                             <span class="font-medium text-slate-700">{{ $t->title }}</span>
                             @if($file)
                                 <a href="{{ $file }}" target="_blank" rel="noopener"
-                                   class="text-sm font-semibold text-[var(--brand)] hover:underline whitespace-nowrap">{{ __('site.download') }} ↓</a>
+                                   class="text-sm font-semibold text-[var(--brand-ink)] hover:underline whitespace-nowrap">{{ __('site.download') }} ↓</a>
                             @endif
                         </li>
                     @endforeach

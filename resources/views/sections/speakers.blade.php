@@ -19,7 +19,7 @@
 
             @if($announcedSpeakers->isEmpty())
                 <div data-reveal class="mx-auto max-w-md text-center">
-                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
                         <x-ui-icon name="users" class="h-6 w-6" />
                     </div>
                     <p class="text-lg font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
@@ -30,7 +30,7 @@
                 <x-speaker-carousel :speakers="$announcedSpeakers" />
 
                 <div class="text-center mt-8">
-                    <a href="{{ route('speakers') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
+                    <a href="{{ route('speakers') }}" class="text-[var(--brand-ink)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
                 </div>
             @endif
         </div>

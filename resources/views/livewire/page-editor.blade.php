@@ -87,7 +87,7 @@
                     @foreach($types as $key => $label)
                         <button type="button"
                                 @click="Livewire.dispatch('ps-add', { type: '{{ $key }}', afterId: after }); open = false"
-                                class="rounded-lg border border-slate-200 px-3 py-3 text-xs font-medium text-slate-700 hover:border-[var(--brand)] hover:text-[var(--brand)]">
+                                class="rounded-lg border border-slate-200 px-3 py-3 text-xs font-medium text-slate-700 hover:border-[var(--brand)] hover:text-[var(--brand-ink)]">
                             {{ $label }}
                         </button>
                     @endforeach

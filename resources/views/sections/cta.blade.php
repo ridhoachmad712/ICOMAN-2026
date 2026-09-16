@@ -6,7 +6,7 @@
 <section class="py-16 {{ $section->setting('tinted', true) ? 'section-tint' : 'bg-white' }}">
     <div class="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
         @if(filled($section->eyebrow))
-            <p class="eyebrow text-[var(--brand)]">{{ $section->eyebrow }}</p>
+            <p class="eyebrow text-[var(--brand-ink)]">{{ $section->eyebrow }}</p>
         @endif
         @if(filled($section->heading))
             <h2 class="mt-2 font-display text-2xl font-bold text-[var(--brand-2)] sm:text-3xl">{{ $section->heading }}</h2>

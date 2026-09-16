@@ -19,7 +19,7 @@
             @endforeach
         </div>
         <div class="mt-8 text-center">
-            <a href="{{ route('committee') }}" class="text-[var(--brand)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
+            <a href="{{ route('committee') }}" class="text-[var(--brand-ink)] font-medium hover:underline">{{ __('site.view_all') }} →</a>
         </div>
     </div>
 </section>

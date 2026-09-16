@@ -24,7 +24,7 @@
                         <p class="font-semibold text-[var(--brand-2)]">{{ $coHost->institution_name }}</p>
                         @if($coHost->typeLabel())<p class="mt-0.5 text-xs text-slate-500">{{ $coHost->typeLabel() }}</p>@endif
                         @if($coHost->website)
-                            <a href="{{ $coHost->website }}" target="_blank" rel="noopener" class="mt-1 inline-block text-xs font-medium text-[var(--brand)] hover:underline">
+                            <a href="{{ $coHost->website }}" target="_blank" rel="noopener" class="mt-1 inline-block text-xs font-medium text-[var(--brand-ink)] hover:underline">
                                 {{ parse_url($coHost->website, PHP_URL_HOST) }}
                             </a>
                         @endif

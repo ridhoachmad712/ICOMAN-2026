@@ -26,19 +26,19 @@
             <div class="hidden items-center gap-0.5 xl:flex">
                 @foreach($nav as $item)
                     @if($item['children'] === [])
-                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand-ink)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                             {{ $item['label'] }}
                         </a>
                     @else
                         <div x-data="{ expanded: false }" class="relative" @mouseenter="expanded = true" @mouseleave="expanded = false">
-                            <button @click="expanded = !expanded" :aria-expanded="expanded" aria-haspopup="true" class="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $groupActive($item['children']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
+                            <button @click="expanded = !expanded" :aria-expanded="expanded" aria-haspopup="true" class="inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {{ $groupActive($item['children']) ? 'bg-slate-100 text-[var(--brand-ink)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">
                                 {{ $item['label'] }}
                                 <svg class="h-4 w-4 transition-transform" :class="expanded && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>
                             </button>
                             <div x-show="expanded" x-cloak x-transition @click.outside="expanded = false" class="absolute left-0 top-full w-56 pt-2">
                                 <div class="rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg shadow-slate-900/10">
                                     @foreach($item['children'] as $child)
-                                        <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="block rounded-lg px-3 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">{{ $child['label'] }}</a>
+                                        <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="block rounded-lg px-3 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand-ink)]' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950' }}">{{ $child['label'] }}</a>
                                     @endforeach
                                 </div>
                             </div>
@@ -69,11 +69,11 @@
             <div class="flex flex-col gap-1">
                 @foreach($nav as $item)
                     @if($item['children'] === [])
-                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
+                        <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand-ink)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
                     @else
                         <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ $item['label'] }}</p>
                         @foreach($item['children'] as $child)
-                            <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
+                            <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand-ink)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
                         @endforeach
                     @endif
                 @endforeach

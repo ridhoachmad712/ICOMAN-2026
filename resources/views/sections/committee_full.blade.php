@@ -21,7 +21,7 @@
                                 @endif
                             </div>
                             <h3 class="mt-3 font-semibold text-slate-900">{{ $m->name }}</h3>
-                            @if($m->role_title)<p class="text-sm text-[var(--brand)]">{{ $m->role_title }}</p>@endif
+                            @if($m->role_title)<p class="text-sm text-[var(--brand-ink)]">{{ $m->role_title }}</p>@endif
                             @if($m->affiliation)<p class="text-xs text-slate-500 mt-1">{{ $m->affiliation }}</p>@endif
                         </div>
                     @endforeach

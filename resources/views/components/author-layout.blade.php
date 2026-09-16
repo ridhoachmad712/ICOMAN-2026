@@ -41,7 +41,7 @@
 
             <main class="flex-1 px-6 py-12 lg:min-h-0 lg:overflow-y-auto">
                 {{-- Panel kiri tidak tampil di ponsel, jadi identitas acara diulang ringkas di sini. --}}
-                <p class="mb-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)] lg:hidden">
+                <p class="mb-6 text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-ink)] lg:hidden">
                     {{ currentEdition()?->name ?: $confName }}
                 </p>
 

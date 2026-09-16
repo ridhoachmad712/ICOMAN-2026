@@ -37,7 +37,7 @@
 
                             {{-- Ruangnya disediakan sejak awal supaya barisnya tidak
                                  bergeser saat keterangan muncul. --}}
-                            <span class="text-[11px] font-semibold uppercase tracking-widest whitespace-nowrap text-[var(--brand)] opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                            <span class="text-[11px] font-semibold uppercase tracking-widest whitespace-nowrap text-[var(--brand-ink)] opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                                 {{ $sponsor->tierLabel() }}
                             </span>
                         </div>

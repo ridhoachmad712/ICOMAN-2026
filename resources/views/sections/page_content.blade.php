@@ -21,7 +21,7 @@
                 <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow ?: __('nav.about')" :center="false" />
                 <p class="text-base leading-relaxed text-slate-600">{{ $excerpt }}</p>
                 @if($page)
-                    <a href="{{ route('page', ['slug' => $page->slug]) }}" class="mt-6 inline-block text-[var(--brand)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
+                    <a href="{{ route('page', ['slug' => $page->slug]) }}" class="mt-6 inline-block text-[var(--brand-ink)] font-medium hover:underline">{{ __('site.learn_more') }} →</a>
                 @endif
             </div>
 
@@ -36,7 +36,7 @@
                     @endphp
                     @foreach($factRows as [$icon, $label, $value])
                         <div class="flex items-start gap-4 py-3 {{ ! $loop->last ? 'border-b border-slate-100' : '' }}">
-                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand)]">
+                            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
                                 <x-ui-icon :name="$icon" class="h-5 w-5" />
                             </span>
                             <div>

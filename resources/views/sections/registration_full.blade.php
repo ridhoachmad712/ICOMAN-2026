@@ -11,7 +11,7 @@
 
     <section class="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div class="mx-auto max-w-3xl text-center">
-            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">
+            <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand-ink)]">
                 {{ __('site.reg_choose_your_participation_type') }}
             </p>
             <h2 class="mt-3 font-display text-3xl font-bold tracking-tight text-[var(--brand-2)] sm:text-4xl">
@@ -26,10 +26,10 @@
             <article data-reveal class="rounded-2xl border border-[var(--brand)]/30 bg-white p-6 shadow-sm sm:p-8">
                 <div class="flex items-start justify-between gap-4">
                     <div>
-                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand)]">{{ __('site.reg_paper_path') }}</p>
+                        <p class="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--brand-ink)]">{{ __('site.reg_paper_path') }}</p>
                         <h3 class="mt-2 font-display text-2xl font-bold text-[var(--brand-2)]">{{ __('site.reg_presenter') }}</h3>
                     </div>
-                    <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand)]/10 text-[var(--brand)]">
+                    <span class="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[var(--brand)]/10 text-[var(--brand-ink)]">
                         <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5V6.75A3.375 3.375 0 0 0 11.25 3.375H8.625m0 0H5.25A1.125 1.125 0 0 0 4.125 4.5v15A1.125 1.125 0 0 0 5.25 20.625h13.5a1.125 1.125 0 0 0 1.125-1.125v-4.125a1.125 1.125 0 0 0-1.125-1.125H8.625V3.375Z"/></svg>
                     </span>
                 </div>
@@ -48,7 +48,7 @@
                         __('site.reg_submit_full_paper'),
                     ] as $step)
                         <li class="flex items-center gap-3 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
-                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[var(--brand)] shadow-sm">{{ $loop->iteration }}</span>
+                            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-xs font-bold text-[var(--brand-ink)] shadow-sm">{{ $loop->iteration }}</span>
                             <span>{{ $step }}</span>
                         </li>
                     @endforeach
@@ -106,7 +106,7 @@
         <section class="mt-16 border-t border-slate-200 pt-12">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                 <div>
-                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand)]">{{ __('site.reg_registration_fees') }}</p>
+                    <p class="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--brand-ink)]">{{ __('site.reg_registration_fees') }}</p>
                     <h2 class="mt-2 font-display text-2xl font-bold text-[var(--brand-2)] sm:text-3xl">{{ __('site.reg_choose_the_applicable_category') }}</h2>
                     <p class="mt-2 text-sm text-slate-600">{{ __('site.reg_prices_are_shown_per_participant') }}</p>
                 </div>
@@ -140,7 +140,7 @@
                                 @endforelse
                             </div>
                             <div class="border-t border-slate-200 bg-slate-50 px-5 py-4 sm:px-6">
-                                <a href="{{ route('author.register.terms', ['role' => $group['role']]) }}" class="inline-flex items-center text-sm font-semibold text-[var(--brand)] hover:underline">
+                                <a href="{{ route('author.register.terms', ['role' => $group['role']]) }}" class="inline-flex items-center text-sm font-semibold text-[var(--brand-ink)] hover:underline">
                                     {{ $group['role'] === 'presenter'
                                         ? (__('site.reg_register_as_presenter'))
                                         : (__('site.reg_register_as_attendee')) }} →
@@ -156,6 +156,6 @@
 
         <div class="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 text-sm text-slate-600 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:px-6">
             <p>{{ __('site.reg_still_unsure_which_path_or') }}</p>
-            <a href="{{ route('contact') }}" class="mt-3 inline-flex font-semibold text-[var(--brand)] hover:underline sm:mt-0">{{ __('site.reg_contact_the_committee') }} →</a>
+            <a href="{{ route('contact') }}" class="mt-3 inline-flex font-semibold text-[var(--brand-ink)] hover:underline sm:mt-0">{{ __('site.reg_contact_the_committee') }} →</a>
         </div>
     </section>

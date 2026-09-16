@@ -5,7 +5,7 @@
     <div class="absolute inset-0 bg-gradient-to-br from-[var(--brand)]/25 via-transparent to-[var(--brand-2)]/70"></div>
     <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14 sm:py-20">
         @if($eyebrow)
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand)] mb-2">{{ $eyebrow }}</p>
+            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--brand-ink)] mb-2">{{ $eyebrow }}</p>
         @endif
         <h1 class="font-display text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight">{{ $title }}</h1>
         @if($subtitle)

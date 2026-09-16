@@ -7,7 +7,7 @@
     @php $thumb = $item->getFirstMediaUrl('thumbnail'); @endphp
 
     <article class="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8 py-14">
-        <a href="{{ route('news.index') }}" class="text-sm text-[var(--brand)] hover:underline">← {{ __('site.back_to_news') }}</a>
+        <a href="{{ route('news.index') }}" class="text-sm text-[var(--brand-ink)] hover:underline">← {{ __('site.back_to_news') }}</a>
 
         <h1 class="mt-4 text-3xl sm:text-4xl font-bold tracking-tight text-[var(--brand-2)]">{{ $displayTitle }}</h1>
         @if($item->published_at)

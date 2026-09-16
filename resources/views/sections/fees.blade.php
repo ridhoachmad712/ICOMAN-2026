@@ -25,7 +25,7 @@
                         @if($group->isNotEmpty())
                             <div data-reveal>
                                 <h3 class="mb-4 flex items-center gap-2 text-sm font-bold uppercase tracking-wide text-[var(--brand-2)]">
-                                    <span class="h-4 w-1 rounded-full bg-[var(--brand)]"></span>{{ $audLabel }}
+                                    <span class="h-4 w-1 rounded-full bg-[var(--brand-ink)]"></span>{{ $audLabel }}
                                 </h3>
                                 <div class="grid items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3">
                                     @foreach($group as $fee)
@@ -42,7 +42,7 @@
                                             
                                             @if($benefit)
                                                 <p class="mt-3 flex items-start gap-2 text-sm leading-relaxed text-slate-500">
-                                                    <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand)]" />
+                                                    <x-ui-icon name="check-circle" class="mt-0.5 h-4 w-4 shrink-0 text-[var(--brand-ink)]" />
                                                     {{ $benefit }}
                                                 </p>
                                             @endif
@@ -54,7 +54,7 @@
                     @endforeach
                 </div>
                 <div class="mt-8 text-center">
-                    <a href="{{ route('registration') }}" class="inline-flex items-center gap-1.5 font-medium text-[var(--brand)] hover:underline">{{ __('site.view_fees') }} <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
+                    <a href="{{ route('registration') }}" class="inline-flex items-center gap-1.5 font-medium text-[var(--brand-ink)] hover:underline">{{ __('site.view_fees') }} <x-ui-icon name="arrow-right" class="h-4 w-4" /></a>
                 </div>
             </div>
         </section>
