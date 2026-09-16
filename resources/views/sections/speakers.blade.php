@@ -30,7 +30,7 @@
                 <x-speaker-carousel :speakers="$announcedSpeakers" />
 
                 <div class="text-center mt-8">
-                    <a href="{{ route('speakers') }}" class="link-more">{{ __('site.view_all') }} →</a>
+                    <a href="{{ route('speakers') }}" class="link-more">{{ __('site.view_speakers') }}</a>
                 </div>
             @endif
         </div>

@@ -19,7 +19,7 @@
             @endforeach
         </div>
         <div class="mt-8 text-center">
-            <a href="{{ route('committee') }}" class="link-more">{{ __('site.view_all') }} →</a>
+            <a href="{{ route('committee') }}" class="link-more">{{ __('site.view_committee') }}</a>
         </div>
     </div>
 </section>

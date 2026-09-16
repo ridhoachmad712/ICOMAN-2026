@@ -10,7 +10,7 @@
                 <a href="{{ $download->getFirstMediaUrl('file') ?: $download->url }}" target="_blank" rel="noopener"
                    class="flex items-center justify-between gap-4 rounded-xl border border-slate-200 px-5 py-4 transition hover:border-[var(--brand)]">
                     <span class="font-medium text-slate-800">{{ $download->title }}</span>
-                    <span class="shrink-0 text-sm font-semibold text-[var(--brand-ink)]">{{ __('site.download') }} →</span>
+                    <span class="shrink-0 text-sm font-semibold text-[var(--brand-ink)]">{{ __('site.download') }}</span>
                 </a>
             @endforeach
         </div>

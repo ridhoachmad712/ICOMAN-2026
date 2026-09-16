@@ -22,7 +22,7 @@
                     @endforeach
                 </div>
                 <div class="text-center mt-8">
-                    <a href="{{ route('call-for-papers') }}" class="link-more">{{ __('site.view_topics') }} →</a>
+                    <a href="{{ route('call-for-papers') }}" class="link-more">{{ __('site.view_topics') }}</a>
                 </div>
             </div>
         </section>

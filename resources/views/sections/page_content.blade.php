@@ -21,7 +21,7 @@
                 <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow ?: __('nav.about')" :center="false" />
                 <p class="text-base leading-relaxed text-slate-600">{{ $excerpt }}</p>
                 @if($page)
-                    <a href="{{ route('page', ['slug' => $page->slug]) }}" class="link-more mt-6">{{ __('site.learn_more') }} →</a>
+                    <a href="{{ route('page', ['slug' => $page->slug]) }}" class="link-more mt-6">{{ __('site.learn_more') }}</a>
                 @endif
             </div>
 

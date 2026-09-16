@@ -34,10 +34,27 @@ class SiteCustomizationTest extends TestCase
 
     // --- Teks website -----------------------------------------------------
 
+    /**
+     * Teks bawaan sebuah kunci, dibaca dari berkas bahasa.
+     *
+     * Tes di bawah menguji mekanismenya, bukan bunyi teksnya, jadi menuliskan
+     * teksnya di sini akan membuat setiap perubahan salinan kata memecahkan
+     * tes yang tidak ada hubungannya.
+     */
+    private function builtIn(string $key, string $locale = 'en'): string
+    {
+        [$group, $item] = explode('.', $key, 2);
+
+        $strings = require base_path("lang/{$locale}/{$group}.php");
+
+        return $strings[$item];
+    }
+
     public function test_an_edit_replaces_the_built_in_label(): void
     {
         app()->setLocale('en');
-        $this->assertSame('Read more', __('site.read_more'));
+        $default = $this->builtIn('site.read_more');
+        $this->assertSame($default, __('site.read_more'));
 
         SiteText::create(['key' => 'site.read_more', 'value' => ['en' => 'Keep reading']]);
 
@@ -52,7 +69,7 @@ class SiteCustomizationTest extends TestCase
 
         $text->delete();
 
-        $this->assertSame('Read more', $this->freshTranslation('site.read_more', 'en'));
+        $this->assertSame($this->builtIn('site.read_more'), $this->freshTranslation('site.read_more', 'en'));
     }
 
     /** Satu bahasa boleh disunting tanpa memaksa bahasa lain ikut diisi. */
@@ -61,7 +78,7 @@ class SiteCustomizationTest extends TestCase
         SiteText::create(['key' => 'site.read_more', 'value' => ['id' => 'Baca terus']]);
 
         $this->assertSame('Baca terus', $this->freshTranslation('site.read_more', 'id'));
-        $this->assertSame('Read more', $this->freshTranslation('site.read_more', 'en'));
+        $this->assertSame($this->builtIn('site.read_more'), $this->freshTranslation('site.read_more', 'en'));
     }
 
     /** Kunci di luar grup yang dikelola tidak boleh ikut tertimpa. */
@@ -93,7 +110,7 @@ class SiteCustomizationTest extends TestCase
         $this->superadmin();
 
         Livewire::test(ManageSiteTexts::class)
-            ->set('data.site__read_more__en', 'Read more')
+            ->set('data.site__read_more__en', $this->builtIn('site.read_more'))
             ->call('save');
 
         $this->assertDatabaseMissing('site_texts', ['key' => 'site.read_more']);

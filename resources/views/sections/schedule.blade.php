@@ -20,7 +20,7 @@
             </div>
         @endforeach
         <div class="mt-8 text-center">
-            <a href="{{ route('program') }}" class="link-more">{{ __('site.view_all') }} →</a>
+            <a href="{{ route('program') }}" class="link-more">{{ __('site.view_programme') }}</a>
         </div>
     </div>
 </section>

@@ -60,7 +60,7 @@
                 </div>
 
                 <a href="{{ route('author.register.terms', ['role' => 'presenter']) }}" class="btn btn-primary mt-7 w-full justify-center py-3 text-center">
-                    {{ __('site.reg_register_as_presenter') }} →
+                    {{ __('site.reg_register_as_presenter') }}
                 </a>
             </article>
 
@@ -98,7 +98,7 @@
                 </div>
 
                 <a href="{{ route('author.register.terms', ['role' => 'non_presenter']) }}" class="btn btn-ghost mt-7 w-full justify-center bg-slate-900 py-3 text-center text-white hover:bg-slate-800">
-                    {{ __('site.reg_register_as_attendee') }} →
+                    {{ __('site.reg_register_as_attendee') }}
                 </a>
             </article>
         </div>
@@ -143,7 +143,7 @@
                                 <a href="{{ route('author.register.terms', ['role' => $group['role']]) }}" class="inline-flex items-center text-sm font-semibold text-[var(--brand-ink)] hover:underline">
                                     {{ $group['role'] === 'presenter'
                                         ? (__('site.reg_register_as_presenter'))
-                                        : (__('site.reg_register_as_attendee')) }} →
+                                        : (__('site.reg_register_as_attendee')) }}
                                 </a>
                             </div>
                         </div>
@@ -156,6 +156,6 @@
 
         <div class="mt-10 rounded-2xl border border-slate-200 bg-slate-50 px-5 py-5 text-sm text-slate-600 sm:flex sm:items-center sm:justify-between sm:gap-6 sm:px-6">
             <p>{{ __('site.reg_still_unsure_which_path_or') }}</p>
-            <a href="{{ route('contact') }}" class="mt-3 inline-flex font-semibold text-[var(--brand-ink)] hover:underline sm:mt-0">{{ __('site.reg_contact_the_committee') }} →</a>
+            <a href="{{ route('contact') }}" class="mt-3 inline-flex font-semibold text-[var(--brand-ink)] hover:underline sm:mt-0">{{ __('site.reg_contact_the_committee') }}</a>
         </div>
     </section>

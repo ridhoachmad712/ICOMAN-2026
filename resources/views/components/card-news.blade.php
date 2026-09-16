@@ -26,7 +26,7 @@
         </h3>
         @if($displayExcerpt)<p class="mt-2 text-sm text-slate-500 line-clamp-3">{{ $displayExcerpt }}</p>@endif
         <a href="{{ route('news.show', $item->slug) }}" class="link-more mt-3 text-sm">
-            {{ __('site.read_more') }} →
+            {{ __('site.read_more') }}
         </a>
     </div>
 </article>
