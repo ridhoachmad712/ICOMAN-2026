@@ -2,13 +2,17 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
 use App\Filament\Author\Resources\Papers\PaperResource;
+use App\Filament\Author\Resources\Registrations\Pages\ViewRegistration;
+use App\Filament\Author\Resources\Registrations\RegistrationResource;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\ImportantDate;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
+use App\Models\Review;
 use App\Models\ReviewAssignment;
 use App\Models\Submission;
 use App\Models\Topic;
@@ -16,7 +20,11 @@ use App\Models\User;
 use App\Services\AuthorJourney;
 use App\Services\RegistrationProvisioner;
 use App\Settings\SiteSettings;
+use Filament\Facades\Filament;
 use Illuminate\Database\QueryException;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -98,7 +106,7 @@ class AuthorPortalFlowTest extends TestCase
     /** Jalur transfer manual sudah dihapus — routenya tidak boleh ada lagi. */
     public function test_manual_payment_routes_no_longer_exist(): void
     {
-        $routes = collect(\Illuminate\Support\Facades\Route::getRoutes())
+        $routes = collect(Route::getRoutes())
             ->map(fn ($route) => $route->getName())
             ->filter()
             ->all();
@@ -275,7 +283,7 @@ class AuthorPortalFlowTest extends TestCase
         $author = $this->author('presenter');
 
         $this->actingAs($author, 'author')
-            ->get(\App\Filament\Author\Pages\AuthorDashboard::getUrl(panel: 'author'))
+            ->get(AuthorDashboard::getUrl(panel: 'author'))
             ->assertOk()
             // 4 tahap ringkas; "Create account" sengaja tidak lagi ditampilkan.
             ->assertSee('Submit abstract')
@@ -338,7 +346,7 @@ class AuthorPortalFlowTest extends TestCase
             'assigned_at' => now(),
             'status' => 'completed',
         ]);
-        \App\Models\Review::create([
+        Review::create([
             'review_assignment_id' => $assignment->id,
             'score' => 90,
             'recommendation' => 'accept',
@@ -359,7 +367,7 @@ class AuthorPortalFlowTest extends TestCase
 
     public function test_full_paper_submission_requires_a_paid_registration(): void
     {
-        \Illuminate\Support\Facades\Storage::fake(config('media-library.disk_name'));
+        Storage::fake(config('media-library.disk_name'));
 
         $edition = $this->edition();
         $author = $this->author('presenter');
@@ -367,7 +375,7 @@ class AuthorPortalFlowTest extends TestCase
         $submission->forceFill(['loa_issued_at' => now()])->save();
 
         // Minimal PDF agar lolos deteksi mime MediaLibrary.
-        $pdf = fn () => \Illuminate\Http\UploadedFile::fake()->createWithContent('paper.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
+        $pdf = fn () => UploadedFile::fake()->createWithContent('paper.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
 
         // Belum ada registrasi lunas → belum boleh kirim full paper.
         $this->assertFalse($submission->canSubmitFullPaper());
@@ -399,7 +407,7 @@ class AuthorPortalFlowTest extends TestCase
 
     public function test_payment_page_shows_the_sinta3_option_and_additional_fee_when_offered(): void
     {
-        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('author'));
+        Filament::setCurrentPanel(Filament::getPanel('author'));
 
         $edition = $this->edition();
         $author = $this->author('presenter');
@@ -416,16 +424,32 @@ class AuthorPortalFlowTest extends TestCase
 
         app()->setLocale('en');
 
-        Livewire::test(\App\Filament\Author\Resources\Registrations\Pages\ViewRegistration::class, ['record' => $registration->getRouteKey()])
+        // Langkah pertama: pilihan penerbitan, lengkap dengan harga masing-masing.
+        // Tagihannya belum disusun sebelum pilihan itu disimpan.
+        Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertOk()
-            // Ucapan selamat tampil di atas kedua kolom.
-            ->assertSee('Congratulations')
-            ->assertSee('Journal publication option')
-            ->assertSee('Cost Information')
-            ->assertSee('SINTA 3')
+            ->assertSee('Choose your journal publication option')
+            ->assertSee('Regular journal')
+            ->assertSee('SINTA 3 journal')
+            ->assertSee('750.000')
             ->assertSee('300.000')
             // Total bila memilih SINTA 3: 750.000 + 300.000
-            ->assertSee('1.050.000');
+            ->assertSee('1.050.000')
+            ->assertSee('Save Choice')
+            ->assertDontSee('Cost Information');
+
+        // Setelah disimpan: tagihannya muncul, mengikuti pilihan itu.
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'sinta3'])
+            ->assertRedirect();
+
+        Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
+            ->assertOk()
+            ->assertSee('Cost Information')
+            ->assertSee('1.050.000')
+            ->assertSee('Continue to Payment')
+            ->assertDontSee('Save Choice');
+
+        $this->assertSame(1050000.0, (float) $registration->fresh()->amount);
     }
 
     public function test_checkout_auto_creates_a_pending_registration_from_category_without_a_form(): void
@@ -457,7 +481,7 @@ class AuthorPortalFlowTest extends TestCase
         $submission->forceFill(['loa_issued_at' => now(), 'sinta3_offered' => true])->save();
         $fee = $this->fee($edition, 'presenter', 'general', 750000);
 
-        $settings = app(\App\Settings\SiteSettings::class);
+        $settings = app(SiteSettings::class);
         $settings->sinta3_fee = 300000;
         $settings->save();
 
@@ -494,7 +518,7 @@ class AuthorPortalFlowTest extends TestCase
             ->get(PaperResource::getUrl('view', ['record' => $submission], panel: 'author'))
             ->assertOk();
         $this->actingAs($author, 'author')
-            ->get(\App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
             ->assertOk();
 
         // Halaman daftar & form registrasi lama sudah tidak ada.
@@ -590,7 +614,7 @@ class AuthorPortalFlowTest extends TestCase
             'status' => 'completed',
         ]);
 
-        \Filament\Facades\Filament::setCurrentPanel(\Filament\Facades\Filament::getPanel('author'));
+        Filament::setCurrentPanel(Filament::getPanel('author'));
         $this->actingAs($author, 'author');
 
         Livewire::test(EditExtendedAbstract::class, ['record' => $submission->getRouteKey()])

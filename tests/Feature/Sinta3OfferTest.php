@@ -13,6 +13,7 @@ use App\Models\Review;
 use App\Models\ReviewAssignment;
 use App\Models\Submission;
 use App\Models\User;
+use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Notification;
@@ -47,6 +48,12 @@ class Sinta3OfferTest extends TestCase
             'participation_type' => 'presenter', 'registrant_category' => 'general',
         ]);
         $this->reviewer = User::create(['name' => 'Penilai', 'email' => 'penilai-sinta@example.test', 'password' => 'secret-password']);
+
+        // Tanpa biaya penerbitan yang ditetapkan, memilih SINTA 3 tidak mengubah
+        // total apa pun dan tesnya diam-diam menguji hal yang berbeda.
+        $settings = app(SiteSettings::class);
+        $settings->sinta3_fee = 300_000;
+        $settings->save();
     }
 
     private function paper(): Submission
@@ -523,5 +530,105 @@ class Sinta3OfferTest extends TestCase
         ]);
 
         $this->assertTrue($registration->fresh()->hasUnresolvedPayment());
+    }
+
+    // --- Dua langkah di halaman pembayaran ------------------------------------
+
+    private function invoiceUrl(Registration $registration, string $query = ''): string
+    {
+        return RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author').$query;
+    }
+
+    /** Tagihan belum disusun sebelum author menentukan opsi penerbitannya. */
+    public function test_the_choice_comes_before_the_bill(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->actingAs($this->author, 'author');
+
+        $this->get($this->invoiceUrl($registration))
+            ->assertOk()
+            ->assertSee('Save Choice', escape: false)
+            ->assertDontSee('Cost Information', escape: false)
+            ->assertDontSee('Continue to Payment', escape: false);
+    }
+
+    /** Memilih reguler pun harus disimpan — kalau tidak, langkahnya tidak pernah lewat. */
+    public function test_choosing_regular_also_counts_as_a_choice(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->actingAs($this->author, 'author');
+
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular'])
+            ->assertRedirect($this->invoiceUrl($registration));
+
+        $this->assertNotNull($registration->submission->fresh()->journal_target_chosen_at);
+
+        $this->get($this->invoiceUrl($registration))
+            ->assertOk()
+            ->assertSee('Cost Information', escape: false)
+            ->assertDontSee('Save Choice', escape: false);
+    }
+
+    /** Author boleh kembali mengubah pilihannya. */
+    public function test_the_author_can_go_back_and_change_the_choice(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->actingAs($this->author, 'author');
+
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular']);
+
+        // Tautan "Ubah" ada di halaman tagihan.
+        $this->get($this->invoiceUrl($registration))
+            ->assertOk()
+            ->assertSee($this->invoiceUrl($registration, '?step=journal'), escape: false);
+
+        $this->get($this->invoiceUrl($registration, '?step=journal'))
+            ->assertOk()
+            ->assertSee('Save Choice', escape: false);
+
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'sinta3']);
+
+        $registration->refresh();
+        $this->assertSame('sinta3', $registration->priceDetails()['journal_target']);
+        $this->assertSame(1_050_000.0, (float) $registration->amount);
+    }
+
+    /**
+     * Kembali ke langkah pemilihan tidak boleh membuka kunci yang ditegakkan
+     * server: dengan pembayaran yang masih hidup, totalnya tidak boleh berubah.
+     */
+    public function test_going_back_does_not_bypass_the_lock(): void
+    {
+        $registration = $this->offeredInvoice();
+        $this->actingAs($this->author, 'author');
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular']);
+
+        $this->liveOrder($registration->fresh(), now()->addHour()->toIso8601String());
+
+        $this->get($this->invoiceUrl($registration, '?step=journal'))
+            ->assertOk()
+            ->assertDontSee('Save Choice', escape: false)
+            ->assertSee('locked', escape: false);
+
+        $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'sinta3'])
+            ->assertSessionHasErrors();
+
+        $this->assertSame(750_000.0, (float) $registration->fresh()->amount);
+    }
+
+    /** Paper tanpa tawaran SINTA 3 tidak punya pilihan; langsung ke tagihannya. */
+    public function test_a_paper_without_an_offer_goes_straight_to_the_bill(): void
+    {
+        $paper = $this->paper();
+        $this->review($paper, false);
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+
+        $this->actingAs($this->author, 'author');
+
+        $this->get($this->invoiceUrl($registration))
+            ->assertOk()
+            ->assertSee('Cost Information', escape: false)
+            ->assertDontSee('Save Choice', escape: false);
     }
 }

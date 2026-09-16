@@ -74,6 +74,7 @@ class Submission extends Model implements HasMedia
         'sinta3_offered',
         'sinta3_offer_overridden_at',
         'journal_target',
+        'journal_target_chosen_at',
         'status',
         'submitted_at',
     ];
@@ -86,6 +87,7 @@ class Submission extends Model implements HasMedia
             'extended_abstract_draft_saved_at' => 'datetime',
             'loa_issued_at' => 'datetime',
             'full_paper_submitted_at' => 'datetime',
+            'journal_target_chosen_at' => 'datetime',
             'sinta3_offered' => 'boolean',
             'sinta3_offer_overridden_at' => 'datetime',
             'keywords' => 'array',
@@ -139,6 +141,12 @@ class Submission extends Model implements HasMedia
     public function isLoaIssued(): bool
     {
         return $this->loa_issued_at !== null;
+    }
+
+    /** Author sudah menentukan opsi penerbitannya (termasuk memilih reguler). */
+    public function journalTargetIsChosen(): bool
+    {
+        return $this->journal_target_chosen_at !== null;
     }
 
     public function journalTargetLabel(): string

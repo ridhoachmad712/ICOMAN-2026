@@ -356,6 +356,12 @@ class CohostVoucherTest extends TestCase
         $registration = $this->invoice('halaman@example.test');
         $this->actingAs($registration->author, 'author');
 
+        // Paper yang ditawari SINTA 3 menempuh langkah pilihan jurnal lebih
+        // dulu; kotak voucher ada di halaman tagihan sesudahnya.
+        if ($registration->submission?->sinta3_offered) {
+            $this->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular']);
+        }
+
         Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertOk()
             // Nama field, bukan labelnya: halaman ini dua bahasa.

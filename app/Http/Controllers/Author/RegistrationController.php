@@ -73,13 +73,20 @@ class RegistrationController extends Controller
             abort_if($price['legacy'] ?? false, 409, 'Contact the committee to amend an archived invoice.');
             $price['addon_amount'] = $data['journal_target'] === 'sinta3' ? $price['quoted_addon_amount'] : 0;
             $price['journal_target'] = $data['journal_target'];
-            $locked->submission->update(['journal_target' => $data['journal_target']]);
+            $locked->submission->update([
+                'journal_target' => $data['journal_target'],
+                'journal_target_chosen_at' => now(),
+            ]);
             $locked->update(['amount' => $price['base_amount'] + $price['addon_amount'], 'pricing_snapshot' => $price]);
         });
 
-        return back()->with('status', app()->getLocale() === 'id'
-            ? 'Pilihan jurnal diperbarui dan total pembayaran disesuaikan.'
-            : 'Journal choice updated and your total has been adjusted.');
+        // Sengaja BUKAN back(): pemilihnya dibuka lewat ?step=journal, dan back()
+        // akan mengembalikan author ke langkah pemilihan yang baru saja selesai.
+        return redirect()
+            ->to(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->with('status', app()->getLocale() === 'id'
+                ? 'Pilihan jurnal tersimpan. Tagihan Anda sudah menyesuaikan.'
+                : 'Journal choice saved. Your invoice has been updated.');
     }
 
     /** Menukarkan kode voucher co-host pada invoice presenter. */

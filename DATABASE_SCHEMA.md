@@ -245,6 +245,7 @@ Akun publik untuk submission & registrasi (guard `author`, BUKAN tabel `users` F
 | camera_ready_file | media nullable (collection `camera_ready`) |
 | status | enum(submitted, under_review, revision_required, accepted, rejected) default submitted |
 | journal_target | string: regular \| sinta3 — pilihan author, menentukan biaya tambahan penerbitan |
+| journal_target_chosen_at | timestamp nullable — author sudah menentukan opsi penerbitannya. `journal_target` selalu berisi 'regular' sejak awal, jadi tanpa penanda ini "memilih reguler" tidak bisa dibedakan dari "belum memilih", dan halaman pembayaran tidak bisa menunggu pilihan itu sebelum menampilkan tagihan |
 | sinta3_offered | boolean — apakah pilihan Jurnal SINTA 3 muncul di halaman pembayaran author. Diselaraskan otomatis dengan rekomendasi reviewer (`reviews.recommends_sinta3`) setiap kali penilaian disimpan |
 | sinta3_offer_overridden_at | timestamp nullable — panitia menetapkan sendiri tawarannya; sesudah ini rekomendasi reviewer tidak lagi menimpanya. Kosong = ikut rekomendasi reviewer |
 | loa_issued_at | timestamp nullable |

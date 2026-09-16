@@ -19,6 +19,12 @@
         // Tawarannya ada, tapi pilihannya sedang terkunci. Tanpa keterangan ini
         // panelnya hilang begitu saja dan author menyangka tawarannya batal.
         $journalLocked = $sinta3Offered && ! $canChooseJournal;
+
+        // Halaman ini dua langkah bagi paper yang ditawari SINTA 3: pilih dulu
+        // opsi penerbitannya, baru tagihannya muncul sesuai pilihan itu. Tanpa
+        // itu author melihat total yang belum tentu jadi angka yang ia bayar.
+        $journalChosen = (bool) $record->submission?->journalTargetIsChosen();
+        $choosingJournal = $canChooseJournal && (! $journalChosen || request('step') === 'journal');
         $sinta3Fee = (int) $price['quoted_addon_amount'];
         $basePrice = (float) $price['base_amount'];
         $isSinta = $price['journal_target'] === 'sinta3';
@@ -70,58 +76,59 @@
             </div>
         @endif
 
-        {{-- Kabar baik lebih dulu: paper direkomendasikan ke SINTA 3. --}}
-        @if($canChooseJournal)
-            <div class="rounded-xl border border-warning-300 bg-warning-50 p-5 dark:border-warning-500/30 dark:bg-warning-500/10">
-                <div class="flex items-start gap-4">
-                    <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-warning-100 text-warning-600 dark:bg-warning-500/20">
-                        <x-filament::icon icon="heroicon-o-sparkles" class="h-6 w-6" />
-                    </span>
-                    <div>
-                        <p class="text-base font-bold text-warning-900 dark:text-warning-200">
-                            {{ $id ? 'Selamat! Paper Anda berpeluang terbit di Jurnal SINTA 3' : 'Congratulations! Your paper has a chance to be published in a SINTA 3 journal' }}
-                        </p>
-                        <p class="mt-1 text-sm leading-relaxed text-warning-800 dark:text-warning-300">
-                            {{ $id
-                                ? 'Reviewer merekomendasikan naskah Anda untuk penerbitan pada jurnal terakreditasi SINTA 3. Silakan tentukan opsi penerbitan di samping — total tagihan menyesuaikan otomatis.'
-                                : 'The reviewers recommended your manuscript for publication in a SINTA 3 accredited journal. Choose your publication option beside — your total adjusts automatically.' }}
-                        </p>
+        @if($choosingJournal)
+            {{-- LANGKAH 1: tentukan opsi penerbitan lebih dulu. --}}
+            <x-filament::section icon="heroicon-o-academic-cap" icon-color="warning">
+                <x-slot name="heading">{{ $id ? 'Pilih opsi penerbitan jurnal' : 'Choose your journal publication option' }}</x-slot>
+                <x-slot name="description">
+                    {{ $id
+                        ? 'Reviewer merekomendasikan naskah Anda untuk jurnal terakreditasi SINTA 3. Tentukan pilihan Anda dulu — tagihan disusun mengikuti pilihan ini.'
+                        : 'The reviewers recommended your manuscript for a SINTA 3 accredited journal. Make your choice first — your invoice is built from it.' }}
+                </x-slot>
+
+                <form method="POST" action="{{ route('author.registration.journal', $record) }}" class="space-y-3" x-data="{ submitting: false }" @submit="submitting = true">
+                    @csrf @method('PATCH')
+
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition {{ ! $isSinta ? 'border-primary-400 bg-primary-50 dark:bg-primary-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10' }}">
+                        <input type="radio" name="journal_target" value="regular" @checked(! $isSinta) class="mt-1">
+                        <span>
+                            <span class="block text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Jurnal Reguler' : 'Regular journal' }}</span>
+                            <span class="block text-xs text-gray-500">{{ $id ? 'Tanpa biaya tambahan.' : 'No additional fee.' }}</span>
+                            <span class="mt-1 block text-base font-bold text-gray-950 dark:text-white">{{ $money($basePrice) }}</span>
+                        </span>
+                    </label>
+
+                    <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition {{ $isSinta ? 'border-warning-400 bg-warning-50 dark:bg-warning-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10' }}">
+                        <input type="radio" name="journal_target" value="sinta3" @checked($isSinta) class="mt-1">
+                        <span>
+                            <span class="block text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Jurnal SINTA 3' : 'SINTA 3 journal' }}</span>
+                            <span class="block text-xs text-warning-700 dark:text-warning-400">{{ $id ? 'Biaya penerbitan tambahan' : 'Additional publication fee' }} + {{ $money($sinta3Fee) }}</span>
+                            <span class="mt-1 block text-base font-bold text-gray-950 dark:text-white">{{ $money($basePrice + $sinta3Fee) }}</span>
+                        </span>
+                    </label>
+
+                    <p class="pt-1 text-xs leading-relaxed text-gray-500">
+                        {{ $id
+                            ? 'Pilihan ini masih bisa diubah sampai pembayaran dimulai.'
+                            : 'You can still change this until a payment is started.' }}
+                    </p>
+
+                    <div class="flex flex-wrap items-center gap-3 pt-1">
+                        <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-check" icon-position="after">
+                            {{ $id ? 'Simpan Pilihan' : 'Save Choice' }}
+                        </x-filament::button>
+
+                        @if($journalChosen)
+                            <x-filament::link href="{{ \App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('view', ['record' => $record], panel: 'author') }}">
+                                {{ $id ? 'Batal' : 'Cancel' }}
+                            </x-filament::link>
+                        @endif
                     </div>
-                </div>
-            </div>
-        @endif
-
-        <div class="grid items-start gap-6 {{ $canChooseJournal ? 'lg:grid-cols-2' : '' }}">
-            {{-- KIRI: pilihan penerbitan jurnal --}}
-            @if($canChooseJournal)
-                <x-filament::section icon="heroicon-o-academic-cap" icon-color="warning">
-                    <x-slot name="heading">{{ $id ? 'Opsi penerbitan jurnal' : 'Journal publication option' }}</x-slot>
-                    <x-slot name="description">{{ $id ? 'Pilih salah satu — tersimpan otomatis.' : 'Pick one — it saves automatically.' }}</x-slot>
-
-                    {{-- Pilihan langsung tersimpan begitu diklik; author tinggal lanjut membayar. --}}
-                    <form method="POST" action="{{ route('author.registration.journal', $record) }}" class="space-y-3">
-                        @csrf @method('PATCH')
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition {{ ! $isSinta ? 'border-primary-400 bg-primary-50 dark:bg-primary-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10' }}">
-                            <input type="radio" name="journal_target" value="regular" @checked(! $isSinta) onchange="this.form.submit()" class="mt-1">
-                            <span>
-                                <span class="block text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Jurnal Reguler' : 'Regular journal' }}</span>
-                                <span class="block text-xs text-gray-500">{{ $id ? 'Tanpa biaya tambahan.' : 'No additional fee.' }}</span>
-                                <span class="mt-1 block text-sm font-semibold text-gray-950 dark:text-white">{{ $money($basePrice) }}</span>
-                            </span>
-                        </label>
-                        <label class="flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition {{ $isSinta ? 'border-warning-400 bg-warning-50 dark:bg-warning-500/10' : 'border-gray-200 hover:border-gray-300 dark:border-white/10' }}">
-                            <input type="radio" name="journal_target" value="sinta3" @checked($isSinta) onchange="this.form.submit()" class="mt-1">
-                            <span>
-                                <span class="block text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Jurnal SINTA 3' : 'SINTA 3 journal' }}</span>
-                                <span class="block text-xs text-warning-700 dark:text-warning-400">{{ $id ? 'Biaya penerbitan tambahan' : 'Additional publication fee' }} + {{ $money($sinta3Fee) }}</span>
-                                <span class="mt-1 block text-sm font-semibold text-gray-950 dark:text-white">{{ $money($basePrice + $sinta3Fee) }}</span>
-                            </span>
-                        </label>
-                    </form>
-                </x-filament::section>
-            @endif
-
-            {{-- KANAN: informasi biaya --}}
+                </form>
+            </x-filament::section>
+        @else
+        <div class="grid items-start gap-6">
+            {{-- Rincian biaya, sudah mengikuti opsi penerbitan yang dipilih. --}}
             <x-filament::section icon="heroicon-o-banknotes" icon-color="primary">
                 <x-slot name="heading">{{ $id ? 'Informasi Biaya' : 'Cost Information' }}</x-slot>
                 <x-slot name="description">Invoice #{{ str_pad((string) $record->id, 5, '0', STR_PAD_LEFT) }} · {{ $record->created_at->format('d M Y, H:i') }}</x-slot>
@@ -144,6 +151,21 @@
                         <div class="flex items-start justify-between gap-4 text-success-700 dark:text-success-400">
                             <dt>{{ $id ? 'Voucher co-host' : 'Co-host voucher' }} @if(! empty($price['voucher_code']))<span class="font-mono text-xs">({{ $price['voucher_code'] }})</span>@endif</dt>
                             <dd class="shrink-0 font-semibold">− {{ $money($discount) }}</dd>
+                        </div>
+                    @endif
+
+                    @if($journalChosen && $record->submission?->sinta3_offered)
+                        <div class="flex items-start justify-between gap-4">
+                            <dt class="text-gray-500">{{ $id ? 'Opsi penerbitan' : 'Publication option' }}</dt>
+                            <dd class="shrink-0 text-right">
+                                <span class="font-medium text-gray-950 dark:text-white">{{ $isSinta ? ($id ? 'Jurnal SINTA 3' : 'SINTA 3 journal') : ($id ? 'Jurnal Reguler' : 'Regular journal') }}</span>
+                                @if($canChooseJournal)
+                                    <a href="{{ \App\Filament\Author\Resources\Registrations\RegistrationResource::getUrl('view', ['record' => $record], panel: 'author').'?step=journal' }}"
+                                       class="ms-2 text-xs font-medium text-primary-600 hover:underline dark:text-primary-400">
+                                        {{ $id ? 'Ubah' : 'Change' }}
+                                    </a>
+                                @endif
+                            </dd>
                         </div>
                     @endif
 
@@ -342,5 +364,6 @@
                 </table>
             </div>
         </x-filament::section>
+        @endif
     </div>
 </x-filament-panels::page>
