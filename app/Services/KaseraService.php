@@ -51,28 +51,36 @@ class KaseraService
         return str_starts_with($this->apiKey, 'kp_live_');
     }
 
-    public function createCheckoutRedirect(Registration $registration): string
+    public function createCheckoutRedirect(Registration $registration, bool $installment = false): string
     {
         app(ConferenceDeadlines::class)->assertOpen('payment', $registration->edition_id);
 
         // Order dikunci sebelum request keluar; tab kedua memakai ulang baris ini.
-        [$payment, $isNew] = DB::transaction(function () use ($registration): array {
+        [$payment, $isNew] = DB::transaction(function () use ($registration, $installment): array {
             $registration = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
             abort_unless(in_array($registration->status, ['pending', 'failed'], true), 403);
-            abort_unless($registration->priceDetails()['currency'] === 'IDR' && (float) $registration->amount > 0, 422);
+            abort_unless($registration->priceDetails()['currency'] === 'IDR', 422);
+
+            // Pilihan mencicil dikunci bersama ordernya, jadi dua tab tidak bisa
+            // menyalakannya setelah cicilan pertama terlanjur dibuat.
+            if ($installment && $registration->allowsInstallments()) {
+                $registration->update(['installment_plan' => true]);
+            }
 
             $existing = $registration->payments()->where('method', 'gateway')->where('status', 'initiated')->latest('id')->first();
             if ($existing) {
                 return [$existing, false];
             }
 
-            abort_if($registration->payments()->where('status', 'success')->exists(), 409);
+            // Sisa tagihan nol berarti tidak ada lagi yang perlu dibayar.
+            $due = $registration->amountDueNow();
+            abort_if($due <= 0, 409);
 
             $payment = $registration->payments()->create([
                 'method' => 'gateway',
                 'gateway_name' => 'kasera',
                 'gateway_reference' => 'ICOMAN-'.$registration->id.'-'.Str::ulid(),
-                'amount' => $registration->amount,
+                'amount' => $due,
                 'status' => 'initiated',
             ]);
             $registration->update(['gateway_transaction_id' => $payment->gateway_reference, 'status' => 'pending']);
@@ -129,7 +137,7 @@ class KaseraService
     {
         return [
             'amount' => (int) $payment->amount,
-            'description' => Str::limit('Registrasi '.(siteSettings()->conference_name ?: 'ICOMAN 2026').' #'.$registration->id, 255, ''),
+            'description' => Str::limit($this->describe($registration, $payment), 255, ''),
             'external_id' => $payment->gateway_reference,
             'merchant_ref' => 'REG-'.$registration->id,
             'return_url' => route('payment.kasera.finish'),
@@ -140,6 +148,19 @@ class KaseraService
                 'is_phone_required' => true,
             ],
         ];
+    }
+
+    private function describe(Registration $registration, Payment $payment): string
+    {
+        $name = siteSettings()->conference_name ?: 'ICOMAN 2026';
+
+        if (! $registration->installment_plan) {
+            return 'Registrasi '.$name.' #'.$registration->id;
+        }
+
+        $sequence = $registration->paidAmount() > 0 ? 2 : 1;
+
+        return 'Registrasi '.$name.' #'.$registration->id.' - cicilan '.$sequence.' dari 2';
     }
 
     /**
@@ -298,20 +319,29 @@ class KaseraService
 
             if ($registration->status !== 'paid') {
                 if ($success) {
-                    $matchesInvoice = (float) $payment->amount === (float) $registration->amount;
-                    $registration->update([
-                        'status' => $matchesInvoice ? 'paid' : 'pending_verification',
-                        'paid_at' => $matchesInvoice ? now() : null,
-                        'gateway_payload' => $payload,
-                    ]);
+                    // Yang menentukan lunas adalah jumlah seluruh pembayaran yang
+                    // berhasil, bukan satu pembayaran terhadap total tagihan —
+                    // di bawah cicilan, satu pembayaran memang lebih kecil.
+                    $received = $registration->paidAmount();
+                    $total = (float) $registration->amount;
 
-                    if (! $matchesInvoice) {
-                        Log::warning('Payment received against a different invoice amount; reconcile manually.', [
+                    if ($received > $total) {
+                        $registration->update(['status' => 'pending_verification', 'paid_at' => null, 'gateway_payload' => $payload]);
+                        Log::warning('Payments exceed the invoice amount; reconcile manually.', [
                             'registration_id' => $registration->id,
                             'payment_id' => $payment->id,
                         ]);
+                    } elseif ($received >= $total) {
+                        $registration->update(['status' => 'paid', 'paid_at' => now(), 'gateway_payload' => $payload]);
+                    } else {
+                        // Cicilan pertama: uangnya tercatat, tapi registrasinya
+                        // belum lunas sehingga gerbang unggah full paper tetap tertutup.
+                        $registration->update(['gateway_payload' => $payload]);
                     }
-                } elseif ($failure && $registration->gateway_transaction_id === $payment->gateway_reference && $registration->status !== 'pending_verification') {
+                } elseif ($failure
+                    && $registration->paidAmount() <= 0
+                    && $registration->gateway_transaction_id === $payment->gateway_reference
+                    && $registration->status !== 'pending_verification') {
                     $registration->update(['status' => 'failed', 'gateway_payload' => $payload]);
                 }
             }

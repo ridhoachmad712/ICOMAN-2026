@@ -128,6 +128,7 @@ Scope/topik Call for Papers
 | category (T) | json — "Presenter (Domestic)" |
 | price_early_bird | decimal nullable |
 | price_regular | decimal |
+| installment_first_amount | decimal nullable — nominal cicilan PERTAMA. Diisi hanya untuk presenter mahasiswa (`audience=presenter`, `registrant_category=student_s1`); cicilan kedua selalu dihitung sebagai `amount - installment_first_amount`, sehingga keduanya tidak pernah bisa berjumlah salah. Kosong = wajib lunas sekaligus |
 | currency | string default IDR |
 | notes (T) | json nullable |
 | order | integer |
@@ -294,6 +295,7 @@ Kepakaran reviewer: sub-tema yang boleh dinilai seorang reviewer. Dipakai menyar
 | registration_fee_id | fk → registration_fees |
 | voucher_id | fk nullable → vouchers (voucher co-host yang dipakai) |
 | submission_id | fk nullable (jika registrasi terkait paper tertentu) |
+| installment_plan | boolean default false — author memilih membayar dua tahap. Status TIDAK berubah menjadi nilai baru: sudah dibayar sebagian tetap `pending` sampai lunas, sehingga seluruh gerbang yang bergantung pada `paid` (termasuk unggah full paper) tetap berlaku. Yang sudah masuk dihitung dari baris `payments` berstatus `success` |
 | payment_method | string(20): manual \| gateway \| waived (`waived` = lunas tanpa transaksi karena ditanggung voucher) |
 | amount | decimal (sisa yang harus dibayar, setelah potongan voucher) |
 | discount_amount | decimal default 0 (potongan voucher co-host) |

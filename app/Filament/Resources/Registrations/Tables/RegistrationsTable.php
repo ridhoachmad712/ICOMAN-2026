@@ -7,6 +7,7 @@ use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
@@ -31,9 +32,36 @@ class RegistrationsTable
                         'failed' => 'danger',
                         default => 'gray',
                     }),
+                // Cicilan tidak mengubah status: registrasi tetap "pending" sampai
+                // lunas, jadi keadaannya perlu kolomnya sendiri agar panitia tahu
+                // mana yang sudah membayar sebagian dan mana yang menunggak.
+                TextColumn::make('installment')
+                    ->label('Cicilan')
+                    ->state(fn (Registration $record): string => match (true) {
+                        ! $record->installment_plan => '—',
+                        $record->status === 'paid' => 'Lunas 2/2',
+                        $record->isPartiallyPaid() => 'Cicilan 1/2 — sisa '.number_format($record->outstandingAmount(), 0, ',', '.'),
+                        default => 'Belum ada yang dibayar',
+                    })
+                    ->badge()
+                    ->color(fn (Registration $record): string => match (true) {
+                        ! $record->installment_plan => 'gray',
+                        $record->isInstallmentOverdue() => 'danger',
+                        $record->status === 'paid' => 'success',
+                        default => 'warning',
+                    })
+                    ->description(fn (Registration $record): ?string => $record->isInstallmentOverdue()
+                        ? 'Lewat tenggat '.$record->installmentDueAt()?->format('d M Y')
+                        : null),
                 TextColumn::make('created_at')->dateTime('d M Y H:i')->sortable(),
             ])
             ->filters([
+                Filter::make('installment_overdue')
+                    ->label('Menunggak cicilan')
+                    ->query(fn ($query) => $query
+                        ->where('installment_plan', true)
+                        ->where('status', '!=', 'paid')
+                        ->whereHas('payments', fn ($payments) => $payments->where('status', 'success'))),
                 SelectFilter::make('status')->options([
                     'pending' => 'Pending',
                     'pending_verification' => 'Pending Verification',

@@ -192,12 +192,65 @@
                         <p class="mb-3 text-xs leading-relaxed text-gray-500">
                             {{ $id ? 'Anda akan diarahkan ke halaman pembayaran aman Kasera Pay untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.' : 'You will be redirected to Kasera Pay secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.' }}
                         </p>
+                        @php
+                            $canInstall = $record->allowsInstallments();
+                            $firstAmount = (float) ($record->registrationFee?->installment_first_amount ?? 0);
+                            $secondAmount = (float) $record->amount - $firstAmount;
+                            $installmentDue = $record->installmentDueAt();
+                            $dueNow = $record->amountDueNow();
+                        @endphp
+
+                        @if($record->isPartiallyPaid())
+                            <div class="mb-4 rounded-xl border border-info-200 bg-info-50 p-4 dark:border-info-500/20 dark:bg-info-500/10">
+                                <p class="text-sm font-semibold text-info-800 dark:text-info-300">
+                                    {{ $id ? 'Cicilan pertama sudah diterima' : 'First instalment received' }}
+                                </p>
+                                <p class="mt-1 text-xs leading-relaxed text-info-700 dark:text-info-400">
+                                    {{ $id ? 'Sudah dibayar' : 'Paid so far' }}: {{ $money($record->paidAmount()) }} ·
+                                    {{ $id ? 'sisa' : 'outstanding' }}: <strong>{{ $money($record->outstandingAmount()) }}</strong>.
+                                    @if($installmentDue)
+                                        {{ $id ? 'Lunasi paling lambat' : 'Settle by' }} {{ $installmentDue->format('d M Y') }}.
+                                    @endif
+                                    {{ $id
+                                        ? 'Registrasi baru aktif setelah seluruh tagihan lunas.'
+                                        : 'Your registration becomes active once the invoice is settled in full.' }}
+                                </p>
+                            </div>
+                        @endif
+
                         <form method="POST" action="{{ route('author.registration.pay', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
                             @csrf
                             <x-filament::button type="submit" x-bind:disabled="submitting" icon="heroicon-m-arrow-right" icon-position="after" class="w-full justify-center">
                                 {{ $id ? 'Lanjutkan Pembayaran' : 'Continue to Payment' }}
+                                @if($record->isPartiallyPaid()) ({{ $money($dueNow) }}) @endif
                             </x-filament::button>
                         </form>
+
+                        @if($canInstall)
+                            {{-- Khusus presenter mahasiswa: boleh dibayar dua tahap. --}}
+                            <div class="mt-3 rounded-xl border border-gray-200 p-4 dark:border-white/10">
+                                <p class="text-sm font-semibold text-gray-950 dark:text-white">
+                                    {{ $id ? 'Atau bayar dua tahap' : 'Or pay in two instalments' }}
+                                </p>
+                                <p class="mt-1 text-xs leading-relaxed text-gray-500">
+                                    {{ $id ? 'Sekarang' : 'Now' }} {{ $money($firstAmount) }},
+                                    {{ $id ? 'sisanya' : 'then' }} {{ $money($secondAmount) }}
+                                    @if($installmentDue)
+                                        {{ $id ? 'paling lambat' : 'by' }} {{ $installmentDue->format('d M Y') }}
+                                    @endif
+                                    . {{ $id
+                                        ? 'Totalnya sama. Registrasi baru aktif setelah cicilan kedua lunas, jadi unggah full paper baru terbuka setelah itu.'
+                                        : 'The total is the same. Your registration only becomes active after the second instalment, so full paper upload opens then.' }}
+                                </p>
+                                <form method="POST" action="{{ route('author.registration.pay', $record) }}" class="mt-3" x-data="{ submitting: false }" @submit="submitting = true">
+                                    @csrf
+                                    <input type="hidden" name="plan" value="installment">
+                                    <x-filament::button type="submit" color="gray" x-bind:disabled="submitting" class="w-full justify-center">
+                                        {{ $id ? 'Bayar Cicilan Pertama' : 'Pay First Instalment' }} ({{ $money($firstAmount) }})
+                                    </x-filament::button>
+                                </form>
+                            </div>
+                        @endif
                     </div>
                 @endif
             </x-filament::section>

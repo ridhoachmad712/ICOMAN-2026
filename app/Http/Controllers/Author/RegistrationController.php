@@ -98,16 +98,17 @@ class RegistrationController extends Controller
             : 'The '.$voucher->host_name.' voucher was applied. Your base registration fee has been waived.');
     }
 
-    public function payGateway(Registration $registration): RedirectResponse
+    public function payGateway(Request $request, Registration $registration): RedirectResponse
     {
         $this->authorizeOwner($registration);
 
         abort_if($registration->status === 'paid', 403);
 
-        return $this->startGateway($registration);
+        // Pilihan mencicil diverifikasi ulang di service; di sini hanya niatnya.
+        return $this->startGateway($registration, $request->input('plan') === 'installment');
     }
 
-    private function startGateway(Registration $registration): RedirectResponse
+    private function startGateway(Registration $registration, bool $installment = false): RedirectResponse
     {
         $kasera = app(KaseraService::class);
 
@@ -118,7 +119,7 @@ class RegistrationController extends Controller
         }
 
         try {
-            $url = $kasera->createCheckoutRedirect($registration);
+            $url = $kasera->createCheckoutRedirect($registration, $installment);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {

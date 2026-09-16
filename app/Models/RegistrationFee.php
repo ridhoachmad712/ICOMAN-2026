@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 use Spatie\Translatable\HasTranslations;
 
 class RegistrationFee extends Model
@@ -18,6 +19,7 @@ class RegistrationFee extends Model
         'audience',
         'registrant_category',
         'price_regular',
+        'installment_first_amount',
         'currency',
         'idr_exchange_rate',
         'notes',
@@ -30,6 +32,7 @@ class RegistrationFee extends Model
     {
         return [
             'price_regular' => 'decimal:2',
+            'installment_first_amount' => 'decimal:2',
             'idr_exchange_rate' => 'decimal:4',
             'order' => 'integer',
         ];
@@ -38,6 +41,20 @@ class RegistrationFee extends Model
     public function currentPrice(): string
     {
         return $this->price_regular;
+    }
+
+    /**
+     * Cicilan hanya untuk presenter mahasiswa, dan hanya bila panitia sudah
+     * menetapkan nominal cicilan pertamanya.
+     */
+    public function allowsInstallments(): bool
+    {
+        $first = (float) $this->installment_first_amount;
+
+        return $this->audience === 'presenter'
+            && $this->registrant_category === 'student_s1'
+            && $first > 0
+            && $first < (float) $this->price_regular;
     }
 
     public function edition(): BelongsTo
@@ -49,7 +66,7 @@ class RegistrationFee extends Model
     {
         $rate = $this->currency === 'IDR' ? 1 : (float) $this->idr_exchange_rate;
         if (! in_array($this->currency, ['IDR', 'USD'], true) || $rate <= 0) {
-            throw \Illuminate\Validation\ValidationException::withMessages(['currency' => app()->getLocale() === 'id'
+            throw ValidationException::withMessages(['currency' => app()->getLocale() === 'id'
                 ? 'Kurs penagihan belum ditetapkan panitia. Hubungi panitia untuk melanjutkan pembayaran.'
                 : 'The committee has not set the billing exchange rate yet. Contact the committee to continue payment.']);
         }

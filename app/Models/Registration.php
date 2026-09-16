@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Services\ConferenceDeadlines;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +23,7 @@ class Registration extends Model implements HasMedia
         'submission_id',
         'voucher_id',
         'payment_method',
+        'installment_plan',
         'amount',
         'discount_amount',
         'status',
@@ -34,6 +37,7 @@ class Registration extends Model implements HasMedia
     {
         return [
             'amount' => 'decimal:2',
+            'installment_plan' => 'boolean',
             'discount_amount' => 'decimal:2',
             'gateway_payload' => 'array',
             'paid_at' => 'datetime',
@@ -91,6 +95,65 @@ class Registration extends Model implements HasMedia
             'currency' => 'IDR', 'category' => ['en' => 'Registration', 'id' => 'Registrasi'],
             'journal_target' => 'regular', 'legacy' => true,
         ];
+    }
+
+    /** Jumlah yang benar-benar sudah masuk, dari baris pembayaran yang berhasil. */
+    public function paidAmount(): float
+    {
+        return (float) $this->payments()->where('status', 'success')->sum('amount');
+    }
+
+    public function outstandingAmount(): float
+    {
+        return max(0, (float) $this->amount - $this->paidAmount());
+    }
+
+    /**
+     * Nominal yang ditagihkan pada pembayaran berikutnya.
+     *
+     * Cicilan pertama memakai angka yang ditetapkan panitia; sesudah itu yang
+     * ditagih selalu sisanya, jadi dua cicilan pasti berjumlah tepat total.
+     */
+    public function amountDueNow(): float
+    {
+        if ($this->installment_plan && $this->paidAmount() <= 0) {
+            return (float) $this->registrationFee?->installment_first_amount;
+        }
+
+        return $this->outstandingAmount();
+    }
+
+    /** Boleh menawarkan cicilan: belum ada yang dibayar, dan tidak sedang dibebaskan voucher. */
+    public function allowsInstallments(): bool
+    {
+        return ! $this->installment_plan
+            && $this->status === 'pending'
+            && ! $this->isWaived()
+            && $this->paidAmount() <= 0
+            && (bool) $this->registrationFee?->allowsInstallments()
+            && (float) $this->amount > (float) $this->registrationFee->installment_first_amount;
+    }
+
+    /** Sudah membayar sebagian, tapi belum lunas. */
+    public function isPartiallyPaid(): bool
+    {
+        return $this->status !== 'paid' && $this->paidAmount() > 0;
+    }
+
+    public function installmentDueAt(): ?CarbonInterface
+    {
+        return app(ConferenceDeadlines::class)->date('installment', $this->edition_id);
+    }
+
+    /** Menunggak: cicilan pertama lunas, sisanya lewat tenggat pelunasan. */
+    public function isInstallmentOverdue(): bool
+    {
+        $due = $this->installmentDueAt();
+
+        return $this->installment_plan
+            && $this->isPartiallyPaid()
+            && $due !== null
+            && now()->greaterThan($due);
     }
 
     public function hasUnresolvedPayment(): bool

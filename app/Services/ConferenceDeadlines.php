@@ -10,7 +10,7 @@ class ConferenceDeadlines
 {
     public const KINDS = [
         'abstract' => 'Abstract submission', 'revision' => 'Abstract revision',
-        'acceptance' => 'Acceptance notification', 'payment' => 'Registration payment',
+        'acceptance' => 'Acceptance notification', 'payment' => 'Registration payment', 'installment' => 'Installment settlement',
         'full_paper' => 'Full paper', 'conference' => 'Conference day',
     ];
 

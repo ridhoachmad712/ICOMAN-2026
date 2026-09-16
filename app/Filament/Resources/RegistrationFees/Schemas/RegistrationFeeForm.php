@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\RegistrationFees\Schemas;
 
-use Filament\Forms\Components\DatePicker;
+use App\Models\Author;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -30,12 +30,20 @@ class RegistrationFeeForm
                             ->required(),
                         Select::make('registrant_category')
                             ->label('Registrant category')
-                            ->options(\App\Models\Author::CATEGORIES)
+                            ->options(Author::CATEGORIES)
                             ->default('general')
                             ->required()
                             ->helperText('Mahasiswa S1 vs Dosen/Umum. Tarif difilter berdasarkan pilihan author saat mendaftar.'),
                         TextInput::make('category.en')->label('Category (EN)')->required()->maxLength(255),
                         TextInput::make('category.id')->label('Category (ID)')->maxLength(255),
+                        TextInput::make('installment_first_amount')
+                            ->label('Cicilan pertama (IDR)')
+                            ->helperText('Isi hanya untuk presenter mahasiswa yang boleh mencicil dua kali. Sisanya dihitung otomatis dari harga, jadi dua cicilan selalu berjumlah tepat. Kosongkan untuk mewajibkan pelunasan sekaligus.')
+                            ->numeric()
+                            ->minValue(1)
+                            ->prefix('Rp')
+                            ->visible(fn ($get): bool => $get('audience') === 'presenter' && $get('registrant_category') === 'student_s1')
+                            ->lt('price_regular'),
                         TextInput::make('price_regular')->label('Registration price')->numeric()->minValue(1)->required(),
                         Textarea::make('notes.en')->label('Notes (EN)')->rows(2)->columnSpanFull(),
                         Textarea::make('notes.id')->label('Notes (ID)')->rows(2)->columnSpanFull(),
