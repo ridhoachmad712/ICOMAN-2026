@@ -4,8 +4,8 @@ namespace App\Filament\Resources\CoHosts\Pages;
 
 use App\Filament\Resources\CoHosts\CoHostResource;
 use App\Models\CoHost;
-use Filament\Resources\Components\Tab;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\Tabs\Tab;
 use Illuminate\Database\Eloquent\Builder;
 
 class ListCoHosts extends ListRecords
