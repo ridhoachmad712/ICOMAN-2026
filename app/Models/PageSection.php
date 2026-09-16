@@ -99,7 +99,7 @@ class PageSection extends Model implements HasMedia
      * supaya tidak ada yang mengetik lalu bertanya-tanya kenapa tak muncul.
      */
     public const HEADINGLESS_TYPES = [
-        'hero', 'organizer', 'spacer', 'divider',
+        'organizer', 'spacer', 'divider',
         'speakers_full', 'committee_full', 'faq_full', 'dates_full',
         'schedule_full', 'downloads_full', 'cfp_full', 'registration_full',
     ];

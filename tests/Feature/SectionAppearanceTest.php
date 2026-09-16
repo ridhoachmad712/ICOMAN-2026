@@ -395,4 +395,42 @@ class SectionAppearanceTest extends TestCase
             $this->assertNotNull($section->publicUrl(), 'Halaman '.$target.' tidak punya alamat pratinjau.');
         }
     }
+
+    // --- Hero ---------------------------------------------------------------
+
+    /** Label di atas judul hero menyebut nama konferensinya, bukan mengulang edisi. */
+    public function test_the_hero_eyebrow_names_the_conference(): void
+    {
+        app()->setLocale('en');
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('International Conference on Management', $html);
+    }
+
+    /** Ketiga teks hero bisa ditimpa lewat Penyusun Halaman. */
+    public function test_the_hero_texts_can_be_overridden_per_block(): void
+    {
+        app()->setLocale('en');
+        PageSection::create([
+            'target' => 'home',
+            'type' => 'hero',
+            'order' => 0,
+            'eyebrow' => ['id' => 'Label Kami', 'en' => 'Our Label'],
+            'heading' => ['id' => 'Judul Kami', 'en' => 'Our Heading'],
+            'subheading' => ['id' => 'Tema Kami', 'en' => 'Our Theme'],
+        ]);
+
+        $html = $this->get(route('home'))->assertOk()->getContent();
+
+        $this->assertStringContainsString('Our Label', $html);
+        $this->assertStringContainsString('Our Heading', $html);
+        $this->assertStringContainsString('Our Theme', $html);
+    }
+
+    /** Isian judul hero tidak boleh disembunyikan dari admin lagi. */
+    public function test_the_hero_offers_its_title_fields(): void
+    {
+        $this->assertNotContains('hero', PageSection::HEADINGLESS_TYPES);
+    }
 }

@@ -132,4 +132,5 @@ return [
     'speakers_profiles_will_appear_here_after' => 'Profil hanya akan ditampilkan setelah dikonfirmasi oleh panitia.',
     'speakers_speakers_will_be_announced' => 'Pembicara akan diumumkan',
     'cohosts_title' => 'Institusi Co-host',
+    'hero_eyebrow' => 'International Conference on Management',
 ];

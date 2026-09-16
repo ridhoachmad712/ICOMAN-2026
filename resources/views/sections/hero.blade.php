@@ -26,13 +26,17 @@
         {{-- Hero tinggi: konten dipusatkan vertikal agar terasa lapang & formal.
              svh dipakai supaya tinggi tidak melompat saat bar browser mobile muncul/hilang. --}}
         <div class="relative mx-auto flex min-h-[68svh] max-w-7xl flex-col justify-center px-4 py-20 sm:min-h-[76svh] sm:px-6 sm:py-28 lg:px-8">
+            {{-- Ketiganya bisa ditimpa lewat Penyusun Halaman; bila dikosongkan,
+                 isinya mengikuti data edisi dan Teks Website. --}}
             <p class="eyebrow">
-                {{ $edition?->name ?? 'ICOMAN 2026' }}
+                {{ $section->eyebrow ?: __('site.hero_eyebrow') }}
             </p>
             <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight max-w-4xl">
-                {{ $edition?->name ?: $s->conference_name }}
+                {{ $section->heading ?: ($edition?->name ?: $s->conference_name) }}
             </h1>
-            <p class="mt-4 max-w-3xl text-lg leading-relaxed text-white/90 sm:text-2xl">{{ $edition?->theme }}</p>
+            <p class="mt-5 max-w-4xl text-2xl leading-snug font-medium text-white/90 sm:text-3xl lg:text-4xl">
+                {{ $section->subheading ?: $edition?->theme }}
+            </p>
 
             {{-- Info chips --}}
             <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm text-white">
