@@ -1,107 +1,112 @@
 # DESIGN.md — Arahan Desain ICOMAN 2026
 
-> **Status: DRAFT, diturunkan dari situs yang sudah berjalan, belum dikoreksi pemiliknya.**
+> Arahan ini **ditetapkan pemilik situs**, dituliskan dari jawaban atas
+> pertanyaan arahan pada 16 September 2026. Isinya keputusan, bukan usulan.
 >
-> Berkas ini dibuat dengan membaca warna, huruf, dan pola yang sudah dipakai
-> ICOMAN 2026 hari ini, lalu menuliskannya sebagai arahan. Artinya ia
-> mengabadikan keadaan sekarang, termasuk bagian yang mungkin justru ingin Anda
-> ubah. Setiap baris di bawah ini boleh dan sebaiknya dikoreksi.
+> Satu nilai ditandai sebagai turunan, bukan jawaban langsung: lihat dial
+> RHYTHM di bawah, dan koreksi bila dugaannya meleset.
 >
-> Berkas ini adalah sumber arahan, bukan penyaring. Penyaringnya `antislop.md`.
+> Berkas ini sumber arahan, bukan penyaring. Penyaringnya `antislop.md`.
 
 ---
 
 ## Identitas
 
-**International Conference on Management (ICOMAN) 2026** — konferensi akademik
+**International Conference on Management (ICOMAN) 2026**, konferensi akademik
 internasional yang diselenggarakan Fakultas Ekonomi dan Bisnis, Universitas
 Negeri Makassar.
-
-Yang dilayani situs ini tiga hal, berurutan menurut kepentingannya:
-
-1. Meyakinkan akademisi bahwa konferensi ini sungguh-sungguh dan layak diikuti.
-2. Menyampaikan tenggat dan biaya tanpa membuat orang harus bertanya.
-3. Mengantar orang dari membaca ke mendaftar dan membayar.
 
 Pembacanya dosen, peneliti, dan mahasiswa pascasarjana, sebagian besar dari
 Indonesia dan Asia Tenggara, banyak yang membukanya dari ponsel.
 
+## Kesan yang dituju
+
+**"Ini konferensi sungguhan, bukan konferensi predator. Paper saya akan dinilai
+dengan benar."**
+
+Itu satu kalimat yang harus ditinggalkan situs ini pada akademisi yang baru
+pertama membukanya. Setiap keputusan desain diuji terhadap kalimat itu.
+
+Konsekuensinya tegas, dan beberapa di antaranya berlawanan dengan naluri
+membuat situs terlihat menarik:
+
+- **Bukti mengalahkan kesan.** Nama pembicara yang nyata, tenggat yang pasti,
+  biaya yang terang, indeksasi yang bisa diperiksa. Semua itu lebih meyakinkan
+  daripada tampilan yang mengesankan.
+- **Ketenangan adalah sinyal.** Konferensi predator justru terlihat ramai dan
+  bersemangat. Menahan diri membedakan kita dari mereka.
+- **Tidak ada angka atau klaim tanpa sumber.** Lebih baik kosong daripada
+  menimbulkan ragu.
+
 ## Kepribadian
 
-Yang dituju: **resmi tapi tidak kaku, jelas, dan bisa dipercaya.** Ini situs
-institusi pendidikan negeri, bukan produk teknologi. Kredibilitas lebih penting
-daripada kesan mutakhir.
+**Tenang dan resmi.** Situs ini tidak berusaha memukau. Ia menyampaikan
+informasi dengan lugas, seperti situs universitas besar atau lembaga negara,
+dan membiarkan isinya yang meyakinkan.
 
 | Ya | Bukan |
 |---|---|
-| Tenang, rapi, mudah dipindai | Ramai, penuh efek |
-| Akademik, sopan | Kaku, birokratis |
-| Hangat lewat satu aksen | Warna-warni |
-| Ringkas | Bertele-tele |
+| Menahan diri | Berusaha memukau |
+| Padat dan bisa dipindai | Lapang demi kesan mewah |
+| Formal, jelas | Kaku, birokratis |
+| Satu aksen pada saat yang tepat | Aksen di mana-mana |
+
+## Motif identitas
+
+**Warna dan bentuk logo.** Itu satu-satunya penanda visual yang diulang di
+seluruh situs, dan ia harus dipakai dengan **lebih tegas dan lebih konsisten**,
+bukan sekadar menjadi warna tombol.
+
+Artinya: jingga terakota dan biru tua hadir sebagai pasangan yang dikenali,
+dipakai pada tempat yang sama dengan cara yang sama di setiap halaman. Tidak ada
+motif kedua. Tidak ada pola latar, tidak ada bentuk hiasan yang tidak berasal
+dari logo.
 
 ## Palet
 
-Diambil dari nilai yang benar-benar tersimpan di Pengaturan situs.
-
 | Peran | Nilai | Dipakai untuk |
 |---|---|---|
-| Brand (aksen) | `#d9621c` | Tombol utama, tautan, penanda aktif, garis penekanan |
-| Brand 2 (dasar) | `#13355c` | Judul, latar gelap, teks berat |
-| Aksen hangat | `#f26522` | Sorotan kecil, diambil dari logo |
-| Aksen kuat | `#d84c12` | Keadaan hover tombol aksen |
+| Brand | `#d9621c` | Bidang: penanda, garis, latar lembut, hiasan |
+| Brand (teks) | `--brand-ink` | Teks berwarna merek, dan latar yang memikul teks putih |
+| Brand 2 | `#13355c` | Judul, latar gelap, teks berat |
 
-Jingga terakota berasal dari logo konferensi; biru tua menyeimbangkannya dan
-memberi kesan resmi. Dua warna itu sudah cukup: warna ketiga hanya boleh masuk
-kalau ada arti yang dibawanya (misalnya hijau untuk lunas, merah untuk gagal),
-bukan sebagai variasi.
+Dua warna, tidak lebih. Warna ketiga hanya masuk bila membawa arti, misalnya
+hijau untuk lunas dan merah untuk gagal, bukan sebagai variasi.
 
-Nilai cadangan bila Pengaturan dikosongkan tersimpan di satu tempat,
-`SiteSettings::DEFAULT_BRAND` dan `DEFAULT_BRAND_2`, dan dipakai situs publik,
-portal author, maupun panel admin. Sebelumnya tiap tempat memilih cadangannya
-sendiri sehingga satu produk bisa berubah menjadi dua identitas.
+Varian `-ink` ada karena warna logo tidak memenuhi ambang keterbacaan sebagai
+teks. Nilai cadangan bila Pengaturan dikosongkan tersimpan di
+`SiteSettings::DEFAULT_BRAND` dan `DEFAULT_BRAND_2`.
 
 ## Tipografi
 
-| Peran | Huruf | Alasan |
-|---|---|---|
-| Judul | **Space Grotesk** | Geometris dengan sedikit karakter, membedakan judul dari isi tanpa terasa dekoratif |
-| Isi | **Instrument Sans** | Terbaca pada ukuran kecil, netral, tidak melawan judulnya |
-| Ukuran dasar | 16px | |
+| Peran | Huruf |
+|---|---|
+| Judul | **Space Grotesk** |
+| Isi | **Instrument Sans** |
+| Ukuran dasar | 16px |
 
-Judul dipasang dengan `letter-spacing: -0.02em` supaya rapat dan tegas. Tidak ada
-huruf monospace di antarmuka publik, dan tidak ada judul serba kapital dengan
-jarak huruf lebar.
-
-## Suasana
-
-Terang sebagai dasar. Latar putih dengan bagian ber-tint lembut warna brand untuk
-memisahkan bagian, bukan hitam-sebagai-gaya. Sudut membulat sedang, bayangan
-tipis dan hanya pada elemen yang memang terangkat (kartu yang bisa diklik),
-bukan pada segala sesuatu.
-
-Situs ini dibaca orang yang sedang mencari informasi, bukan sedang dibujuk.
-Ruang kosong dipakai untuk memudahkan membaca, bukan untuk kesan mewah.
+Tidak ada huruf monospace di antarmuka publik, dan tidak ada judul serba kapital
+dengan jarak huruf lebar.
 
 ## Dial
 
-Skala 1 sampai 5, sesuai kerangka `antislop.md` Part 3.
-
-| Dial | Nilai | Maksudnya |
+| Dial | Nilai | Dasarnya |
 |---|---|---|
-| ENERGY | **2** | Tenang. Satu aksen hangat sebagai penekanan, sisanya menahan diri. |
-| RHYTHM | **3** | Bagian-bagiannya perlu berbeda susunan, tidak semuanya judul-tengah lalu grid. |
-| MOTION | **1** | Gerak seperlunya. Konferensi akademik tidak butuh animasi masuk di tiap bagian. |
+| ENERGY | **1** | Dipilih pemilik: tenang dan resmi. |
+| RHYTHM | **2** | **Turunan, bukan jawaban langsung.** ENERGY 1 dan kesan "serius dan kredibel" mengarah ke susunan yang tertib dan mudah ditebak. Nilai 2 dipilih agar bagian yang dibaca dan bagian yang dipindai tetap boleh berbeda perataan, karena itu menyangkut keterbacaan. Koreksi ke 1 bila Anda ingin seluruh bagian seragam. |
+| MOTION | **2** | Dipilih pemilik: bagian memudar masuk saat digulir. |
 
 ## Batasan nyata
 
-Hal-hal berikut bukan selera, melainkan kenyataan yang membentuk desainnya:
+Bukan selera, melainkan kenyataan yang membentuk desainnya:
 
-- **Dua bahasa.** Setiap teks tampil dalam Indonesia dan Inggris. Panjangnya
-  berbeda, jadi tidak ada tata letak yang bergantung pada jumlah karakter.
-- **Isinya dikelola panitia.** Hampir semua teks, gambar, dan urutan bagian
-  disunting lewat panel admin. Desain tidak boleh rusak ketika judul lebih
-  panjang, gambar tidak ada, atau sebuah bagian dikosongkan.
+- **Dua bahasa.** Setiap teks tampil dalam Indonesia dan Inggris, dengan panjang
+  yang berbeda. Tidak ada tata letak yang bergantung pada jumlah karakter.
+- **Isinya dikelola panitia.** Teks, gambar, dan urutan bagian disunting lewat
+  panel admin. Desain tidak boleh rusak ketika judul lebih panjang, gambar tidak
+  ada, atau sebuah bagian dikosongkan.
 - **Bagian halaman dapat disusun ulang.** Beranda dirakit dari blok yang bisa
-  ditambah, dipindah, dan dihapus admin. Tiap blok harus berdiri sendiri.
+  ditambah, dipindah, dan dihapus. Tiap blok harus berdiri sendiri.
 - **Ponsel lebih dulu.** Sebagian besar peserta membuka dari ponsel, termasuk
   saat membayar.
+- **Gerak boleh dimatikan.** MOTION 2 harus menghormati `prefers-reduced-motion`.
