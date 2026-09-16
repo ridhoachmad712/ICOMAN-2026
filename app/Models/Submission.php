@@ -72,6 +72,7 @@ class Submission extends Model implements HasMedia
         'loa_issued_at',
         'full_paper_submitted_at',
         'sinta3_offered',
+        'sinta3_offer_overridden_at',
         'journal_target',
         'status',
         'submitted_at',
@@ -86,6 +87,7 @@ class Submission extends Model implements HasMedia
             'loa_issued_at' => 'datetime',
             'full_paper_submitted_at' => 'datetime',
             'sinta3_offered' => 'boolean',
+            'sinta3_offer_overridden_at' => 'datetime',
             'keywords' => 'array',
         ];
     }
@@ -142,6 +144,48 @@ class Submission extends Model implements HasMedia
     public function journalTargetLabel(): string
     {
         return self::JOURNAL_TARGETS[$this->journal_target] ?? self::JOURNAL_TARGETS['regular'];
+    }
+
+    /**
+     * Menyelaraskan tawaran SINTA 3 dengan rekomendasi reviewer.
+     *
+     * Dipanggil setiap kali penilaian disimpan, bukan sekali saat LOA terbit:
+     * reviewer kerap menyelesaikan penilaiannya setelah panitia menerima paper,
+     * dan dulu rekomendasi seperti itu tidak pernah sampai ke author.
+     *
+     * Keputusan panitia menang. Begitu tawarannya ditetapkan manual, penilaian
+     * berikutnya tidak lagi menimpanya.
+     */
+    public function refreshSinta3Offer(): self
+    {
+        if ($this->sinta3_offer_overridden_at !== null) {
+            return $this;
+        }
+
+        $recommended = $this->reviewsRecommendSinta3();
+
+        if ($this->sinta3_offered !== $recommended) {
+            $this->forceFill(['sinta3_offered' => $recommended])->save();
+        }
+
+        return $this;
+    }
+
+    /** Panitia menetapkan sendiri tawarannya; rekomendasi berikutnya tidak menimpanya. */
+    public function setSinta3Offer(bool $offered): self
+    {
+        $this->forceFill([
+            'sinta3_offered' => $offered,
+            'sinta3_offer_overridden_at' => now(),
+        ])->save();
+
+        return $this;
+    }
+
+    /** Rekomendasi reviewer ada, tapi tawarannya belum terbuka. */
+    public function sinta3OfferIsMissing(): bool
+    {
+        return ! $this->sinta3_offered && $this->reviewsRecommendSinta3();
     }
 
     /** Ada minimal satu reviewer (yang sudah menilai) merekomendasikan jalur SINTA 3. */
@@ -255,7 +299,9 @@ class Submission extends Model implements HasMedia
         $justIssuedLoa = $status === 'accepted' && $this->loa_issued_at === null;
         if ($justIssuedLoa) {
             $this->loa_issued_at = now();
-            $this->sinta3_offered = $this->reviewsRecommendSinta3();
+            if ($this->sinta3_offer_overridden_at === null) {
+                $this->sinta3_offered = $this->reviewsRecommendSinta3();
+            }
         }
 
         $this->save();

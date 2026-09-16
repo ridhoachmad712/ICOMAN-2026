@@ -244,6 +244,10 @@ Akun publik untuk submission & registrasi (guard `author`, BUKAN tabel `users` F
 | file | media (collection `paper`, mime docx/pdf) |
 | camera_ready_file | media nullable (collection `camera_ready`) |
 | status | enum(submitted, under_review, revision_required, accepted, rejected) default submitted |
+| journal_target | string: regular \| sinta3 — pilihan author, menentukan biaya tambahan penerbitan |
+| sinta3_offered | boolean — apakah pilihan Jurnal SINTA 3 muncul di halaman pembayaran author. Diselaraskan otomatis dengan rekomendasi reviewer (`reviews.recommends_sinta3`) setiap kali penilaian disimpan |
+| sinta3_offer_overridden_at | timestamp nullable — panitia menetapkan sendiri tawarannya; sesudah ini rekomendasi reviewer tidak lagi menimpanya. Kosong = ikut rekomendasi reviewer |
+| loa_issued_at | timestamp nullable |
 | submitted_at | timestamp |
 
 ## submission_authors

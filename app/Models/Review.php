@@ -36,6 +36,21 @@ class Review extends Model
         ];
     }
 
+    /**
+     * Tawaran SINTA 3 mengikuti rekomendasi reviewer, jadi diselaraskan di sini
+     * — satu tempat yang dilewati setiap penilaian, dari mana pun disimpannya.
+     */
+    protected static function booted(): void
+    {
+        // Diambil segar dari database, bukan dari relasi yang mungkin sudah
+        // ter-cache: instance lama bisa memegang nilai lawas dan menyimpulkan
+        // tidak ada yang perlu diubah.
+        $sync = fn (Review $review) => $review->assignment?->submission()->first()?->refreshSinta3Offer();
+
+        static::saved($sync);
+        static::deleted($sync);
+    }
+
     public function assignment(): BelongsTo
     {
         return $this->belongsTo(ReviewAssignment::class, 'review_assignment_id');

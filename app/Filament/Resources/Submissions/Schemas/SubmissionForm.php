@@ -87,6 +87,17 @@ class SubmissionForm
                                 Placeholder::make('journal_target_display')
                                     ->label('Target jurnal')
                                     ->content(fn ($record): string => $record?->journalTargetLabel() ?? '—'),
+                                // Saklar inilah yang menentukan apakah author
+                                // melihat pilihan jurnal di halaman pembayaran.
+                                Placeholder::make('sinta3_offer_display')
+                                    ->label('Tawaran SINTA 3')
+                                    ->content(fn ($record): string => match (true) {
+                                        ! $record => '—',
+                                        $record->sinta3_offered => 'Terbuka untuk author'
+                                            .($record->sinta3_offer_overridden_at ? ' (ditetapkan panitia)' : ''),
+                                        $record->sinta3OfferIsMissing() => 'Direkomendasikan reviewer, tapi belum dibuka',
+                                        default => 'Tidak ditawarkan',
+                                    }),
                                 Placeholder::make('submitted_at_display')
                                     ->label('Dikirim')
                                     ->content(fn ($record): string => $record?->extended_abstract_submitted_at?->format('d M Y H:i')
@@ -158,11 +169,16 @@ class SubmissionForm
                 ->description($facts ? implode(' • ', $facts) : null)
                 ->compact()
                 ->secondary()
-                ->afterHeader([
+                ->afterHeader(array_values(array_filter([
+                    // Rekomendasi SINTA 3 tidak pernah ditampilkan di mana pun,
+                    // padahal itulah yang membuka tawaran ke author.
+                    $review?->recommends_sinta3
+                        ? Text::make('Rekomendasi SINTA 3')->badge()->color('info')
+                        : null,
                     Text::make($isDone ? 'Completed' : 'Pending')
                         ->badge()
                         ->color($isDone ? 'success' : 'warning'),
-                ])
+                ])))
                 ->schema(array_values(array_filter([
                     $review?->comments_for_author
                         ? Placeholder::make('comments_for_author_'.$assignment->id)

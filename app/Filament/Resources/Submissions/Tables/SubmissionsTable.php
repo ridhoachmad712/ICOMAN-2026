@@ -204,9 +204,16 @@ class SubmissionsTable
                                     $score = $rev?->score ? $rev->score.'/100' : '—';
                                     $comments = $rev?->comments_for_author ? '<p class="mt-1 text-xs text-gray-600"><strong>Catatan Reviewer:</strong> '.e($rev->comments_for_author).'</p>' : '';
 
+                                    // Rekomendasi SINTA 3 ikut disebut: keputusan Accept
+                                    // di bawah inilah yang membuka tawarannya ke author.
+                                    $sinta3 = $rev?->recommends_sinta3
+                                        ? '<div class="mt-1 font-semibold">Direkomendasikan terbit di Jurnal SINTA 3</div>'
+                                        : '';
+
                                     return '<div class="p-3 bg-gray-50 border border-gray-200 rounded-lg mb-2 text-xs">'
                                         .'<div class="font-bold text-gray-900">'.e($ra->reviewer?->name).'</div>'
                                         .'<div>Skor: <span class="font-semibold">'.$score.'</span> &bull; Rekomendasi: <span class="font-semibold text-primary-700">'.$rec.'</span></div>'
+                                        .$sinta3
                                         .$comments
                                         .'</div>';
                                 })->implode('');
@@ -228,6 +235,31 @@ class SubmissionsTable
                         $record->changeStatus($data['status']);
 
                         Notification::make()->title('Keputusan disimpan. Bila Accepted, LOA otomatis terbit & email dikirim ke author.')->success()->send();
+                    }),
+
+                // Tawaran mengikuti rekomendasi reviewer dengan sendirinya; tombol ini
+                // untuk saat panitia perlu memutuskan lain, dan keputusannya
+                // tidak akan ditimpa penilaian berikutnya.
+                Action::make('sinta3Offer')
+                    ->label(fn ($record): string => $record->sinta3_offered ? 'Tutup tawaran SINTA 3' : 'Buka tawaran SINTA 3')
+                    ->icon('heroicon-o-academic-cap')
+                    ->color(fn ($record): string => $record->sinta3_offered ? 'gray' : 'info')
+                    ->visible(fn ($record): bool => $record->status === 'accepted'
+                        && (auth()->user()?->isSuperadmin() ?? false))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record): string => $record->sinta3_offered
+                        ? 'Tutup tawaran Jurnal SINTA 3?'
+                        : 'Buka tawaran Jurnal SINTA 3?')
+                    ->modalDescription(fn ($record): string => static::sinta3Description($record))
+                    ->action(function ($record): void {
+                        $record->setSinta3Offer(! $record->sinta3_offered);
+
+                        Notification::make()
+                            ->title($record->fresh()->sinta3_offered
+                                ? 'Tawaran SINTA 3 dibuka. Author dapat memilihnya di halaman pembayaran.'
+                                : 'Tawaran SINTA 3 ditutup.')
+                            ->success()
+                            ->send();
                     }),
 
                 Action::make('issueLoa')
@@ -412,6 +444,15 @@ class SubmissionsTable
      * Sebutkan sub-temanya, dan katakan terus terang bila belum ada ahlinya —
      * daftar yang mendadak pendek tanpa penjelasan hanya membingungkan.
      */
+    private static function sinta3Description($record): string
+    {
+        $recommended = $record->reviewsRecommendSinta3()
+            ? 'Reviewer merekomendasikan paper ini untuk SINTA 3.'
+            : 'Tidak ada reviewer yang merekomendasikan SINTA 3 untuk paper ini.';
+
+        return $recommended.' Setelah ditetapkan di sini, penilaian reviewer berikutnya tidak akan mengubahnya lagi. Membuka tawaran menambah biaya penerbitan pada tagihan author bila ia memilihnya.';
+    }
+
     private static function assignDescription($record): string
     {
         $topic = $record->topic?->title;
