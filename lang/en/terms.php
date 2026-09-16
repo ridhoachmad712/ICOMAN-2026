@@ -63,6 +63,32 @@ return json_decode(<<<'JSON'
       "title": "Attendee certificate",
       "body": "An e-certificate is provided to registered attendees who attend the main Keynote and Plenary sessions."
     }
+  ],
+  "cohost": [
+    {
+      "title": "Hosting partnership",
+      "body": "A co-host institution supports the running of the conference and is named as a partner in official materials and on the website."
+    },
+    {
+      "title": "Free paper quota",
+      "body": "Each co-host receives a voucher code covering 4 paper submissions without the base registration fee. The SINTA 3 publication add-on remains payable by the author if chosen."
+    },
+    {
+      "title": "Partnership fee",
+      "body": "The partnership carries a fee, invoiced once the application is approved. The voucher code becomes usable only after that fee is settled."
+    },
+    {
+      "title": "Committee review",
+      "body": "Applications are reviewed by the committee, which may accept or decline them. The decision is sent to the contact person by email."
+    },
+    {
+      "title": "Papers are still judged on merit",
+      "body": "The voucher waives fees, not review. Papers from a co-host institution go through the same reviewer assessment and may be rejected."
+    },
+    {
+      "title": "Institution details",
+      "body": "The institution name, logo and website link are used to credit it as a partner on the website and in conference materials."
+    }
   ]
 }
 JSON, true);

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\CoHost;
 use App\Models\Committee;
 use App\Models\Download;
 use App\Models\Faq;
@@ -48,6 +49,7 @@ class SectionContent
             'quote' => blank($section->content),
             'video' => blank($section->setting('video_url')),
             'heading' => blank($section->heading) && blank($section->subheading),
+            'cohosts' => CoHost::approved()->get()->filter(fn ($coHost) => $coHost->isActive())->isEmpty(),
             'image' => ! $section->hasMedia('section'),
             default => false,
         };

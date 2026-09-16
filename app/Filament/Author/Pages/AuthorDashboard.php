@@ -25,6 +25,13 @@ class AuthorDashboard extends Dashboard
     public function getViewData(): array
     {
         $author = Filament::auth()->user();
+
+        // Institusi co-host punya perjalanan sendiri: tidak mengirim paper,
+        // melainkan menunggu tinjauan lalu mengelola kuota vouchernya.
+        if ($author?->isCoHost()) {
+            return $this->coHostData($author);
+        }
+
         $submissions = $author->submissions()
             ->with(['topic', 'reviewAssignments.review'])
             ->latest('submitted_at')
@@ -40,6 +47,24 @@ class AuthorDashboard extends Dashboard
             'journeySteps' => $journey->timeline($author, $submissions, $registrations),
             'recentUpdates' => $journey->recentUpdates($submissions, $registrations),
             'showPayments' => $journey->shouldShowPayments($author, $submissions, $registrations),
+        ];
+    }
+
+    /** @return array<string, mixed> */
+    private function coHostData($author): array
+    {
+        $coHost = $author->coHost()->with(['voucher.redemptions.author', 'sponsor'])->first();
+
+        return [
+            'author' => $author,
+            'coHost' => $coHost,
+            'coHostRegistration' => $coHost?->registration(),
+            'submissions' => collect(),
+            'registrations' => collect(),
+            'nextAction' => null,
+            'journeySteps' => [],
+            'recentUpdates' => collect(),
+            'showPayments' => false,
         ];
     }
 }

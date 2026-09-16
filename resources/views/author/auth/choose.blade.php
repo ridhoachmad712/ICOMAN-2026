@@ -12,6 +12,13 @@
                 'title' => $isId ? 'Peserta Seminar' : 'Seminar Attendee',
                 'sub' => $isId ? 'Ikuti seminar tanpa mengirim paper' : 'Join the seminar without submitting a paper',
             ],
+            'cohost' => [
+                'icon' => 'building',
+                'title' => $isId ? 'Institusi Co-host' : 'Co-host Institution',
+                'sub' => $isId
+                    ? 'Ajukan institusi Anda sebagai mitra penyelenggara'
+                    : 'Apply for your institution to co-host the conference',
+            ],
         ];
     @endphp
 

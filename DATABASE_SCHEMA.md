@@ -294,6 +294,26 @@ Co-author (bisa lebih dari satu; submitter utama juga tercatat di sini dengan `i
 | gateway_payload | json nullable (simpan raw response terakhir dari gateway untuk audit) |
 | paid_at | timestamp nullable |
 
+## co_hosts
+Pengajuan institusi co-host. Akunnya memakai tabel `authors` (`participation_type = 'cohost'`), sehingga login, invoice, dan pembayaran Midtrans dipakai ulang; tabel ini hanya menyimpan yang khas co-host.
+| Kolom | Tipe |
+|---|---|
+| id | pk |
+| author_id | fk unique → authors (akun penanggung jawab) |
+| edition_id | fk → editions |
+| institution_name | string |
+| institution_type | string(40) nullable (lihat `CoHost::TYPES`) |
+| country | string(2) nullable |
+| website | string nullable |
+| pic_position | string nullable (nama, email, telepon memakai data akun) |
+| status | string(20) index: pending \| approved \| rejected |
+| reviewed_at | timestamp nullable |
+| reviewed_by | fk nullable → users |
+| rejection_reason | text nullable |
+| voucher_id | fk nullable → vouchers (terbit saat disetujui, aktif setelah lunas) |
+| sponsor_id | fk nullable → sponsors (tampil setelah lunas) |
+| logo | media nullable (collection `logo`) |
+
 ## vouchers
 Kode voucher co-host: satu kode per institusi mitra, dipakai berkali-kali sampai kuota habis. Membebaskan biaya registrasi dasar presenter; add-on Jurnal SINTA 3 tetap ditagih.
 | Kolom | Tipe |

@@ -78,6 +78,7 @@ class PageSection extends Model implements HasMedia
         'faq' => 'FAQ',
         'sponsors' => 'Sponsor',
         'downloads' => 'Unduhan',
+        'cohosts' => 'Institusi co-host',
 
         // Blok "halaman penuh": tampilan lengkap seperti halaman aslinya,
         // dipakai sebagai isi utama halaman bawaan.

@@ -57,6 +57,9 @@ Route::middleware('setlocale')->group(function () {
             Route::post('register/terms', [AuthController::class, 'acceptTerms'])->name('register.accept-terms');
             Route::get('register/start', [AuthController::class, 'showRegister'])->name('register.start');
             Route::post('register', [AuthController::class, 'register'])->middleware('throttle:10,1');
+            // Pengajuan institusi co-host: sama lapisan pembatas lajunya dengan pendaftaran biasa.
+            Route::post('register/cohost', [AuthController::class, 'registerCoHost'])
+                ->middleware('throttle:10,1')->name('register.cohost');
         });
 
         // Authenticated author

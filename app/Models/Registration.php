@@ -43,6 +43,30 @@ class Registration extends Model implements HasMedia
 
     protected static function booted(): void
     {
+        /*
+         * Kemitraan co-host menyala saat invoicenya lunas: vouchernya aktif dan
+         * logonya tampil di website. Dipasang sebagai event model, bukan di satu
+         * tempat pembayaran, karena status lunas bisa datang dari webhook
+         * Midtrans, penyelarasan manual, maupun verifikasi panitia di admin.
+         */
+        static::updated(function (Registration $registration): void {
+            if (! $registration->wasChanged('status') || $registration->status !== 'paid') {
+                return;
+            }
+
+            $coHost = CoHost::where('author_id', $registration->author_id)
+                ->where('edition_id', $registration->edition_id)
+                ->approved()
+                ->first();
+
+            if (! $coHost) {
+                return;
+            }
+
+            $coHost->voucher?->update(['is_active' => true]);
+            $coHost->sponsor?->update(['is_published' => true]);
+        });
+
         static::creating(function (Registration $registration): void {
             if ($registration->pricing_snapshot !== null) {
                 return;

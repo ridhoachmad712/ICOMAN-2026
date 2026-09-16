@@ -63,6 +63,32 @@ return json_decode(<<<'JSON'
       "title": "Sertifikat peserta",
       "body": "E-certificate diberikan kepada peserta terdaftar yang mengikuti sesi utama Keynote dan Plenary."
     }
+  ],
+  "cohost": [
+    {
+      "title": "Kemitraan penyelenggaraan",
+      "body": "Institusi co-host turut mendukung penyelenggaraan konferensi dan namanya dicantumkan sebagai mitra pada materi resmi serta website."
+    },
+    {
+      "title": "Kuota paper gratis",
+      "body": "Setiap co-host menerima kode voucher untuk 4 pengiriman paper tanpa biaya registrasi dasar. Biaya tambahan penerbitan Jurnal SINTA 3 tetap ditanggung penulis bila opsi itu dipilih."
+    },
+    {
+      "title": "Biaya kemitraan",
+      "body": "Kemitraan dikenai biaya yang ditagihkan melalui invoice setelah pengajuan disetujui. Kode voucher baru dapat dipakai setelah biaya tersebut lunas."
+    },
+    {
+      "title": "Peninjauan panitia",
+      "body": "Pengajuan ditinjau panitia terlebih dahulu. Panitia berhak menerima atau menolak pengajuan, dan keputusannya disampaikan melalui email penanggung jawab."
+    },
+    {
+      "title": "Mutu naskah tetap dinilai",
+      "body": "Voucher membebaskan biaya, bukan proses review. Paper dari penulis institusi co-host tetap melewati penilaian reviewer dan dapat ditolak."
+    },
+    {
+      "title": "Data institusi",
+      "body": "Nama, logo, dan tautan situs institusi digunakan untuk penyebutan sebagai mitra pada website dan materi konferensi."
+    }
   ]
 }
 JSON, true);

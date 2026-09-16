@@ -1,7 +1,21 @@
 <x-author-layout :title="app()->getLocale() === 'id' ? 'Syarat dan Ketentuan' : 'Terms and Conditions'">
-    @php $isId = app()->getLocale() === 'id'; $clauses = array_merge(__('terms.common'), __($role === 'presenter' ? 'terms.presenter' : 'terms.participant')); @endphp
+    @php
+        $isId = app()->getLocale() === 'id';
+        // Tiap peran punya klausa tambahannya sendiri di atas klausa umum.
+        $extra = match ($role) {
+            'presenter' => 'terms.presenter',
+            'cohost' => 'terms.cohost',
+            default => 'terms.participant',
+        };
+        $clauses = array_merge(__('terms.common'), __($extra));
+        $roleLabel = match ($role) {
+            'presenter' => 'Presenter',
+            'cohost' => $isId ? 'Institusi co-host' : 'Co-host institution',
+            default => $isId ? 'Peserta seminar' : 'Seminar attendee',
+        };
+    @endphp
     <div class="card mx-auto max-w-3xl p-6 sm:p-8">
-        <p class="text-sm font-semibold text-[var(--brand)]">{{ siteSettings()->conference_name }} · {{ $role === 'presenter' ? 'Presenter' : ($isId ? 'Peserta seminar' : 'Seminar attendee') }}</p>
+        <p class="text-sm font-semibold text-[var(--brand)]">{{ siteSettings()->conference_name }} · {{ $roleLabel }}</p>
         <h1 class="mt-3 text-2xl font-bold">{{ $isId ? 'Syarat dan Ketentuan' : 'Terms and Conditions' }}</h1>
         <p class="mt-2 text-xs text-slate-500">{{ $isId ? 'Versi' : 'Version' }} 2026-09-05</p>
         <ol class="mt-6 list-decimal space-y-5 pl-5 text-sm leading-7 text-slate-600">

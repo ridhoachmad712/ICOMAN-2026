@@ -131,4 +131,5 @@ return [
     'schedule_all_times_are_in_central' => 'Semua waktu dalam WITA (UTC+8).',
     'speakers_profiles_will_appear_here_after' => 'Profil hanya akan ditampilkan setelah dikonfirmasi oleh panitia.',
     'speakers_speakers_will_be_announced' => 'Pembicara akan diumumkan',
+    'cohosts_title' => 'Institusi Co-host',
 ];

@@ -17,6 +17,11 @@
         };
     @endphp
 
+    {{-- Institusi co-host punya papan sendiri: status pengajuan, biaya
+         kemitraan, dan pemakaian kuota vouchernya. --}}
+    @if(($coHost ?? null))
+        @include('filament.author.pages.cohost-dashboard')
+    @else
     <div class="space-y-6">
         <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
@@ -147,4 +152,5 @@
         </div>
         @endif
     </div>
+    @endif
 </x-filament-panels::page>

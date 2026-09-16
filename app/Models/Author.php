@@ -6,6 +6,7 @@ use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
@@ -60,6 +61,17 @@ class Author extends Authenticatable implements FilamentUser
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    public function coHost(): HasOne
+    {
+        return $this->hasOne(CoHost::class);
+    }
+
+    /** Akun institusi co-host, bukan peserta perorangan. */
+    public function isCoHost(): bool
+    {
+        return $this->participation_type === 'cohost';
     }
 
     public function isPresenter(): bool

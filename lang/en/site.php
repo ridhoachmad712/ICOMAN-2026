@@ -131,4 +131,5 @@ return [
     'schedule_all_times_are_in_central' => 'All times are in Central Indonesia Time (UTC+8).',
     'speakers_profiles_will_appear_here_after' => 'Profiles will appear here after confirmation by the committee.',
     'speakers_speakers_will_be_announced' => 'Speakers will be announced',
+    'cohosts_title' => 'Co-host Institutions',
 ];
