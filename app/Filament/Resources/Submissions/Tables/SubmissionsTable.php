@@ -175,7 +175,7 @@ class SubmissionsTable
                     ->modalHeading('Keputusan Panitia atas Abstract')
                     // Menerima/menolak paper otomatis menerbitkan LOA dan mengirim
                     // email ke author, jadi wewenangnya sejajar dengan penerbitan LOA.
-                    ->visible(fn ($record) => (auth()->user()?->isSuperadmin() ?? false)
+                    ->visible(fn ($record) => (auth()->user()?->managesSubmissions() ?? false)
                         && $record->currentReviewPhase() !== null
                         && $record->reviewAssignments()
                             ->where('phase', $record->currentReviewPhase())
@@ -245,7 +245,7 @@ class SubmissionsTable
                     ->icon('heroicon-o-academic-cap')
                     ->color(fn ($record): string => $record->sinta3_offered ? 'gray' : 'info')
                     ->visible(fn ($record): bool => $record->status === 'accepted'
-                        && (auth()->user()?->isSuperadmin() ?? false))
+                        && (auth()->user()?->managesSubmissions() ?? false))
                     ->requiresConfirmation()
                     ->modalHeading(fn ($record): string => $record->sinta3_offered
                         ? 'Tutup tawaran Jurnal SINTA 3?'
@@ -268,7 +268,7 @@ class SubmissionsTable
                     ->color('success')
                     ->visible(fn ($record) => $record->status === 'accepted'
                         && ! $record->isLoaIssued()
-                        && (auth()->user()?->isSuperadmin() ?? false))
+                        && (auth()->user()?->managesSubmissions() ?? false))
                     ->modalHeading('Terbitkan Letter of Acceptance')
                     ->modalDescription('LOA otomatis terbit saat status diubah menjadi Accepted. Tombol ini hanya untuk paper yang sudah Accepted tetapi LOA-nya belum terbit (mis. diterima sebelum fitur otomatis aktif).')
                     ->schema([
@@ -303,7 +303,7 @@ class SubmissionsTable
                         ->icon('heroicon-o-pencil-square')
                         ->color('warning')
                         ->visible(fn ($record) => $record->currentReviewPhase() !== null
-                            && (auth()->user()?->isSuperadmin() ?? false))
+                            && (auth()->user()?->managesSubmissions() ?? false))
                         ->modalHeading('Review Abstract (langsung oleh admin)')
                         ->schema([
                             Placeholder::make('abstract_preview')

@@ -77,6 +77,19 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         return $this->hasAnyRole(['admin_registrasi', 'superadmin']);
     }
 
+    /**
+     * Boleh menangani Submissions, termasuk memutuskan nasib papernya.
+     *
+     * Superadmin dan admin registrasi berdiri sejajar di sini: keduanya
+     * melihat halaman yang sama persis, sampai ke tombol keputusan, LOA, dan
+     * tawaran SINTA 3. Sebelumnya empat tombol itu superadmin saja, sehingga
+     * admin registrasi membuka halaman yang secara diam-diam lebih sempit.
+     */
+    public function managesSubmissions(): bool
+    {
+        return $this->hasAnyRole(['superadmin', 'admin_registrasi']);
+    }
+
     public function isReviewer(): bool
     {
         return $this->hasRole('reviewer');
