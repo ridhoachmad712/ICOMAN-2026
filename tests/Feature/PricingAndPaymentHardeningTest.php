@@ -9,9 +9,9 @@ use App\Models\Payment;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\Submission;
+use App\Services\BorderpayGateway;
+use App\Services\BorderpayService;
 use App\Services\ConferenceDeadlines;
-use App\Services\KaseraGateway;
-use App\Services\KaseraService;
 use App\Services\RegistrationProvisioner;
 use App\Settings\SiteSettings;
 use Illuminate\Validation\ValidationException;
@@ -40,7 +40,7 @@ class PricingAndPaymentHardeningTest extends TestCase
 
         $quote = $fee->quote();
 
-        // Kasera Pay menagih IDR: 25 USD x 16.000 = 400.000.
+        // BorderPay menagih IDR: 25 USD x 16.000 = 400.000.
         $this->assertSame(400000, $quote['base_amount']);
         $this->assertSame('IDR', $quote['currency']);
         $this->assertSame('USD', $quote['source_currency']);
@@ -115,7 +115,7 @@ class PricingAndPaymentHardeningTest extends TestCase
 
         $registration = app(RegistrationProvisioner::class)->ensureFor($author);
         $registration->payments()->create([
-            'method' => 'gateway', 'gateway_name' => 'midtrans',
+            'method' => 'gateway', 'gateway_name' => 'borderpay',
             'gateway_reference' => 'ICOMAN-'.$registration->id.'-INFLIGHT',
             'amount' => $registration->amount, 'status' => 'initiated',
         ]);
@@ -162,52 +162,52 @@ class PricingAndPaymentHardeningTest extends TestCase
 
     public function test_a_second_checkout_reuses_the_existing_order_instead_of_creating_another(): void
     {
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
         [$registration] = $this->payableRegistration();
 
         $calls = 0;
-        $this->mockGateway(function () use (&$calls) {
+        $this->mockGateway(function (array $body) use (&$calls) {
             $calls++;
 
-            return ['id' => 'payreq_abc', 'checkout_url' => 'https://pay.kasera.id/p/xK3f'];
+            return ['reference_id' => $body['reference_id'], 'status' => 'pending', 'pay_url' => 'https://borderpay.id/pay/xK3f'];
         });
 
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
         $first = $service->createCheckoutRedirect($registration);
         $second = $service->createCheckoutRedirect($registration->refresh());
 
         $this->assertSame($first, $second);
-        // Tab kedua tidak boleh membuka permintaan pembayaran baru di Kasera.
+        // Tab kedua tidak boleh membuka permintaan pembayaran baru di BorderPay.
         $this->assertSame(1, $calls);
         $this->assertSame(1, $registration->payments()->count());
     }
 
     /**
-     * Referensi kita dikirim sebagai Idempotency-Key. Itulah satu-satunya yang
-     * mencegah tagihan ganda kalau request pertama sempat timeout.
+     * Nomor order kita dikirim sebagai `reference_id`. Itulah kunci idempotensi
+     * BorderPay, satu-satunya yang mencegah tagihan ganda kalau request pertama
+     * sempat timeout.
      */
-    public function test_the_idempotency_key_is_our_own_reference(): void
+    public function test_the_reference_is_our_own_order_number(): void
     {
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
         [$registration] = $this->payableRegistration();
 
         $seen = null;
         $this->mockGateway(function (array $body, string $key) use (&$seen) {
             $seen = ['body' => $body, 'key' => $key];
 
-            return ['id' => 'payreq_abc', 'checkout_url' => 'https://pay.kasera.id/p/xK3f'];
+            return ['reference_id' => $body['reference_id'], 'status' => 'pending', 'pay_url' => 'https://borderpay.id/pay/xK3f'];
         });
 
-        app(KaseraService::class)->createCheckoutRedirect($registration);
+        app(BorderpayService::class)->createCheckoutRedirect($registration);
         $payment = $registration->payments()->firstOrFail();
 
         $this->assertSame($payment->gateway_reference, $seen['key']);
-        $this->assertSame($payment->gateway_reference, $seen['body']['external_id']);
+        $this->assertSame($payment->gateway_reference, $seen['body']['reference_id']);
         $this->assertSame((int) $payment->amount, $seen['body']['amount']);
-        // Tanpa object checkout, create diperlakukan sebagai Direct API.
-        $this->assertArrayHasKey('checkout', $seen['body']);
-        // Nomor dari Kasera-lah yang dipakai untuk menanyakan status.
-        $this->assertSame('payreq_abc', $payment->gateway_payment_id);
+        // `method` sengaja tidak dikirim: tanpanya BorderPay membuat checkout
+        // session dan author memilih sendiri cara bayarnya di halaman mereka.
+        $this->assertArrayNotHasKey('method', $seen['body']);
     }
 
     /**
@@ -218,13 +218,13 @@ class PricingAndPaymentHardeningTest extends TestCase
      */
     public function test_an_order_left_without_a_checkout_url_is_retried_later(): void
     {
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
         [$registration] = $this->payableRegistration();
 
-        $this->mockGateway(fn () => throw new \RuntimeException('Kasera Pay menolak permintaan (500):'));
+        $this->mockGateway(fn () => throw new \RuntimeException('BorderPay menolak permintaan (500):'));
 
         try {
-            app(KaseraService::class)->createCheckoutRedirect($registration);
+            app(BorderpayService::class)->createCheckoutRedirect($registration);
         } catch (\RuntimeException) {
             // Yang diuji adalah keadaan setelahnya, bukan kegagalan ini sendiri.
         }
@@ -233,9 +233,9 @@ class PricingAndPaymentHardeningTest extends TestCase
         $this->assertNull($stuck->checkout_url);
 
         // Segera sesudahnya, tab lain mungkin sedang menyiapkannya — jangan tumpuk.
-        $this->mockGateway(fn () => ['id' => 'payreq_ok', 'checkout_url' => 'https://pay.kasera.id/p/ok']);
+        $this->mockGateway(fn (array $body) => ['reference_id' => $body['reference_id'], 'status' => 'pending', 'pay_url' => 'https://borderpay.id/pay/ok']);
         try {
-            app(KaseraService::class)->createCheckoutRedirect($registration->refresh());
+            app(BorderpayService::class)->createCheckoutRedirect($registration->refresh());
             $this->fail('Percobaan langsung seharusnya ditahan.');
         } catch (ValidationException) {
             // Diharapkan.
@@ -244,33 +244,34 @@ class PricingAndPaymentHardeningTest extends TestCase
         // Lewat jeda itu, author harus bisa mencoba lagi.
         $this->travel(5)->minutes();
 
-        $url = app(KaseraService::class)->createCheckoutRedirect($registration->refresh());
+        $url = app(BorderpayService::class)->createCheckoutRedirect($registration->refresh());
 
-        $this->assertSame('https://pay.kasera.id/p/ok', $url);
+        $this->assertSame('https://borderpay.id/pay/ok', $url);
         $this->assertSame('failed', $stuck->refresh()->status);
         $this->assertSame(1, $registration->payments()->where('status', 'initiated')->count());
     }
 
     public function test_a_checkout_url_from_an_unexpected_host_is_rejected(): void
     {
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
         [$registration] = $this->payableRegistration();
 
-        $this->mockGateway(fn () => ['id' => 'payreq_abc', 'checkout_url' => 'https://evil.example.com/p/pay']);
+        $this->mockGateway(fn () => ['reference_id' => 'abc', 'pay_url' => 'https://evil.example.com/pay/x']);
 
         $this->expectException(\RuntimeException::class);
-        app(KaseraService::class)->createCheckoutRedirect($registration);
+        app(BorderpayService::class)->createCheckoutRedirect($registration);
     }
 
     public function test_a_repeated_webhook_is_recorded_once_and_keeps_the_invoice_paid(): void
     {
         [$registration, $payment] = $this->payableRegistration(withPayment: true);
 
-        $service = app(KaseraService::class);
-        $event = $this->paidEvent($payment);
+        $this->mockGateway(fn () => []);
+        $this->markPaidAtGateway($payment);
+        $service = app(BorderpayService::class);
 
-        $service->applyEvent($event);
-        $service->applyEvent($event); // pengiriman ulang dari Kasera
+        $service->refresh($payment->gateway_reference);
+        $service->refresh($payment->gateway_reference); // pengiriman ulang dari BorderPay
 
         $registration->refresh();
         $payment->refresh();
@@ -285,10 +286,15 @@ class PricingAndPaymentHardeningTest extends TestCase
     {
         [$registration, $payment] = $this->payableRegistration(withPayment: true);
 
-        $event = $this->paidEvent($payment);
-        $event['data']['amount'] = 1;
+        // Gateway menjawab nominal yang bukan nominal order kita.
+        $this->mockGateway(fn () => []);
+        app(BorderpayGateway::class)->statuses[$payment->gateway_reference] = [
+            'reference_id' => $payment->gateway_reference,
+            'status' => 'paid',
+            'amount' => 1,
+        ];
 
-        $this->assertNull(app(KaseraService::class)->applyEvent($event));
+        $this->assertNull(app(BorderpayService::class)->refresh($payment->gateway_reference));
         $this->assertNotSame('paid', $registration->refresh()->status);
     }
 
@@ -357,9 +363,8 @@ class PricingAndPaymentHardeningTest extends TestCase
         $payment = null;
         if ($withPayment) {
             $payment = $registration->payments()->create([
-                'method' => 'gateway', 'gateway_name' => 'kasera',
+                'method' => 'gateway', 'gateway_name' => 'borderpay',
                 'gateway_reference' => 'ICOMAN-'.$registration->id.'-TEST',
-                'gateway_payment_id' => 'payreq_'.$registration->id,
                 'amount' => $registration->amount, 'status' => 'initiated',
             ]);
             $registration->update(['gateway_transaction_id' => $payment->gateway_reference]);
@@ -370,32 +375,41 @@ class PricingAndPaymentHardeningTest extends TestCase
 
     private function mockGateway(callable $create): void
     {
-        $this->app->bind(KaseraGateway::class, function () use ($create) {
-            return new class($create) extends KaseraGateway
+        $this->app->singleton(BorderpayGateway::class, function () use ($create) {
+            return new class($create) extends BorderpayGateway
             {
+                /** @var array<string, array<string, mixed>> */
+                public array $statuses = [];
+
                 public function __construct(private $create) {}
 
-                public function createTransaction(string $apiKey, array $body, string $idempotencyKey): array
+                public function createPayment(string $apiKey, array $body): array
                 {
-                    return ($this->create)($body, $idempotencyKey);
+                    return ($this->create)($body, $body['reference_id'] ?? null);
+                }
+
+                public function getPayment(string $apiKey, string $reference): array
+                {
+                    return $this->statuses[$reference] ?? ['reference_id' => $reference, 'status' => 'pending', 'amount' => 0];
                 }
             };
         });
     }
 
-    /** @return array<string, mixed> */
-    private function paidEvent(Payment $payment): array
+    /**
+     * Menjadikan sebuah order lunas di sisi gateway.
+     *
+     * Tesnya tidak bisa "melunasi" dengan mengarang payload webhook: isi
+     * webhook tidak pernah dipercaya, jadi yang harus diubah adalah jawaban
+     * gateway atas pertanyaan statusnya.
+     */
+    private function markPaidAtGateway(Payment $payment): void
     {
-        return [
-            'id' => 'evt_'.$payment->gateway_payment_id,
-            'type' => 'payment.paid',
-            'livemode' => false,
-            'data' => [
-                'payment_request_id' => $payment->gateway_payment_id,
-                'amount' => (int) $payment->amount,
-                'currency' => 'IDR',
-                'paid_at' => now()->toIso8601String(),
-            ],
+        app(BorderpayGateway::class)->statuses[$payment->gateway_reference] = [
+            'reference_id' => $payment->gateway_reference,
+            'status' => 'paid',
+            'amount' => (int) $payment->amount,
+            'paid_at' => now()->toIso8601String(),
         ];
     }
 }

@@ -130,12 +130,12 @@ class ManageSiteSettings extends SettingsPage
                             ->dehydrateStateUsing(fn ($state): int => (int) $state),
                     ]),
 
-                Section::make('Payment Gateway (Kasera Pay)')
-                    ->description('Kredensial Kasera Pay dari menu Developer di dashboard. Key berawalan kp_test_ memakai Sandbox (tidak ada uang berpindah), kp_live_ memakai transaksi sungguhan — tidak ada saklar mode tersendiri. Kosongkan untuk memakai nilai dari file .env.')
+                Section::make('Payment Gateway (BorderPay)')
+                    ->description('Kredensial BorderPay dari dashboard project. Key berawalan bp_test_ memakai sandbox (tidak ada uang berpindah), bp_live_ memakai transaksi sungguhan; tidak ada saklar mode tersendiri. Kosongkan untuk memakai nilai dari file .env.')
                     ->schema([
-                        TextInput::make('kasera_api_key')
+                        TextInput::make('borderpay_api_key')
                             ->label('API Key')
-                            ->placeholder('kp_live_...')
+                            ->placeholder('bp_live_...')
                             ->helperText('Rahasia — disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
                             ->password()
                             ->revealable()
@@ -145,9 +145,9 @@ class ManageSiteSettings extends SettingsPage
                             // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
                             ->dehydrated(fn (?string $state): bool => filled($state)),
 
-                        TextInput::make('kasera_webhook_secret')
-                            ->label('Webhook Signing Secret')
-                            ->helperText('Rahasia milik endpoint webhook, berbeda dari API key dan berbeda antara mode test dan live. Disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
+                        TextInput::make('borderpay_webhook_token')
+                            ->label('Webhook Verification Token')
+                            ->helperText('Token verifikasi webhook dari dashboard project (bpt_...). Ini token statis, bukan signing secret: karena itu isi kiriman webhook tidak pernah dipercaya dan statusnya selalu ditanyakan ulang ke BorderPay. Disimpan ter-enkripsi dan tidak ditampilkan kembali; kosongkan untuk mempertahankan yang tersimpan.')
                             ->password()
                             ->revealable()
                             ->autocomplete(false)

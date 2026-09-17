@@ -23,10 +23,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('filament.author.auth.login'));
         $middleware->redirectUsersTo(fn () => route('filament.author.pages.author-dashboard'));
 
-        // Webhook Kasera Pay datang dari server gateway (tanpa CSRF token) — keamanan
-        // dijamin oleh verifikasi signature di KaseraController, bukan CSRF.
+        // Webhook BorderPay datang dari server gateway (tanpa CSRF token). Keamanan
+        // di sini BUKAN dari CSRF, dan bukan pula dari isi kirimannya: lihat
+        // BorderpayService, yang selalu menanyakan ulang statusnya ke gateway.
         $middleware->validateCsrfTokens(except: [
-            'payment/kasera/notification',
+            'payment/borderpay/notification',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

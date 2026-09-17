@@ -11,7 +11,7 @@ Sistem manajemen International Conference on Management (ICOMAN) 2026: website C
 ## Keputusan Scope (sudah dikonfirmasi user — jangan tanya ulang)
 1. Bilingual EN/ID — **aktif** untuk seluruh konten CMS.
 2. Sistem submission & review paper — **dibangun sendiri** (bukan link ke OJS/EasyChair eksternal).
-3. Pembayaran registrasi — **mendukung dua jalur sekaligus**: manual transfer + upload bukti, DAN payment gateway otomatis (Kasera Pay; sebelumnya Midtrans, diganti 2026-09-16).
+3. Pembayaran registrasi — **mendukung dua jalur sekaligus**: manual transfer + upload bukti, DAN payment gateway otomatis (BorderPay; sebelumnya Midtrans lalu Kasera Pay, diganti 2026-09-17).
 
 ## Status Saat Ini
 - **MVP (Fase 0–5) SELESAI & teruji** + polish frontend/backend. Detail lengkap di `PROGRESS.md`. Sisa: Fase 6 (SEO per-halaman, Lighthouse) & Fase 7 (Deploy).
@@ -28,11 +28,11 @@ Sistem manajemen International Conference on Management (ICOMAN) 2026: website C
 - JS minim: hanya Alpine.js untuk interaksi kecil (menu mobile, countdown, accordion FAQ, lightbox, repeater co-author di form submission). Jangan tambahkan framework JS lain.
 - Guard `author` (portal publik) dan guard `web` (admin Filament/reviewer) HARUS terpisah — jangan campur tabel `users` (admin) dengan `authors` (peserta/pemakalah).
 - Setiap perubahan `submissions.status` WAJIB lewat method terpusat (`Submission::changeStatus()`), bukan `update(['status' => ...])` langsung di controller/resource manapun — supaya notifikasi email konsisten terkirim.
-- Webhook payment gateway WAJIB verifikasi signature/checksum sebelum mempercayai payload — jangan update status `registrations` hanya karena request masuk ke endpoint webhook.
+- Webhook payment gateway WAJIB diverifikasi sebelum payload-nya dipercaya — jangan update status `registrations` hanya karena request masuk ke endpoint webhook. BorderPay tidak menyediakan signature, hanya token statis, jadi di proyek ini isi webhook TIDAK dipakai sama sekali: statusnya selalu ditanyakan ulang ke gateway (`BorderpayService::refresh()`). Gateway pengganti apa pun harus menyediakan signature, atau mengikuti pola tanya-ulang yang sama.
 
 ## Yang HARUS Ditanyakan ke User Sebelum Lanjut (jangan asumsikan sendiri)
 1. Nama domain/subdomain final dan target hosting (pola serupa Hostinger + Cloudflare seperti project sebelumnya?) — pastikan hosting mendukung **queue worker/cron**, karena notifikasi email & webhook payment butuh ini.
-2. ~~Payment gateway mana yang dipakai~~ — sudah diputuskan: **Kasera Pay**.
+2. ~~Payment gateway mana yang dipakai~~ — sudah diputuskan: **BorderPay**.
 3. Skema role reviewer: apakah reviewer adalah dosen internal (akun dibuatkan admin) atau reviewer eksternal (perlu self-register)? Ini menentukan apakah reviewer pakai guard `web` (dibuatkan manual) atau perlu flow undangan/registrasi sendiri.
 4. Format skor review: skala apa yang dipakai panitia (1–100, 1–5, atau rubrik multi-kriteria)? Ini menentukan struktur kolom `reviews.score`.
 

@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
  * Voucher membebaskan biaya registrasi dasar; add-on Jurnal SINTA 3 tetap
  * ditagih. Bila sisa tagihan menjadi nol, registrasi langsung ditandai lunas
  * dengan metode `waived` — bukan `gateway` — supaya laporan keuangan tidak
- * mencatat transaksi Kasera Pay Rp 0 yang tidak pernah terjadi.
+ * mencatat transaksi BorderPay Rp 0 yang tidak pernah terjadi.
  */
 class VoucherRedeemer
 {
@@ -88,7 +88,7 @@ class VoucherRedeemer
     /**
      * Melepas slot yang telantar atau salah pakai. Hanya untuk registrasi yang
      * belum pernah menghasilkan uang masuk: kalau sisa tagihan sudah dibayar
-     * lewat Kasera Pay, pembatalannya urusan panitia, bukan tombol di admin.
+     * lewat BorderPay, pembatalannya urusan panitia, bukan tombol di admin.
      */
     public function release(VoucherRedemption $redemption): void
     {
@@ -97,8 +97,8 @@ class VoucherRedeemer
 
             if (! $registration->isWaived() && $registration->status === 'paid') {
                 $this->fail(
-                    'Registrasi ini sudah dibayar sebagian lewat Kasera Pay. Lepas slotnya secara manual bersama panitia keuangan.',
-                    'This registration was partly paid through Kasera Pay. Release the slot together with the finance team.',
+                    'Registrasi ini sudah dibayar sebagian lewat BorderPay. Lepas slotnya secara manual bersama panitia keuangan.',
+                    'This registration was partly paid through BorderPay. Release the slot together with the finance team.',
                 );
             }
 

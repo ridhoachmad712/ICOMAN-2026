@@ -178,7 +178,7 @@
                 <div class="mt-4 grid gap-3 border-t border-gray-200 pt-4 text-sm sm:grid-cols-2 dark:border-white/10">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Metode' : 'Method' }}</p>
-                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'Kasera Pay' }}</p>
+                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'BorderPay' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Abstrak' : 'Abstract' }}</p>
@@ -243,8 +243,8 @@
                         $dueNow = $record->amountDueNow();
                         $card = 'flex h-full flex-col rounded-xl border p-4';
                         $gatewayNote = $id
-                            ? 'Anda akan diarahkan ke halaman pembayaran aman Kasera Pay untuk memilih QRIS, virtual account, transfer bank, atau dompet digital.'
-                            : 'You will be redirected to Kasera Pay secure checkout to choose QRIS, virtual account, bank transfer, or an e-wallet.';
+                            ? 'Anda akan diarahkan ke halaman pembayaran aman BorderPay untuk memilih QRIS, virtual account, atau dompet digital.'
+                            : 'You will be redirected to BorderPay secure checkout to choose QRIS, a virtual account, or an e-wallet.';
                     @endphp
 
                     <div class="mt-5 border-t border-gray-200 pt-5 dark:border-white/10">

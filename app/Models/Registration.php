@@ -52,7 +52,7 @@ class Registration extends Model implements HasMedia
          * Kemitraan co-host menyala saat invoicenya lunas: vouchernya aktif dan
          * logonya tampil di website. Dipasang sebagai event model, bukan di satu
          * tempat pembayaran, karena status lunas bisa datang dari webhook
-         * Kasera Pay, penyelarasan manual, maupun verifikasi panitia di admin.
+         * BorderPay, penyelarasan manual, maupun verifikasi panitia di admin.
          */
         static::updated(function (Registration $registration): void {
             if (! $registration->wasChanged('status') || $registration->status !== 'paid') {

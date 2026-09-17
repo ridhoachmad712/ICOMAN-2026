@@ -453,12 +453,11 @@ class Sinta3OfferTest extends TestCase
     {
         $registration->payments()->create([
             'method' => 'gateway',
-            'gateway_name' => 'kasera',
+            'gateway_name' => 'borderpay',
             'gateway_reference' => 'ICOMAN-'.$registration->id.'-X',
-            'gateway_payment_id' => 'payreq_x'.$registration->id,
             'amount' => $registration->amount,
             'status' => 'initiated',
-            'raw_response' => $expiresAt ? ['id' => 'payreq_x', 'expires_at' => $expiresAt] : ['id' => 'payreq_x'],
+            'raw_response' => $expiresAt ? ['reference_id' => 'ICOMAN-order', 'expires_at' => $expiresAt] : ['reference_id' => 'ICOMAN-order'],
         ]);
     }
 
@@ -523,8 +522,8 @@ class Sinta3OfferTest extends TestCase
     {
         $registration = $this->offeredInvoice();
         $registration->payments()->create([
-            'method' => 'gateway', 'gateway_name' => 'kasera',
-            'gateway_reference' => 'ICOMAN-lunas', 'gateway_payment_id' => 'payreq_lunas',
+            'method' => 'gateway', 'gateway_name' => 'borderpay',
+            'gateway_reference' => 'ICOMAN-lunas',
             'amount' => $registration->amount, 'status' => 'success',
             'raw_response' => ['expires_at' => now()->subDay()->toIso8601String()],
         ]);

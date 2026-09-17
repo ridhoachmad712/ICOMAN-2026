@@ -99,7 +99,7 @@ class AuthorPortalFlowTest extends TestCase
         $this->assertNotNull($registration);
         $this->assertSame($studentFee->id, $registration->registration_fee_id);
         $this->assertSame(450000.0, (float) $registration->amount);
-        // Semua pembayaran kini lewat Kasera Pay.
+        // Semua pembayaran kini lewat BorderPay.
         $this->assertSame('gateway', $registration->payment_method);
     }
 
@@ -113,7 +113,7 @@ class AuthorPortalFlowTest extends TestCase
 
         $this->assertNotContains('author.registration.proof', $routes);
         $this->assertNotContains('author.registration.payment-method', $routes);
-        // Pembayaran via Kasera Pay tetap ada.
+        // Pembayaran via BorderPay tetap ada.
         $this->assertContains('author.registration.pay', $routes);
     }
 

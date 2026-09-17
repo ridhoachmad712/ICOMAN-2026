@@ -39,6 +39,23 @@ class PublicPagesRenderTest extends TestCase
         $this->assertSame([], $failures, "Halaman publik membalas error server:\n".implode("\n", $failures));
     }
 
+    /**
+     * Halaman privasi menyebut siapa yang menerima data pembayaran peserta.
+     * Nama itu ikut berubah setiap kali gateway-nya berganti, dan sempat
+     * tertinggal dua kali. Gateway lama tidak boleh lagi disebut di sana.
+     */
+    public function test_the_privacy_page_names_the_payment_processor_we_actually_use(): void
+    {
+        Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+
+        $response = $this->get('/privacy');
+
+        $response->assertOk();
+        $response->assertSee('BorderPay');
+        $response->assertDontSee('Midtrans');
+        $response->assertDontSee('Kasera');
+    }
+
     public function test_the_missing_manuscript_template_is_a_404_not_a_crash(): void
     {
         Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);

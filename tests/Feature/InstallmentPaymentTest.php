@@ -11,8 +11,8 @@ use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\Submission;
 use App\Models\User;
-use App\Services\KaseraGateway;
-use App\Services\KaseraService;
+use App\Services\BorderpayGateway;
+use App\Services\BorderpayService;
 use App\Settings\SiteSettings;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -36,7 +36,7 @@ class InstallmentPaymentTest extends TestCase
         parent::setUp();
 
         $this->edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
     }
 
     private function fee(string $audience = 'presenter', string $category = 'student_s1', ?int $first = 200_000, int $price = 350_000, ?int $firstSinta3 = 350_000): RegistrationFee
@@ -93,37 +93,81 @@ class InstallmentPaymentTest extends TestCase
     }
 
     /** @param array<int, array<string, mixed>> $captured */
+    /**
+     * Gateway palsu yang mencatat setiap permintaan pembuatan, dan menjawab
+     * pertanyaan status dari daftar yang ditulis tes.
+     *
+     * Keduanya diperlukan karena integrasi ini selalu menanyakan status ke
+     * gateway; isi webhook tidak pernah dipercaya, jadi tes pun tidak bisa
+     * "melunasi" sesuatu hanya dengan mengarang payload.
+     *
+     * @param  array<int, array<string, mixed>>  $captured
+     */
     private function mockGateway(array &$captured): void
     {
-        $this->app->bind(KaseraGateway::class, function () use (&$captured) {
-            return new class($captured) extends KaseraGateway
+        $this->app->singleton(BorderpayGateway::class, function () use (&$captured) {
+            return new class($captured) extends BorderpayGateway
             {
+                /** @var array<string, array<string, mixed>> */
+                public array $statuses = [];
+
                 public function __construct(private array &$captured) {}
 
-                public function createTransaction(string $apiKey, array $body, string $idempotencyKey): array
+                public function createPayment(string $apiKey, array $body): array
                 {
                     $this->captured[] = $body;
+                    $reference = $body['reference_id'];
 
-                    return ['id' => 'payreq_'.count($this->captured), 'checkout_url' => 'https://pay.kasera.id/p/x'.count($this->captured)];
+                    $this->statuses[$reference] = [
+                        'reference_id' => $reference,
+                        'status' => 'pending',
+                        'amount' => $body['amount'],
+                    ];
+
+                    return [
+                        'reference_id' => $reference,
+                        'status' => 'pending',
+                        'pay_url' => 'https://borderpay.id/pay/'.count($this->captured),
+                    ];
+                }
+
+                public function getPayment(string $apiKey, string $reference): array
+                {
+                    return $this->statuses[$reference] ?? ['reference_id' => $reference, 'status' => 'pending', 'amount' => 0];
                 }
             };
         });
     }
 
+    /** Menjadikan order terakhir lunas di sisi gateway, lalu menyelaraskannya. */
     private function pay(Registration $registration): void
     {
         $payment = $registration->payments()->where('status', 'initiated')->latest('id')->firstOrFail();
 
-        app(KaseraService::class)->applyEvent([
-            'id' => 'evt_'.$payment->id,
-            'type' => 'payment.paid',
-            'data' => [
-                'payment_request_id' => $payment->gateway_payment_id,
-                'amount' => (int) $payment->amount,
-                'currency' => 'IDR',
-                'paid_at' => now()->toIso8601String(),
-            ],
-        ]);
+        $gateway = app(BorderpayGateway::class);
+        $gateway->statuses[$payment->gateway_reference] = [
+            'reference_id' => $payment->gateway_reference,
+            'status' => 'paid',
+            'amount' => (int) $payment->amount,
+            'paid_at' => now()->toIso8601String(),
+        ];
+
+        app(BorderpayService::class)->refresh($payment->gateway_reference);
+    }
+
+    /** Menjadikan order terakhir kedaluwarsa di sisi gateway. */
+    private function expire(Registration $registration): void
+    {
+        $payment = $registration->payments()->where('status', 'initiated')->latest('id')->firstOrFail();
+
+        $gateway = app(BorderpayGateway::class);
+        $gateway->statuses[$payment->gateway_reference] = [
+            'reference_id' => $payment->gateway_reference,
+            'status' => 'expired',
+            'amount' => (int) $payment->amount,
+        ];
+
+        app(BorderpayService::class)->refresh($payment->gateway_reference);
     }
 
     // --- Kelayakan ----------------------------------------------------------
@@ -157,7 +201,7 @@ class InstallmentPaymentTest extends TestCase
 
         $this->assertTrue($registration->allowsInstallments());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $this->assertFalse($registration->refresh()->allowsInstallments());
@@ -174,7 +218,7 @@ class InstallmentPaymentTest extends TestCase
         $captured = [];
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
 
         $service->createCheckoutRedirect($registration, installment: true);
         $this->assertSame(200000, $captured[0]['amount']);
@@ -194,7 +238,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration);
+        app(BorderpayService::class)->createCheckoutRedirect($registration);
 
         $this->assertSame(350000, $captured[0]['amount']);
         $this->assertFalse($registration->refresh()->installment_plan);
@@ -222,7 +266,7 @@ class InstallmentPaymentTest extends TestCase
         $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])->assertRedirect();
 
         $this->assertCount(2, $captured);
-        $this->assertSame(200000, $captured[1]['amount'], 'Cicilan pertama harus ditagih 200.000 di Kasera Pay.');
+        $this->assertSame(200000, $captured[1]['amount'], 'Cicilan pertama harus ditagih 200.000 di BorderPay.');
 
         $registration->refresh();
         $this->assertTrue($registration->installment_plan);
@@ -286,7 +330,7 @@ class InstallmentPaymentTest extends TestCase
         $captured = [];
         $this->mockGateway($captured);
         $registration = $this->sinta3Registration($this->fee());
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
 
         $this->assertSame(650000.0, (float) $registration->amount);
 
@@ -310,7 +354,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
 
         $this->assertSame(200000, $captured[0]['amount']);
     }
@@ -367,7 +411,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $registration->refresh();
@@ -383,7 +427,7 @@ class InstallmentPaymentTest extends TestCase
         $captured = [];
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
 
         $service->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
@@ -411,7 +455,7 @@ class InstallmentPaymentTest extends TestCase
         ]);
         $registration->update(['submission_id' => $submission->id]);
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $this->assertFalse($submission->refresh()->canSubmitFullPaper());
@@ -423,14 +467,14 @@ class InstallmentPaymentTest extends TestCase
         $captured = [];
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
 
         $service->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
         $service->createCheckoutRedirect($registration->refresh());
 
         $second = $registration->payments()->where('status', 'initiated')->latest('id')->firstOrFail();
-        $service->applyTransaction(['id' => $second->gateway_payment_id, 'status' => 'expired', 'amount' => (int) $second->amount, 'currency' => 'IDR']);
+        $this->expire($registration);
 
         $registration->refresh();
         // 'failed' akan menyiratkan tidak ada uang yang masuk, padahal ada.
@@ -475,7 +519,7 @@ class InstallmentPaymentTest extends TestCase
         // Belum membayar apa pun: belum bisa disebut menunggak.
         $this->assertFalse($registration->isInstallmentOverdue());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $this->assertTrue($registration->refresh()->isInstallmentOverdue());
@@ -495,7 +539,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $registration->refresh();
@@ -550,7 +594,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $this->asRegistrationAdmin();
@@ -575,7 +619,7 @@ class InstallmentPaymentTest extends TestCase
         $this->mockGateway($captured);
         $registration = $this->registration($this->fee());
 
-        app(KaseraService::class)->createCheckoutRedirect($registration, installment: true);
+        app(BorderpayService::class)->createCheckoutRedirect($registration, installment: true);
         $this->pay($registration);
 
         $this->asRegistrationAdmin();
@@ -590,7 +634,7 @@ class InstallmentPaymentTest extends TestCase
     {
         $captured = [];
         $this->mockGateway($captured);
-        $service = app(KaseraService::class);
+        $service = app(BorderpayService::class);
 
         $halfPaid = $this->registration($this->fee());
         $service->createCheckoutRedirect($halfPaid, installment: true);

@@ -54,11 +54,13 @@ class SiteSettings extends Settings
     // Biaya tambahan penerbitan jurnal SINTA 3 (ditambahkan ke registrasi presenter).
     public int $sinta3_fee;
 
-    // Payment gateway Kasera Pay (dikelola dari admin; fallback ke .env bila dikosongkan).
+    // Payment gateway BorderPay (dikelola dari admin; fallback ke .env bila dikosongkan).
     // Keduanya rahasia dan disimpan ter-enkripsi (lihat encrypted()).
-    public ?string $kasera_api_key;
+    public ?string $borderpay_api_key;
 
-    public ?string $kasera_webhook_secret;
+    // Token statis, BUKAN signing secret: webhook BorderPay tidak
+    // ditandatangani, jadi token ini hanya menjaga pintu.
+    public ?string $borderpay_webhook_token;
 
     /** Tipografi menyeluruh (lihat FONTS untuk pilihan yang tersedia). */
     public ?string $font_heading;
@@ -116,6 +118,6 @@ class SiteSettings extends Settings
     /** Kredensial gateway adalah rahasia: enkripsi saat disimpan di database. */
     public static function encrypted(): array
     {
-        return ['kasera_api_key', 'kasera_webhook_secret'];
+        return ['borderpay_api_key', 'borderpay_webhook_token'];
     }
 }

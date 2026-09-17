@@ -16,7 +16,7 @@
 | Role & Permission | `filament-shield` (bakumatoshi) atau Spatie Permission langsung | Role Superadmin, Admin Konten, Reviewer |
 | SEO Meta | `artesaos/seotools` atau custom field per-page | Meta title/desc/OG per halaman |
 | Autentikasi Publik | `laravel/fortify` atau Breeze (headless, tanpa scaffolding Blade default — dibuat custom sesuai desain) | Guard terpisah (`author`) dari guard admin Filament (`web`) |
-| Payment Gateway | Kasera Pay (HTTP API, tanpa SDK) + fallback manual transfer | Dukung dua jalur pembayaran sesuai keputusan scope |
+| Payment Gateway | BorderPay (HTTP API, tanpa SDK) + fallback manual transfer | Dukung dua jalur pembayaran sesuai keputusan scope |
 | Notifikasi Email | Laravel Notification + Mailable bawaan (queue via `database` atau `sync` untuk MVP) | Notifikasi status submission/registrasi |
 | File Paper | Spatie Media Library (collection khusus `paper`, restrict mime docx/pdf) | Reuse infrastruktur media yang sama dengan foto |
 
@@ -124,7 +124,7 @@ app/
     SubmissionController.php
     RegistrationController.php  (form registrasi + pilih metode bayar)
   Http/Controllers/Payment/
-    KaseraController.php  (webhook/notification handler + halaman kembali)
+    BorderpayController.php  (webhook/notification handler + halaman kembali)
   Notifications/
     SubmissionStatusChanged.php
     RegistrationPaymentReceived.php
@@ -134,7 +134,9 @@ resources/views/author/
   registration/create.blade.php + show.blade.php
 ```
 
-Webhook Kasera Pay harus punya route publik tanpa CSRF (exclude di `bootstrap/app.php`), dan **wajib** verifikasi header `Kasera-Signature-V1` atas **raw body** sebelum update status pembayaran — jangan percaya payload begitu saja. Signature-nya HMAC-SHA256 atas `<unix>.<raw body>` memakai webhook signing secret; tolak bila timestamp melenceng lebih dari 5 menit.
+Webhook BorderPay harus punya route publik tanpa CSRF (exclude di `bootstrap/app.php`). **BorderPay tidak menandatangani webhooknya**: satu-satunya verifikasi yang tersedia adalah mencocokkan token statis di header `x-borderpay-token`, tanpa HMAC dan tanpa timestamp. Token itu mengotentikasi pemanggil, bukan isi kiriman, sehingga siapa pun yang memperolehnya bisa mengarang `payment.paid`.
+
+Karena itu integrasi ini **tidak pernah mempercayai isi webhook**. Dari seluruh payload hanya `reference_id` yang dipakai, lalu statusnya ditanyakan ulang lewat `GET /payments/{reference}` dan jawaban itulah yang diterapkan. Lihat `BorderpayService::refresh()`.
 
 ## 6. Keamanan
 

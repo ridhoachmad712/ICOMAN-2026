@@ -91,7 +91,7 @@ class RegistrationProvisioner
             'author_id' => $author->id,
             'registration_fee_id' => $fee->id,
             'submission_id' => $submission?->id,
-            // Semua pembayaran melalui Kasera Pay.
+            // Semua pembayaran melalui BorderPay.
             'payment_method' => 'gateway',
             'amount' => $quote['base_amount'],
             'pricing_snapshot' => $quote,

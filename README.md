@@ -1,6 +1,6 @@
 # ICOMAN 2026
 
-Sistem manajemen International Conference on Management 2026 yang mencakup website publik bilingual, CMS panitia, portal author, submission dan review paper, registrasi, serta pembayaran manual/Kasera Pay.
+Sistem manajemen International Conference on Management 2026 yang mencakup website publik bilingual, CMS panitia, portal author, submission dan review paper, registrasi, serta pembayaran manual/BorderPay.
 
 ## Stack
 
@@ -44,9 +44,9 @@ npm audit --omit=dev
 
 - Gunakan `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL=https://...`.
 - Gunakan database user khusus aplikasi dan password yang kuat.
-- Isi kredensial SMTP dan Kasera Pay melalui environment atau Pengaturan admin, bukan repository.
-- Ganti `KASERA_API_KEY` ke key `kp_live_` hanya setelah uji dengan key `kp_test_` lulus.
-- Arahkan webhook Kasera Pay ke `/payment/kasera/notification` (https, wajib publik).
+- Isi kredensial SMTP dan BorderPay melalui environment atau Pengaturan admin, bukan repository.
+- Ganti `BORDERPAY_API_KEY` ke key `bp_live_` hanya setelah uji dengan key `bp_test_` lulus.
+- Arahkan webhook BorderPay ke `/payment/borderpay/notification` (https, wajib publik).
 - Aktifkan queue worker dan scheduler dengan process manager/cron.
 - Jalankan `php artisan storage:link` dan `php artisan optimize`.
 - Siapkan backup database dan `storage/app/public`, serta uji restore.

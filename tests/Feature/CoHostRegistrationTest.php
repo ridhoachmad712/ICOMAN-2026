@@ -377,7 +377,7 @@ class CoHostRegistrationTest extends TestCase
         ]);
 
         // Tanpa ini, permintaan berhenti lebih awal di cabang "gateway belum disetel".
-        config()->set('services.kasera.api_key', 'kp_test_key');
+        config()->set('services.borderpay.api_key', 'bp_test_key');
         $this->actingAs($coHost->author, 'author');
 
         $this->from(AuthorDashboard::getUrl(panel: 'author'))

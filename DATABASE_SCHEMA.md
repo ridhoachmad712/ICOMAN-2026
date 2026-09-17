@@ -312,7 +312,7 @@ Kepakaran reviewer: sub-tema yang boleh dinilai seorang reviewer. Dipakai menyar
 | paid_at | timestamp nullable |
 
 ## co_hosts
-Pengajuan institusi co-host. Akunnya memakai tabel `authors` (`participation_type = 'cohost'`), sehingga login, invoice, dan pembayaran Kasera Pay dipakai ulang; tabel ini hanya menyimpan yang khas co-host.
+Pengajuan institusi co-host. Akunnya memakai tabel `authors` (`participation_type = 'cohost'`), sehingga login, invoice, dan pembayaran BorderPay dipakai ulang; tabel ini hanya menyimpan yang khas co-host.
 | Kolom | Tipe |
 |---|---|
 | id | pk |
@@ -361,8 +361,9 @@ Log setiap percobaan/transaksi pembayaran (memungkinkan retry pada `registration
 | id | pk |
 | registration_id | fk |
 | method | enum(manual, gateway) |
-| gateway_name | string nullable — "kasera" |
-| gateway_payment_id | string nullable, index — nomor dari gateway (`payreq_<uuid>`); dipakai untuk menanyakan status. `gateway_reference` tetap nomor kita sendiri, dikirim sebagai external_id sekaligus Idempotency-Key |
+| gateway_name | string nullable — "borderpay" |
+| gateway_payment_id | string nullable, index — **warisan gateway Kasera**, yang menerbitkan nomor transaksinya sendiri. BorderPay memakai nomor order kita, jadi kolom ini tidak diisi lagi; dipertahankan karena memuat jejak audit pembayaran yang sudah terjadi |
+| gateway_reference | string nullable — nomor order kita (`ICOMAN-<id>-<ULID>`), dikirim ke BorderPay sebagai `reference_id`: sekaligus kunci idempotensi dan alamat untuk menanyakan statusnya |
 | gateway_reference | string nullable |
 | amount | decimal |
 | status | enum(initiated, success, failed) |

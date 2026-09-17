@@ -36,9 +36,9 @@ return [
     ],
 
     // Mode (test/live) ikut prefix API key-nya, jadi tidak ada saklar tersendiri.
-    'kasera' => [
-        'api_key' => env('KASERA_API_KEY'),
-        'webhook_secret' => env('KASERA_WEBHOOK_SECRET'),
+    'borderpay' => [
+        'api_key' => env('BORDERPAY_API_KEY'),
+        'webhook_token' => env('BORDERPAY_WEBHOOK_TOKEN'),
     ],
 
 ];

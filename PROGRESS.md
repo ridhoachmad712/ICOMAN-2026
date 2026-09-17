@@ -8,9 +8,9 @@
 
 ## 1. TL;DR Status
 
-**MVP (Fase 0–5) SELESAI & teruji end-to-end.** Website conference lengkap: CMS publik bilingual + portal author (submission & review) + registrasi & pembayaran ganda (manual + Kasera Pay). Sudah ditambah banyak polish UI/UX (design system, SEO dasar, panel admin di-branding + 2FA + user management).
+**MVP (Fase 0–5) SELESAI & teruji end-to-end.** Website conference lengkap: CMS publik bilingual + portal author (submission & review) + registrasi & pembayaran ganda (manual + BorderPay). Sudah ditambah banyak polish UI/UX (design system, SEO dasar, panel admin di-branding + 2FA + user management).
 
-**Belum:** Fase 6 sisa (SEO per-halaman, uji Lighthouse) & Fase 7 (Deploy). Kredensial Kasera Pay belum diisi. Konten masih dummy (DevSeeder).
+**Belum:** Fase 6 sisa (SEO per-halaman, uji Lighthouse) & Fase 7 (Deploy). Kredensial BorderPay belum diisi. Konten masih dummy (DevSeeder).
 
 ---
 
@@ -40,7 +40,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 ## 3. Keputusan scope yang SUDAH dikonfirmasi user (JANGAN tanya ulang)
 
 1. **Hosting**: Hostinger + Cloudflare, mendukung queue worker/cron → `QUEUE_CONNECTION=database`.
-2. **Payment gateway**: **Kasera Pay** (HTTP API tanpa SDK, Checkout + webhook `payment.paid`). Menggantikan Midtrans pada 2026-09-16.
+2. **Payment gateway**: **BorderPay** (HTTP API tanpa SDK, halaman bayar + webhook `payment.paid`/`expired`/`failed`). Menggantikan Kasera Pay pada 2026-09-17, yang sebelumnya menggantikan Midtrans.
 3. **Reviewer**: **dosen internal**, akun dibuat admin → guard `web` + role `reviewer` (bukan self-register).
 4. **Skor review**: skala **1–100** skor tunggal → `reviews.score` integer.
 5. Bilingual EN/ID aktif; submission-review dibangun sendiri; pembayaran dua jalur (manual + gateway).
@@ -56,7 +56,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | 2 Admin Panel | ✅ | 13 resource CRUD + reorderable + Settings page + role + widget |
 | 3 Frontend publik | ✅ | Bilingual, countdown, ~13 halaman, form kontak Livewire, language switcher |
 | 4 Portal author & submission | ✅ | Guard author, register/login/reset, submit + co-author, assign reviewer, form review, `changeStatus()` + email, camera-ready |
-| 5 Registrasi & pembayaran | ✅ | Form registrasi, manual (upload bukti + verifikasi admin), Kasera Pay + webhook signature, payments audit, rekap |
+| 5 Registrasi & pembayaran | ✅ | Form registrasi, manual (upload bukti + verifikasi admin), BorderPay + webhook, payments audit, rekap |
 | **Polish frontend** | ✅ | Design system (.btn/.card, Space Grotesk), hero upgrade, statistik/teaser/CTA, bendera negara, konsistensi semua halaman, portal author bilingual, scroll-reveal |
 | **Polish backend** | ✅ | Panel branding, Profile (ganti password), 2FA opt-in, UserResource, dashboard widgets (tabel+chart), global search, CSV export, relation manager co-author, auto-read pesan |
 | 6 SEO & Performa | ⚠️ sebagian | SUDAH: JSON-LD Event, meta/OG/canonical, sitemap.xml, konversi WebP, lazy. BELUM: meta per-halaman/breadcrumb, uji Lighthouse |
@@ -77,7 +77,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 - **Halaman pembayaran dua langkah**: paper yang ditawari SINTA 3 memilih opsi penerbitan dulu (dengan harga masing-masing), simpan, baru tagihannya disusun. Tautan "Ubah" (`?step=journal`) mengembalikan author ke pilihannya selama belum ada pembayaran berjalan. Penanda: `submissions.journal_target_chosen_at`.
 - **Tawaran SINTA 3**: `submissions.sinta3_offered` mengikuti rekomendasi reviewer terus-menerus (di-sync dari event model `Review`), bukan sekali saat LOA terbit. Panitia bisa menimpanya lewat tombol "Buka/Tutup tawaran SINTA 3" di daftar Submissions; timpaan dicatat di `sinta3_offer_overridden_at` dan tidak tertindih penilaian berikutnya. Data lama: `php artisan icoman:refresh-sinta3 --fix`.
 - **Cicilan presenter mahasiswa**: tarif `presenter` + `student_s1` boleh diberi `installment_first_amount` (200.000 dari 350.000) dan `installment_first_amount_sinta3` (350.000 dari 650.000 bila penerbitan SINTA 3 dipilih). Author memilih sendiri di halaman invoice; cicilan kedua = sisa. Registrasi tetap `pending` sampai lunas. Tenggat pelunasan = Tanggal Penting dengan kind `installment`.
-- **Webhook Kasera Pay**: `POST /payment/kasera/notification` (CSRF-exempt di bootstrap/app.php). WAJIB `KaseraService::verifySignature()` atas **raw body** sebelum percaya payload. Logika di `app/Services/KaseraService.php`. Hanya ada event `payment.paid`; gagal/kedaluwarsa diketahui lewat `synchronize()` (tombol Periksa Status).
+- **Webhook BorderPay**: `POST /payment/borderpay/notification` (CSRF-exempt di bootstrap/app.php). BorderPay **tidak menandatangani** webhooknya: verifikasi yang ada hanya token statis `x-borderpay-token`. Karena itu isi payload TIDAK dipercaya — hanya `reference_id` yang dibaca, lalu status ditanyakan ulang lewat `GET /payments/{reference}` (`BorderpayService::refresh()`). Tiga event tersedia: `payment.paid`, `payment.expired`, `payment.failed`, jadi kegagalan dan kedaluwarsa masuk sendiri tanpa menunggu tombol Periksa Status.
 - **Design system (frontend)**: `resources/css/app.css` `@layer components` → `.btn/.btn-primary/.btn-ghost/.btn-outline`, `.card/.card-hover`, `.section-tint`, `.avatar-fallback`. Font display **Space Grotesk** (heading), body Instrument Sans. Warna brand runtime dari SiteSettings via CSS var `--brand`/`--brand-2` (di-inject di `layouts/app.blade.php`).
 - **Alpine.js**: disediakan **Livewire (bundled)** — layout publik & author muat `@livewireStyles`/`@livewireScripts`. **JANGAN import Alpine di app.js** (error "multiple instances").
 - **Scroll-reveal**: `[data-reveal]` + IntersectionObserver di `app.js`, dengan **fail-safe timeout 1200ms** (konten tak pernah stuck hidden) + gated `.js` class.
@@ -97,7 +97,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 | Reviewer uji (`/admin`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
 | Author uji (`/author/login`) | Buat melalui `DevSeeder` dan gunakan kredensial lokal sementara |
 | Mail (dev) | `MAIL_MAILER=log` → email masuk `storage/logs/laravel.log` |
-| Kasera Pay | `.env` `KASERA_API_KEY`/`KASERA_WEBHOOK_SECRET` **KOSONG** (isi sebelum uji gateway); pakai key `kp_test_` untuk lokal |
+| BorderPay | `.env` `BORDERPAY_API_KEY`/`BORDERPAY_WEBHOOK_TOKEN` **KOSONG** (isi sebelum uji gateway); pakai key `bp_test_` untuk lokal |
 
 Warna brand saat ini: primary `#d9621c` (oranye) + secondary `#18315e` (navy) — di Site Settings, bisa diubah.
 
@@ -137,12 +137,12 @@ php artisan migrate:fresh --seed
 **Sebelum go-live (wajib):**
 1. **Isi konten asli** via `/admin` (lihat `CONTENT_CHECKLIST.md`) — sekarang semua dummy.
 2. **Buat akun reviewer asli** (dosen internal) via `/admin` → Users & Roles.
-3. **Kredensial Kasera Pay** (API key + webhook signing secret) di Pengaturan admin atau `.env` (jalankan `php artisan migrate` dulu — migration settings ikut perintah ini, tidak ada `settings:migrate`) + daftarkan endpoint webhook di dashboard Kasera ke `https://<domain>/payment/kasera/notification`. Mode live dan test punya endpoint dan secret masing-masing.
+3. **Kredensial BorderPay** (API key + token verifikasi webhook) di Pengaturan admin atau `.env` (jalankan `php artisan migrate` dulu — migration settings ikut perintah ini, tidak ada `settings:migrate`) + daftarkan endpoint webhook di dashboard project BorderPay ke `https://<domain>/payment/borderpay/notification`.
 4. **Ganti password superadmin** sementara.
 
 **Fase 6 sisa (SEO/perf):** meta description per-halaman (kini hanya homepage punya JSON-LD), breadcrumb JSON-LD, uji **Lighthouse** (target PRD ≥85) di Chrome DevTools.
 
-**Fase 7 Deploy:** subdomain (pola `manajemen-feb.unm.ac.id` di Hostinger — antisipasi isu Cloudflare proxy/SSL), `.env` production, `php artisan optimize`, **queue worker aktif** (email+webhook), backup DB+storage, uji E2E kedua jalur pembayaran (manual & Kasera Pay test mode).
+**Fase 7 Deploy:** subdomain (pola `manajemen-feb.unm.ac.id` di Hostinger — antisipasi isu Cloudflare proxy/SSL), `.env` production, `php artisan optimize`, **queue worker aktif** (email+webhook), backup DB+storage, uji E2E kedua jalur pembayaran (manual & BorderPay test mode, lunasi lewat `POST /payments/{ref}/simulate`).
 
 **Opsional/pasca-MVP:** sertifikat PDF otomatis, arsip multi-edition di UI publik, Xendit sebagai gateway kedua, export ke Excel (kini CSV), reviewAssignments relation manager, filament-shield.
 
@@ -150,6 +150,6 @@ php artisan migrate:fresh --seed
 
 ## 9. Verifikasi yang SUDAH dilakukan (biar tak uji ulang)
 
-Terverifikasi di browser/tinker: register+login author (guard terpisah), submit paper (nomor auto `ICOMAN2026-0001`, co-author, media, notifikasi ter-queue), assign reviewer → status auto, isi review, `changeStatus` → email ter-render ke log, camera-ready, registrasi manual (bank info + bukti + verifikasi admin), **webhook Kasera Pay: signature valid→paid / invalid→403**, akses role (reviewer 403 dari resource konten), bilingual EN/ID (konten model + UI), homepage semua section, panel: Profile+2FA+Users&Roles+global search+export CSV+widget.
+Terverifikasi di browser/tinker: register+login author (guard terpisah), submit paper (nomor auto `ICOMAN2026-0001`, co-author, media, notifikasi ter-queue), assign reviewer → status auto, isi review, `changeStatus` → email ter-render ke log, camera-ready, registrasi manual (bank info + bukti + verifikasi admin), **webhook BorderPay: token valid→status ditanyakan ulang / token salah→401**, akses role (reviewer 403 dari resource konten), bilingual EN/ID (konten model + UI), homepage semua section, panel: Profile+2FA+Users&Roles+global search+export CSV+widget.
 
 **Batasan lingkungan uji:** pane preview browser di sesi pengembangan **tidak meng-compositing** → screenshot & animasi/transisi CSS & widget lazy (IntersectionObserver) tak bisa diverifikasi visual; diverifikasi via computed-style/DOM/tinker. **Perlu cek mata di Chrome asli** untuk finalisasi visual.

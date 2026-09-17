@@ -16,6 +16,10 @@ class Payment extends Model
         'method',
         'gateway_name',
         'gateway_reference',
+        // Hanya dipakai gateway sebelumnya (Kasera), yang menerbitkan nomor
+        // transaksinya sendiri. BorderPay memakai nomor order kita, jadi kolom
+        // ini tidak diisi lagi; dipertahankan karena memuat jejak audit
+        // pembayaran yang sudah terjadi.
         'gateway_payment_id',
         'amount',
         'status',
@@ -36,7 +40,7 @@ class Payment extends Model
     /**
      * Order yang masa berlakunya di gateway sudah habis.
      *
-     * Kasera mencantumkan expires_at pada permintaan pembayaran dan menolak
+     * BorderPay mencantumkan expires_at pada permintaan pembayaran dan menolak
      * pembayaran sesudahnya, jadi order seperti ini tidak lagi menahan apa pun
      * — walau statusnya di sini masih "initiated" sampai ada yang menyelaraskan.
      */

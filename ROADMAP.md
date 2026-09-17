@@ -45,7 +45,7 @@
 ## Fase 5 — Registrasi & Pembayaran Ganda (2 hari)
 - [ ] Form registrasi publik: pilih `registration_fee`, isi data, pilih metode bayar
 - [ ] Jalur **manual**: tampilkan info rekening dari `site_settings` → upload bukti transfer → status `pending_verification` → Filament `RegistrationResource` punya aksi "Verifikasi Pembayaran"
-- [ ] Jalur **gateway**: integrasi Kasera Pay (Checkout/redirect), route webhook + **verifikasi signature atas raw body** sebelum update status
+- [ ] Jalur **gateway**: integrasi BorderPay (halaman bayar/redirect), route webhook + **status ditanyakan ulang ke gateway** sebelum update status (webhooknya tanpa signature)
 - [ ] Catat setiap transaksi ke tabel `payments` (audit trail, termasuk yang gagal)
 - [ ] Dashboard author: status registrasi & riwayat pembayaran
 - [ ] Dashboard admin: rekap peserta per kategori & status bayar
@@ -60,7 +60,7 @@
 
 ## Fase 7 — Deploy (1 hari)
 - [ ] Setup subdomain (pola serupa `manajemen-feb.unm.ac.id` di Hostinger — antisipasi isu Cloudflare proxy/SSL yang sebelumnya ditemui)
-- [ ] `.env` production, API key Kasera Pay **`kp_live_`** (bukan `kp_test_`), `php artisan optimize`, queue/cache driver sesuai hosting
+- [ ] `.env` production, API key BorderPay **`bp_live_`** (bukan `bp_test_`), `php artisan optimize`, queue/cache driver sesuai hosting
 - [ ] Queue worker aktif (untuk email notifikasi & webhook processing) — pastikan hosting mendukung queue worker/cron, bukan cuma shared hosting statis
 - [ ] Backup strategy (database + storage/media, termasuk file paper & bukti bayar)
 - [ ] Testing end-to-end: registrasi author dummy → submit paper dummy → assign reviewer dummy → review → status accepted → registrasi bayar (uji KEDUA jalur: manual & gateway sandbox)
@@ -68,7 +68,7 @@
 ## Fase 8 (Pasca-MVP, opsional)
 - [ ] Sertifikat otomatis (generate PDF nama peserta)
 - [ ] Arsip multi-edition (ICOMAN 2025 sebagai referensi histori, tampil publik)
-- [ ] Gateway kedua bila diperlukan (Kasera Pay adalah satu-satunya gateway saat ini)
+- [ ] Gateway kedua bila diperlukan (BorderPay adalah satu-satunya gateway saat ini)
 - [ ] Export data submission/registrasi ke Excel untuk laporan panitia
 
 ---
