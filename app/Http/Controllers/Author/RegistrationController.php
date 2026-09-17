@@ -54,7 +54,7 @@ class RegistrationController extends Controller
     public function changeJournalTarget(Request $request, Registration $registration): RedirectResponse
     {
         $this->authorizeOwner($registration);
-        abort_unless(in_array($registration->status, ['pending', 'failed'], true), 403);
+        abort_unless($registration->isPayable(), 403);
 
         $submission = $registration->submission;
         abort_unless($submission && $submission->sinta3_offered, 403);

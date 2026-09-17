@@ -80,7 +80,7 @@ class DiagnoseInvoice extends Command
         $this->check('Tawaran SINTA 3 terbuka pada papernya', (bool) $submission?->sinta3_offered);
         $this->check('Invoice bukan arsip lama', ! ($price['legacy'] ?? false));
         $this->check('Tidak ada pembayaran yang menggantung', ! $registration->hasUnresolvedPayment());
-        $this->check('Status invoice pending atau failed', in_array($registration->status, ['pending', 'failed'], true));
+        $this->check('Status invoice pending atau failed', $registration->isPayable());
 
         $this->section('Syarat opsi cicilan');
         $this->check('Tarif mengizinkan cicilan (presenter + mahasiswa S1, nominal terisi)', (bool) $fee?->allowsInstallments());

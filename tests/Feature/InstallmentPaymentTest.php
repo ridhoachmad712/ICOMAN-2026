@@ -561,6 +561,28 @@ class InstallmentPaymentTest extends TestCase
             ->assertSee('Choose how to pay', escape: false);
     }
 
+    /**
+     * Percobaan bayar yang ditinggalkan membuat status invoice `failed`. Itu
+     * bukan akhir — author masih boleh membayar — tapi dulu syarat cicilannya
+     * hanya menerima `pending`, sehingga pilihan 1x/2x lenyap tanpa penjelasan
+     * sementara tombol bayarnya tetap ada. Mahasiswa jadi hanya bisa bayar
+     * lunas.
+     */
+    public function test_an_abandoned_attempt_does_not_take_away_the_choice(): void
+    {
+        $registration = $this->registration($this->fee());
+        $registration->update(['status' => 'failed']);
+
+        $this->actingAs($registration->author, 'author');
+
+        $this->get(RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author'))
+            ->assertOk()
+            ->assertSee('Choose how to pay', escape: false)
+            ->assertSee('Pay First Instalment', escape: false);
+
+        $this->assertTrue($registration->refresh()->allowsInstallments());
+    }
+
     /** Presenter non-mahasiswa tidak boleh ditawari cicilan. */
     public function test_the_invoice_page_hides_instalments_from_everyone_else(): void
     {

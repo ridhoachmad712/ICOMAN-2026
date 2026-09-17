@@ -135,7 +135,7 @@ class VoucherRedeemer
             );
         }
 
-        if (! in_array($registration->status, ['pending', 'failed'], true)) {
+        if (! $registration->isPayable()) {
             $this->fail(
                 'Voucher hanya bisa dipakai selama pembayaran belum selesai.',
                 'A voucher can only be applied while the payment is still outstanding.',

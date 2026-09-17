@@ -142,14 +142,31 @@ class Registration extends Model implements HasMedia
     }
 
     /**
+     * Invoicenya masih bisa dibayar.
+     *
+     * Percobaan bayar yang ditinggalkan atau kedaluwarsa membuat statusnya
+     * `failed`, dan itu bukan akhir: author tetap boleh mencoba lagi. Karena
+     * itu syarat yang sama dipakai di mana pun, supaya tidak ada tempat yang
+     * menganggap invoice `failed` sudah selesai urusannya.
+     */
+    public function isPayable(): bool
+    {
+        return in_array($this->status, ['pending', 'failed'], true);
+    }
+
+    /**
      * Pilihan cara membayar masih terbuka: belum ada yang dibayar, dan tidak
      * sedang dibebaskan voucher. Sengaja tidak memeriksa installment_plan —
      * selama belum ada uang masuk, author boleh berganti pikiran, dan
      * pilihannya baru mengunci saat pembayaran pertama diterima.
+     *
+     * Syaratnya persis sama dengan syarat boleh membayar. Dulu di sini hanya
+     * `pending`, sehingga satu percobaan bayar yang ditinggalkan diam-diam
+     * mencabut pilihan 1x/2x: tombol bayarnya tetap ada, pilihannya hilang.
      */
     public function allowsInstallments(): bool
     {
-        return $this->status === 'pending'
+        return $this->isPayable()
             && ! $this->isWaived()
             && $this->paidAmount() <= 0
             && (bool) $this->registrationFee?->allowsInstallments()

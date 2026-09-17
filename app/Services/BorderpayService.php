@@ -60,7 +60,7 @@ class BorderpayService
         // Order dikunci sebelum request keluar; tab kedua memakai ulang baris ini.
         [$registration, $payment, $isNew] = DB::transaction(function () use ($registration, $installment): array {
             $registration = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
-            abort_unless(in_array($registration->status, ['pending', 'failed'], true), 403);
+            abort_unless($registration->isPayable(), 403);
             abort_unless($registration->priceDetails()['currency'] === 'IDR', 422);
 
             // Pilihan cara membayar diperbarui di bawah kunci yang sama dengan

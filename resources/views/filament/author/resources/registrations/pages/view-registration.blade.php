@@ -15,7 +15,7 @@
 
         // Opsi jurnal hanya relevan selama tagihan belum lunas.
         $sinta3Offered = (bool) ($record->submission?->sinta3_offered && ! ($price['legacy'] ?? false));
-        $canChooseJournal = $sinta3Offered && ! $record->hasUnresolvedPayment() && in_array($record->status, ['pending', 'failed'], true);
+        $canChooseJournal = $sinta3Offered && ! $record->hasUnresolvedPayment() && $record->isPayable();
         // Tawarannya ada, tapi pilihannya sedang terkunci. Tanpa keterangan ini
         // panelnya hilang begitu saja dan author menyangka tawarannya batal.
         $journalLocked = $sinta3Offered && ! $canChooseJournal;
@@ -36,7 +36,7 @@
             && $record->voucher_id === null
             && ! ($price['legacy'] ?? false)
             && ! $record->hasUnresolvedPayment()
-            && in_array($record->status, ['pending', 'failed'], true);
+            && $record->isPayable();
     @endphp
 
     <div class="space-y-6">
