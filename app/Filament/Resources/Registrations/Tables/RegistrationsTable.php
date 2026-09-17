@@ -92,12 +92,22 @@ class RegistrationsTable
                     ->modalDescription('Tandai invoice ini LUNAS secara manual? Gunakan hanya bila pembayaran sudah dipastikan diterima tetapi status belum berubah otomatis.')
                     ->visible(fn (Registration $record) => $record->status !== 'paid')
                     ->action(function (Registration $record): void {
+                        // Yang dicatat adalah SISA tagihan, bukan totalnya.
+                        // Invoice cicilan yang sudah menerima 200.000 lalu
+                        // ditandai lunas dengan nominal penuh akan tercatat
+                        // 550.000 untuk tagihan 350.000 — dan angka pemasukan
+                        // ikut menggelembung tanpa ada uang tambahan.
+                        $outstanding = $record->outstandingAmount();
+
                         $record->update(['status' => 'paid', 'paid_at' => now()]);
-                        $record->payments()->create([
-                            'method' => 'manual',
-                            'amount' => $record->amount,
-                            'status' => 'success',
-                        ]);
+
+                        if ($outstanding > 0) {
+                            $record->payments()->create([
+                                'method' => 'manual',
+                                'amount' => $outstanding,
+                                'status' => 'success',
+                            ]);
+                        }
 
                         Notification::make()->title('Pembayaran diverifikasi (paid).')->success()->send();
                     }),
