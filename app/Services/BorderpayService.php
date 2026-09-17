@@ -83,6 +83,13 @@ class BorderpayService
                 // order lama akan menagih angka yang tidak ia pilih.
                 $sameAmount = (float) $existing->amount === (float) $due;
 
+                // Order milik gateway sebelumnya tidak pernah dipakai ulang.
+                // Tanpa pagar ini, baris Kasera yang tertinggal akan terus
+                // mengirim author ke halaman bayar Kasera — dan uang yang masuk
+                // ke sana tidak akan pernah terbaca di sini, sebab statusnya
+                // ditanyakan ke BorderPay.
+                $sameGateway = $existing->gateway_name === 'borderpay';
+
                 // Baris tanpa checkout_url berarti permintaan ke gateway tidak
                 // pernah selesai. Jeda singkat diberikan untuk tab yang sedang
                 // berjalan; lewat itu barisnya dilepas, sebab kalau tidak author
@@ -90,7 +97,7 @@ class BorderpayService
                 $usable = $existing->checkout_url !== null
                     || $existing->created_at?->greaterThan(now()->subMinutes(2));
 
-                if ($sameAmount && $usable) {
+                if ($sameGateway && $sameAmount && $usable) {
                     return [$registration, $existing, false];
                 }
 
