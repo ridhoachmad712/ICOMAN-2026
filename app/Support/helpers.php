@@ -124,3 +124,18 @@ if (! function_exists('pageEditMode')) {
         return request()->boolean('edit') && canEditPages();
     }
 }
+
+if (! function_exists('rupiah')) {
+    /**
+     * Rupiah dengan pemisah ribuan titik, tanpa sen.
+     *
+     * Ada karena rekap keuangan sempat mencampur dua gaya dalam satu tabel:
+     * kolom bawaan Filament menulis "IDR 400,000.00" sementara kolom hitungan
+     * menulis "IDR 2.000.000". Dalam laporan uang, dua gaya berdampingan
+     * membuat pembacanya berhenti untuk memastikan ia tidak salah baca.
+     */
+    function rupiah(float|int|string|null $amount): string
+    {
+        return 'IDR '.number_format((float) $amount, 0, ',', '.');
+    }
+}
