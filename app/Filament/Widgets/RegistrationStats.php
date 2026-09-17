@@ -6,8 +6,21 @@ use App\Models\Registration;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 
+/**
+ * Sisi uang: registrasi dan pembayaran.
+ *
+ * Diberi judul dan diletakkan di bawah papan kerja supaya dashboard terbaca
+ * sebagai dua hal yang memang berbeda — pekerjaan atas paper di atas, uang di
+ * bawah — bukan enam angka campur aduk dalam satu baris.
+ */
 class RegistrationStats extends StatsOverviewWidget
 {
+    protected static ?int $sort = 2;
+
+    protected ?string $heading = 'Registrasi & Pembayaran';
+
+    protected ?string $description = 'Angka dari seluruh registrasi yang tercatat.';
+
     public static function canView(): bool
     {
         return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;

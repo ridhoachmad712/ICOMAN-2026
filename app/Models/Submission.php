@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Notifications\LoaIssued;
 use App\Notifications\SubmissionStatusChanged;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -322,6 +323,57 @@ class Submission extends Model implements HasMedia
         }
 
         return $this;
+    }
+
+    // --- Antrean kerja panitia ---------------------------------------------
+    //
+    // Empat keadaan di bawah ini menjawab satu pertanyaan: bolanya sedang ada
+    // di tangan siapa. Definisinya ditaruh di sini, bukan di halaman atau
+    // widget, supaya angka di dashboard dan angka di tab Submissions tidak
+    // pernah bercerita berbeda tentang paper yang sama.
+
+    /** Sudah dikirim author, reviewer belum ditugaskan. Bolanya di panitia. */
+    public function scopeAwaitingReviewer(Builder $query): Builder
+    {
+        return $query->where('status', 'extended_abstract_submitted')
+            ->whereDoesntHave('reviewAssignments', fn ($ra) => $ra->where('phase', 'extended_abstract'));
+    }
+
+    /** Reviewer sudah ditugaskan dan belum selesai. Bolanya di reviewer. */
+    public function scopeUnderReview(Builder $query): Builder
+    {
+        return $query->whereHas('reviewAssignments', fn ($ra) => $ra->where('status', 'pending'));
+    }
+
+    /** Penilaian selesai seluruhnya, tinggal panitia memutuskan. */
+    public function scopeAwaitingDecision(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['extended_abstract_submitted', 'extended_abstract_under_review'])
+            ->whereHas('reviewAssignments', fn ($ra) => $ra->where('status', 'completed'))
+            ->whereDoesntHave('reviewAssignments', fn ($ra) => $ra->where('status', 'pending'));
+    }
+
+    /** Sudah diterima tetapi LOA belum terbit. */
+    public function scopeAwaitingLoa(Builder $query): Builder
+    {
+        return $query->where('status', 'accepted')->whereNull('loa_issued_at');
+    }
+
+    /** Gabungan semuanya: satu daftar berisi apa saja yang menunggu panitia. */
+    public function scopeNeedsAction(Builder $query): Builder
+    {
+        return $query->where(fn ($outer) => $outer
+            ->where(fn ($q) => $q->awaitingReviewer())
+            ->orWhere(fn ($q) => $q->awaitingDecision())
+            ->orWhere(fn ($q) => $q->awaitingLoa()));
+    }
+
+    /** Dibatasi edition aktif, supaya tahun lalu tidak ikut terhitung. */
+    public function scopeOfCurrentEdition(Builder $query): Builder
+    {
+        $edition = currentEdition();
+
+        return $edition ? $query->where('edition_id', $edition->id) : $query->whereRaw('1 = 0');
     }
 
     public function currentReviewPhase(): ?string
