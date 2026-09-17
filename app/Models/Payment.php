@@ -23,6 +23,9 @@ class Payment extends Model
         'gateway_payment_id',
         'amount',
         'status',
+        // Hanya terisi untuk baris yang dicatat orang ("Tandai Lunas"/"Tolak").
+        // Pembayaran lewat gateway tidak punya pelaku.
+        'recorded_by',
         'raw_response',
         'checkout_url',
         'notification_history',
@@ -62,5 +65,11 @@ class Payment extends Model
     public function registration(): BelongsTo
     {
         return $this->belongsTo(Registration::class);
+    }
+
+    /** Panitia yang mencatat baris ini dengan tangan, bila ada. */
+    public function recordedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'recorded_by');
     }
 }

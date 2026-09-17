@@ -46,7 +46,7 @@ class UserForm
                             ->preload()
                             ->required()
                             ->live()
-                            ->helperText('superadmin = akses penuh · admin_registrasi = kelola pendaftaran & pembayaran · reviewer = hanya review paper.'),
+                            ->helperText('superadmin = akses penuh · admin_registrasi = kelola pendaftaran, pembayaran & naskah · bendahara = transaksi dan invoice saja, tanpa naskah/tarif/voucher · content_admin = isi website · reviewer = hanya review paper.'),
                     ]),
 
                 Section::make('Kepakaran Reviewer')

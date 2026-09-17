@@ -362,6 +362,7 @@ Log setiap percobaan/transaksi pembayaran (memungkinkan retry pada `registration
 | registration_id | fk |
 | method | enum(manual, gateway) |
 | gateway_name | string nullable — "borderpay" |
+| recorded_by | FK users nullable, nullOnDelete — panitia yang mencatat baris ini dengan tangan ("Tandai Lunas"/"Tolak"). Kosong berarti gateway yang mengabarkannya, dan itu keadaan normal |
 | gateway_payment_id | string nullable, index — **warisan gateway Kasera**, yang menerbitkan nomor transaksinya sendiri. BorderPay memakai nomor order kita, jadi kolom ini tidak diisi lagi; dipertahankan karena memuat jejak audit pembayaran yang sudah terjadi |
 | gateway_reference | string nullable — nomor order kita (`ICOMAN-<id>-<ULID>`), dikirim ke BorderPay sebagai `reference_id`: sekaligus kunci idempotensi dan alamat untuk menanyakan statusnya |
 | gateway_reference | string nullable |

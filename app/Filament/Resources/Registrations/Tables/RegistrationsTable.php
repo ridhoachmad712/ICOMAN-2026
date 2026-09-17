@@ -106,6 +106,7 @@ class RegistrationsTable
                                 'method' => 'manual',
                                 'amount' => $outstanding,
                                 'status' => 'success',
+                                'recorded_by' => auth()->id(),
                             ]);
                         }
 
@@ -124,6 +125,7 @@ class RegistrationsTable
                             'method' => 'manual',
                             'amount' => $record->amount,
                             'status' => 'failed',
+                            'recorded_by' => auth()->id(),
                         ]);
 
                         Notification::make()->title('Registrasi ditolak.')->warning()->send();

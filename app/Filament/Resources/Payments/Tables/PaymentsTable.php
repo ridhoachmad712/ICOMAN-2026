@@ -22,7 +22,7 @@ class PaymentsTable
             ->defaultSort('created_at', 'desc')
             ->emptyStateHeading('Belum ada transaksi')
             ->emptyStateDescription('Setiap percobaan pembayaran tercatat di sini, termasuk yang gagal.')
-            ->modifyQueryUsing(fn (Builder $query) => $query->with('registration.author'))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['registration.author', 'recordedBy']))
             ->columns([
                 TextColumn::make('created_at')
                     ->label('Waktu')
@@ -70,6 +70,13 @@ class PaymentsTable
                         'failed' => 'danger',
                         default => 'gray',
                     }),
+
+                TextColumn::make('recordedBy.name')
+                    ->label('Dicatat oleh')
+                    // Kosong berarti gateway yang mengabarkannya, dan itu justru
+                    // keadaan normal. Yang perlu dilihat adalah yang ADA namanya.
+                    ->placeholder('Gateway')
+                    ->color(fn (?string $state): string => $state === null ? 'gray' : 'warning'),
 
                 TextColumn::make('gateway_reference')
                     ->label('Referensi')
@@ -159,11 +166,11 @@ class PaymentsTable
 
     private static function export(Table $table): \Symfony\Component\HttpFoundation\StreamedResponse
     {
-        $query = $table->getQuery()->clone()->with('registration.author');
+        $query = $table->getQuery()->clone()->with(['registration.author', 'recordedBy']);
 
         return response()->streamDownload(function () use ($query) {
             $out = fopen('php://output', 'w');
-            fputcsv($out, ['Waktu', 'Invoice', 'Peserta', 'Nominal', 'Cara', 'Gateway', 'Status', 'Referensi', 'Keterangan']);
+            fputcsv($out, ['Waktu', 'Invoice', 'Peserta', 'Nominal', 'Cara', 'Gateway', 'Status', 'Dicatat oleh', 'Referensi', 'Keterangan']);
 
             $query->orderBy('id')->chunk(200, function ($rows) use ($out) {
                 foreach ($rows as $payment) {
@@ -175,6 +182,7 @@ class PaymentsTable
                         $payment->method,
                         $payment->gateway_name,
                         $payment->status,
+                        $payment->recordedBy?->name,
                         $payment->gateway_reference,
                         self::describe($payment),
                     ]);

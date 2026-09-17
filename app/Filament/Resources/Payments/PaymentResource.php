@@ -51,7 +51,7 @@ class PaymentResource extends Resource
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;
+        return auth()->user()?->handlesMoney() ?? false;
     }
 
     public static function canCreate(): bool

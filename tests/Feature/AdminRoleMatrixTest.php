@@ -20,25 +20,29 @@ class AdminRoleMatrixTest extends TestCase
         return [
             // resource => [role => boleh?]
             \App\Filament\Resources\Submissions\SubmissionResource::class => [
-                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
             \App\Filament\Resources\Registrations\RegistrationResource::class => [
-                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => true,
+            ],
+            // Buku transaksi: alasan utama peran bendahara ada.
+            \App\Filament\Resources\Payments\PaymentResource::class => [
+                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => true,
             ],
             \App\Filament\Resources\RegistrationFees\RegistrationFeeResource::class => [
-                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
             \App\Filament\Resources\Topics\TopicResource::class => [
-                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
             \App\Filament\Resources\ReviewAssignments\ReviewAssignmentResource::class => [
-                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => true,
+                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => true, 'bendahara' => false,
             ],
             \App\Filament\Resources\News\NewsResource::class => [
-                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => true, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => true, 'reviewer' => false, 'bendahara' => false,
             ],
             \App\Filament\Resources\Authors\AuthorResource::class => [
-                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false,
+                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
         ];
     }
@@ -82,7 +86,7 @@ class AdminRoleMatrixTest extends TestCase
         $panel = Filament::getPanel('admin');
         $empty = [];
 
-        foreach (['superadmin', 'admin_registrasi', 'content_admin', 'reviewer'] as $role) {
+        foreach (['superadmin', 'admin_registrasi', 'content_admin', 'reviewer', 'bendahara'] as $role) {
             $this->actingAs($this->userFor($role), 'web');
             $visible = array_filter($panel->getWidgets(), fn ($w) => $w::canView());
             if ($visible === []) {
@@ -119,7 +123,7 @@ class AdminRoleMatrixTest extends TestCase
 
     private function userFor(string $role): User
     {
-        foreach (['superadmin', 'admin_registrasi', 'content_admin', 'reviewer'] as $r) {
+        foreach (['superadmin', 'admin_registrasi', 'content_admin', 'reviewer', 'bendahara'] as $r) {
             Role::findOrCreate($r, 'web');
         }
 

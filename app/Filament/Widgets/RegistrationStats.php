@@ -23,7 +23,7 @@ class RegistrationStats extends StatsOverviewWidget
 
     public static function canView(): bool
     {
-        return auth()->user()?->hasAnyRole(['superadmin', 'admin_registrasi']) ?? false;
+        return auth()->user()?->handlesMoney() ?? false;
     }
 
     protected function getStats(): array

@@ -41,7 +41,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     /** Kontrol akses ke panel admin Filament (guard web). */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin']);
+        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin', 'bendahara']);
     }
 
     /**
@@ -51,6 +51,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public const ROLE_BADGES = [
         'superadmin' => ['label' => 'Super Admin', 'color' => 'danger'],
         'admin_registrasi' => ['label' => 'Admin Registrasi', 'color' => 'info'],
+        'bendahara' => ['label' => 'Bendahara', 'color' => 'primary'],
         'content_admin' => ['label' => 'Admin Konten', 'color' => 'warning'],
         'reviewer' => ['label' => 'Reviewer', 'color' => 'success'],
     ];
@@ -88,6 +89,18 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function managesSubmissions(): bool
     {
         return $this->hasAnyRole(['superadmin', 'admin_registrasi']);
+    }
+
+    /**
+     * Boleh melihat dan mencatat uang: transaksi, invoice, bukti bayar.
+     *
+     * Bendahara berdiri di sini bersama dua peran lama. Yang membedakannya
+     * bukan apa yang boleh ia lihat tentang uang, melainkan apa yang TIDAK
+     * ia sentuh: naskah, tarif, voucher, dan pengaturan.
+     */
+    public function handlesMoney(): bool
+    {
+        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'bendahara']);
     }
 
     public function isReviewer(): bool
