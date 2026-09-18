@@ -18,7 +18,7 @@ class SpeakerCarouselTest extends TestCase
         $response = $this->get('/')->assertOk();
 
         $response->assertDontSee('aria-roledescription="carousel"', false);
-        $response->assertSee('xl:grid-cols-5', false);
+        $response->assertSee('lg:grid-cols-5', false);
         for ($i = 1; $i <= 5; $i++) {
             $response->assertSee('Pembicara '.$i);
         }
@@ -41,7 +41,7 @@ class SpeakerCarouselTest extends TestCase
         $response = $this->get('/speakers')->assertOk();
 
         $response->assertDontSee('aria-roledescription="carousel"', false);
-        $response->assertSee('xl:grid-cols-5', false);
+        $response->assertSee('lg:grid-cols-5', false);
         $response->assertSee('Pembicara 7');
     }
 

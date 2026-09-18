@@ -29,7 +29,7 @@
             @else
                 {{-- Lima pembicara langsung terlihat. Susunan turun menjadi
                      tiga dan dua kolom pada layar yang lebih kecil. --}}
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
                     @foreach($announcedSpeakers as $speaker)
                         <x-card-speaker :speaker="$speaker" />
                     @endforeach

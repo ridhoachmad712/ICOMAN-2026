@@ -67,7 +67,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 ## 5. Cheat-sheet Arsitektur (konvensi yang WAJIB diikuti)
 
 - **Perbaikan website publik 2026-09-18**: CTA presenter mengikuti tenggat abstract; setelah ditutup, tombol mengarah ke portal peserta. Tarif ditampilkan sebelum penjelasan alur pada halaman registrasi, menu ponsel bertingkat dan dapat digulir, tanggal penting diurutkan kronologis dengan status lewat/mendatang, kontras tombol diperkuat, panduan menjelaskan template yang belum tersedia, dan salinan lama 150–500 kata dimigrasikan menjadi 200–250 kata.
-- **Pembicara beranda**: maksimal lima pembicara ditampilkan langsung dalam grid responsif tanpa slider. Konfigurasi lama yang membatasi empat kartu dinaikkan menjadi lima melalui migration; batas khusus lain yang dipilih admin tetap dihormati.
+- **Pembicara beranda**: maksimal lima pembicara ditampilkan langsung dalam satu baris pada desktop (`lg`) tanpa slider, lalu menjadi dua atau satu kolom pada layar lebih kecil. Konfigurasi lama yang membatasi empat kartu dinaikkan menjadi lima melalui migration; batas khusus lain yang dipilih admin tetap dihormati.
 
 - **Koreksi 2026-09-18**: aktivasi co-host hanya dari invoice kemitraan terpilih (tarif audience cohost, akun dan edition sesuai). Invoice seminar/presenter tidak boleh menggantikan atau mengaktifkan kemitraan. Nilai dibebaskan voucher dihitung dari discount_amount, termasuk invoice SINTA 3 yang masih punya add-on berbayar.
 
