@@ -11,7 +11,9 @@
     @php
         // Speaker "asli" = yang namanya bukan placeholder TBA. Kalau belum ada,
         // tampilkan state "To Be Announced" yang ringkas.
-        $announcedSpeakers = $content->records($section)->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'));
+        $announcedSpeakers = $content->records($section)
+            ->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'))
+            ->take(5);
     @endphp
     <section class="bg-white py-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -25,9 +27,13 @@
                     <p class="text-lg font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
                 </div>
             @else
-                {{-- Semua pembicara setara dalam satu carousel (tanpa kartu
-                     spotlight terpisah), 4 kartu per tampilan di desktop. --}}
-                <x-speaker-carousel :speakers="$announcedSpeakers" />
+                {{-- Lima pembicara langsung terlihat. Susunan turun menjadi
+                     tiga dan dua kolom pada layar yang lebih kecil. --}}
+                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                    @foreach($announcedSpeakers as $speaker)
+                        <x-card-speaker :speaker="$speaker" />
+                    @endforeach
+                </div>
 
                 <div class="text-center mt-8">
                     <a href="{{ route('speakers') }}" class="link-more">{{ __('site.view_speakers') }}</a>

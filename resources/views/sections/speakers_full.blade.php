@@ -9,7 +9,7 @@
 
     <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
         @if($confirmedSpeakers->isNotEmpty())
-            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 @foreach($confirmedSpeakers as $speaker)
                     <x-card-speaker :speaker="$speaker" />
                 @endforeach

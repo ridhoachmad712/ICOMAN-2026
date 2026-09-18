@@ -7,50 +7,42 @@ use App\Models\Speaker;
 use Tests\TestCase;
 
 /**
- * Section speakers di halaman depan berbentuk carousel: semua pembicara setara
- * (tanpa kartu spotlight terpisah), 4 kartu per tampilan, bergeser otomatis.
+ * Section speakers menampilkan lima pembicara langsung dalam satu grid.
  */
 class SpeakerCarouselTest extends TestCase
 {
-    public function test_more_than_four_speakers_render_as_a_carousel(): void
+    public function test_five_speakers_render_together_without_a_carousel(): void
     {
-        $this->speakers(7);
-
-        $response = $this->get('/')->assertOk();
-
-        $response->assertSee('aria-roledescription="carousel"', false);
-        // Autoplay + jeda saat disentuh.
-        $response->assertSee('paused = true', false);
-        $response->assertSee('setInterval', false);
-        // Kendali manual tetap ada untuk mouse & keyboard.
-        $response->assertSee('Next speakers', false);
-        $response->assertSee('Previous speakers', false);
-    }
-
-    public function test_all_speakers_sit_in_the_carousel_without_a_separate_spotlight(): void
-    {
-        $this->speakers(7);
-
-        $html = $this->get('/')->assertOk()->getContent();
-
-        // Ketujuh nama muncul di dalam satu track carousel.
-        for ($i = 1; $i <= 7; $i++) {
-            $this->assertStringContainsString('Pembicara '.$i, $html);
-        }
-
-        // Penanda kartu spotlight lama (grid 3 kolom berisi bio) sudah tidak ada.
-        $this->assertStringNotContainsString('sm:grid-cols-3 items-center card', $html);
-    }
-
-    /** Dengan 4 pembicara atau kurang tidak ada yang bisa digeser — tampilkan grid. */
-    public function test_four_or_fewer_speakers_fall_back_to_a_plain_grid(): void
-    {
-        $this->speakers(4);
+        $this->speakers(5);
 
         $response = $this->get('/')->assertOk();
 
         $response->assertDontSee('aria-roledescription="carousel"', false);
-        $response->assertSee('lg:grid-cols-4', false);
+        $response->assertSee('xl:grid-cols-5', false);
+        for ($i = 1; $i <= 5; $i++) {
+            $response->assertSee('Pembicara '.$i);
+        }
+    }
+
+    public function test_homepage_limits_the_preview_to_five_speakers(): void
+    {
+        $this->speakers(7);
+
+        $response = $this->get('/')->assertOk();
+        $response->assertSee('Pembicara 5');
+        $response->assertDontSee('Pembicara 6');
+        $response->assertDontSee('Pembicara 7');
+    }
+
+    public function test_the_full_speakers_page_also_uses_a_five_column_grid(): void
+    {
+        $this->speakers(7);
+
+        $response = $this->get('/speakers')->assertOk();
+
+        $response->assertDontSee('aria-roledescription="carousel"', false);
+        $response->assertSee('xl:grid-cols-5', false);
+        $response->assertSee('Pembicara 7');
     }
 
     public function test_speakers_that_are_still_tba_keep_the_announcement_placeholder(): void
