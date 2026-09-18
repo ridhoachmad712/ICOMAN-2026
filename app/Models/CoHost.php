@@ -125,6 +125,9 @@ class CoHost extends Model implements HasMedia
         return $this->author?->registrations()
             ->where('edition_id', $this->edition_id)
             ->whereNull('submission_id')
+            ->whereHas('registrationFee', fn (Builder $query) => $query
+                ->where('audience', 'cohost')
+                ->where('edition_id', $this->edition_id))
             ->latest()
             ->first();
     }

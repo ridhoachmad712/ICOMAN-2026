@@ -47,12 +47,11 @@ class FinanceSummary
         return $this->billable()->get()->sum(fn (Registration $r): float => $r->outstandingAmount());
     }
 
-    /** Nilai yang dibebaskan voucher: peserta terdaftar tanpa uang masuk. */
+    /** Biaya dasar yang dibebaskan, termasuk invoice dengan add-on berbayar. */
     public function waived(): float
     {
         return (float) $this->scope(Registration::query())
-            ->where('payment_method', 'waived')
-            ->sum('amount');
+            ->sum('discount_amount');
     }
 
     /** Invoice yang menunggu diperiksa panitia. */

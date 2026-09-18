@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Submissions\Pages\ListSubmissions;
 use App\Filament\Widgets\LatestSubmissions;
 use App\Filament\Widgets\SubmissionFunnel;
 use App\Filament\Widgets\SubmissionWorkboard;
@@ -11,6 +12,8 @@ use App\Models\Review;
 use App\Models\ReviewAssignment;
 use App\Models\Submission;
 use App\Models\User;
+use Filament\Facades\Filament;
+use Illuminate\Support\Once;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -87,6 +90,43 @@ class AdminDashboardTest extends TestCase
 
         $this->assertSame(2, Submission::query()->awaitingReviewer()->count());
         $this->assertSame(1, Submission::query()->ofCurrentEdition()->awaitingReviewer()->count());
+    }
+
+    public function test_submission_list_and_badges_only_include_the_active_edition(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $current = $this->submission('extended_abstract_submitted');
+        $oldEdition = Edition::create(['name' => 'ICOMAN 2025', 'is_active' => false]);
+        $old = $this->submission('extended_abstract_submitted', $oldEdition);
+
+        $page = Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->assertCanSeeTableRecords([$current])
+            ->assertCanNotSeeTableRecords([$old]);
+        $tabs = $page->instance()->getTabs();
+        $this->assertEquals(1, $tabs['all']->getBadge());
+        $this->assertEquals(1, $tabs['action']->getBadge());
+        $this->assertEquals(0, $tabs['accepted']->getBadge());
+
+        $page->callAction('export')->assertFileDownloaded();
+        $csv = base64_decode($page->effects['download']['content']);
+        $this->assertStringContainsString($current->submission_number, $csv);
+        $this->assertStringNotContainsString($old->submission_number, $csv);
+    }
+
+    public function test_submission_list_is_empty_without_an_active_edition(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $submission = $this->submission('accepted');
+        $this->edition->update(['is_active' => false]);
+        Once::flush();
+
+        $page = Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->assertCanNotSeeTableRecords([$submission]);
+        foreach ($page->instance()->getTabs() as $tab) {
+            $this->assertEquals(0, $tab->getBadge());
+        }
     }
 
     /**

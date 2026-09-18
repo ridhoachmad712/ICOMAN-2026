@@ -252,6 +252,37 @@ class CoHostRegistrationTest extends TestCase
         $this->assertTrue($coHost->isActive());
     }
 
+    public function test_an_unrelated_paid_invoice_neither_replaces_nor_activates_the_partnership(): void
+    {
+        Notification::fake();
+        $this->partnershipFee();
+        $applicant = $this->apply();
+        $seminarFee = RegistrationFee::create([
+            'edition_id' => $this->edition->id,
+            'category' => ['en' => 'Seminar'], 'audience' => 'participant',
+            'registrant_category' => 'general', 'price_regular' => 50_000, 'currency' => 'IDR',
+        ]);
+        $other = Registration::create([
+            'edition_id' => $this->edition->id, 'author_id' => $applicant->author_id,
+            'registration_fee_id' => $seminarFee->id,
+            'amount' => 50_000, 'payment_method' => 'manual', 'status' => 'pending',
+        ]);
+        $coHost = app(CoHostApproval::class)->approve($applicant);
+        $partnership = $coHost->registration();
+        $this->assertNotSame($other->id, $partnership->id);
+
+        $other->update(['status' => 'paid', 'created_at' => now()->addMinute()]);
+        $this->assertSame($partnership->id, $coHost->registration()->id);
+        $this->assertFalse($coHost->fresh()->isActive());
+        $this->assertFalse($coHost->voucher->refresh()->is_active);
+        $this->assertFalse($coHost->sponsor->refresh()->is_published);
+        Notification::assertNotSentTo($coHost->author, CoHostActivated::class);
+
+        $partnership->update(['status' => 'paid']);
+        $this->assertTrue($coHost->fresh()->isActive());
+        Notification::assertSentTo($coHost->author, CoHostActivated::class);
+    }
+
     /** Sebelum lunas, kodenya memang belum bisa dipakai penulis. */
     public function test_the_code_is_refused_while_the_fee_is_unpaid(): void
     {

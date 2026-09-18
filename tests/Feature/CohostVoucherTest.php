@@ -13,8 +13,10 @@ use App\Models\RegistrationFee;
 use App\Models\Submission;
 use App\Models\User;
 use App\Models\Voucher;
+use App\Models\VoucherRedemption;
 use App\Services\VoucherRedeemer;
 use App\Settings\SiteSettings;
+use App\Support\FinanceSummary;
 use Filament\Facades\Filament;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -93,6 +95,29 @@ class CohostVoucherTest extends TestCase
     private function redeem(Registration $registration, string $code = 'COHOST-UNM'): void
     {
         app(VoucherRedeemer::class)->redeem($registration, $code);
+    }
+
+    public function test_finance_counts_real_voucher_discounts_and_removes_released_slots(): void
+    {
+        $this->voucher();
+        $regular = $this->invoice('regular-report@example.test');
+        $sinta = $this->invoice('sinta-report@example.test', 'sinta3');
+        $this->redeem($regular);
+        $this->redeem($sinta);
+
+        $summary = new FinanceSummary($this->edition->id);
+        $this->assertSame(800000.0, $summary->waived());
+        $this->assertSame(0.0, $summary->received());
+        $this->assertSame(300000.0, $summary->outstanding());
+
+        app(VoucherRedeemer::class)->release(
+            VoucherRedemption::where('registration_id', $regular->id)->firstOrFail(),
+        );
+        $this->assertSame(400000.0, $summary->waived());
+
+        $other = Edition::create(['name' => 'ICOMAN 2025', 'is_active' => false]);
+        $sinta->refresh()->update(['edition_id' => $other->id]);
+        $this->assertSame(0.0, $summary->waived());
     }
 
     public function test_a_voucher_waives_the_base_fee_and_settles_the_invoice(): void

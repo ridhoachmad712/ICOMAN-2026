@@ -72,7 +72,7 @@ class FinanceReportTest extends TestCase
      */
     public function test_waived_and_failed_invoices_are_not_receivables(): void
     {
-        $this->registration(500_000)->update(['payment_method' => 'waived']);
+        $this->registration(0)->update(['payment_method' => 'waived', 'discount_amount' => 500_000]);
         $this->registration(500_000)->update(['status' => 'failed']);
         $this->registration(300_000); // satu-satunya yang benar-benar ditunggu
 

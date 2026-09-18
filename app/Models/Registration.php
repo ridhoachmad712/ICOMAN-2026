@@ -64,7 +64,7 @@ class Registration extends Model implements HasMedia
                 ->approved()
                 ->first();
 
-            if (! $coHost) {
+            if (! $coHost || $coHost->registration()?->id !== $registration->id) {
                 return;
             }
 

@@ -49,7 +49,7 @@ class FinanceStats extends StatsOverviewWidget
                 ->color($overdue > 0 ? 'danger' : 'warning'),
 
             Stat::make('Dibebaskan Voucher', rupiah($waived))
-                ->description('Terdaftar tanpa uang masuk')
+                ->description('Biaya dasar yang ditanggung voucher')
                 ->descriptionIcon('heroicon-m-ticket')
                 ->color('gray'),
 

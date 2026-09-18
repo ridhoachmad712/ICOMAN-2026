@@ -66,6 +66,8 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 
 ## 5. Cheat-sheet Arsitektur (konvensi yang WAJIB diikuti)
 
+- **Koreksi 2026-09-18**: aktivasi co-host hanya dari invoice kemitraan terpilih (tarif audience cohost, akun dan edition sesuai). Invoice seminar/presenter tidak boleh menggantikan atau mengaktifkan kemitraan. Nilai dibebaskan voucher dihitung dari discount_amount, termasuk invoice SINTA 3 yang masih punya add-on berbayar.
+
 - **Dua guard TERPISAH**: `web` (admin/Filament, tabel `users` + Spatie roles) & `author` (portal publik, tabel `authors`). Config di `config/auth.php`. Guest ber-guard author redirect ke `author.login` via `redirectGuestsTo` di `bootstrap/app.php`.
 - **Helper** di `app/Support/helpers.php` (autoload `files` di composer.json):
   - `currentEdition()` — edition aktif (di-scope semua query publik).
@@ -83,7 +85,7 @@ Dokumen awal (`CLAUDE.md`/`ARCHITECTURE.md`) menyebut **Laravel 11 + Filament v3
 - **Buku transaksi**: `Submission → Transaksi` (`PaymentResource`) menampilkan setiap baris `payments`, bukan hanya status invoice — tanggal, peserta, nominal, cara bayar, status, referensi BorderPay, dan keterangan cicilan. Hanya baca: transaksi tidak pernah dibuat, disunting, atau dihapus dari sini. Tab: Berhasil / Dicatat Admin / Gagal & Belum Selesai / Semua; ada penyaring tanggal dan export CSV yang mengikuti penyaring yang sedang aktif. Sebelum ini tabel `payments` tidak punya pintu sama sekali di panel.
 - **Tandai Lunas** mencatat SISA tagihan, bukan total. Pada invoice cicilan yang sudah menerima 200.000, nominal penuh membuat catatannya 550.000 untuk tagihan 350.000.
 
-- **Dashboard admin**: papan kerja `SubmissionWorkboard` (menunggu reviewer / sedang dinilai / menunggu keputusan / LOA belum terbit, tiap angka membuka daftar tersaring), `SubmissionFunnel` (masuk → dinilai → diterima → lunas, menggantikan donat status), dan tabel abstract terakhir yang barisnya bisa dibuka. Antreannya didefinisikan sebagai scope di `Submission` dan dipakai bersama tab halaman Submissions, jadi angkanya tidak bisa berbeda. Widget submission dibatasi edition aktif. Catatan: badge tab belum dibatasi edition — baru terasa saat ada edition kedua.
+- **Dashboard admin**: papan kerja `SubmissionWorkboard` (menunggu reviewer / sedang dinilai / menunggu keputusan / LOA belum terbit, tiap angka membuka daftar tersaring), `SubmissionFunnel` (masuk → dinilai → diterima → lunas, menggantikan donat status), dan tabel abstract terakhir yang barisnya bisa dibuka. Antreannya didefinisikan sebagai scope di `Submission` dan dipakai bersama tab halaman Submissions, jadi angkanya tidak bisa berbeda. Widget, daftar submission, badge tab, dan export CSV dibatasi edition aktif; tanpa edition aktif, daftar dan hitungan kosong.
 
 - **Wewenang Submissions**: superadmin dan admin registrasi sejajar — keduanya melihat Keputusan Review, Terbitkan LOA, tawaran SINTA 3, dan Review Langsung. Aturannya satu, `User::managesSubmissions()`. Sebelumnya empat tombol itu superadmin saja, sehingga admin registrasi membuka halaman yang diam-diam lebih sempit.
 
