@@ -36,6 +36,8 @@
      */
     --brand-ink: color-mix(in srgb, var(--brand, #d9621c) 78%, #000);
     --accent-ink: color-mix(in srgb, var(--accent) 72%, #000);
+    --brand-button: color-mix(in srgb, var(--brand, #d9621c) 78%, #000);
+    --accent-button: color-mix(in srgb, var(--accent) 72%, #000);
 }
 
 /*
@@ -87,7 +89,7 @@
     }
     .btn:hover { transform: translateY(-1px); }
     .btn-primary {
-        background: var(--brand-ink);
+        background: var(--brand-button);
         color: #fff;
         box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--brand) 70%, transparent);
     }
@@ -104,7 +106,7 @@
         box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 35%, transparent);
     }
     .btn-accent {
-        background: var(--accent-ink);
+        background: var(--accent-button);
         color: #fff;
         box-shadow: 0 8px 20px -8px color-mix(in srgb, var(--accent) 70%, transparent);
     }

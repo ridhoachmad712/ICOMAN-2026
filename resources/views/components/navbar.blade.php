@@ -65,16 +65,24 @@
             </div>
         </div>
 
-        <div x-show="open" x-cloak x-transition class="border-t border-slate-100 pb-5 pt-3 xl:hidden">
+        <div x-show="open" x-cloak x-transition class="max-h-[calc(100svh-4.5rem)] overflow-y-auto overscroll-contain border-t border-slate-100 pb-5 pt-3 xl:hidden">
             <div class="flex flex-col gap-1">
                 @foreach($nav as $item)
                     @if($item['children'] === [])
                         <a href="{{ $item['url'] }}" @if($item['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-3 py-2.5 text-sm font-medium {{ $isActive($item['route'], $item['url']) ? 'bg-slate-100 text-[var(--brand-ink)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $item['label'] }}</a>
                     @else
-                        <p class="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400">{{ $item['label'] }}</p>
-                        @foreach($item['children'] as $child)
-                            <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="rounded-lg px-5 py-2.5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand-ink)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
-                        @endforeach
+                        <div x-data="{ expanded: {{ $groupActive($item['children']) ? 'true' : 'false' }} }">
+                            <button type="button" @click="expanded = !expanded" :aria-expanded="expanded"
+                                class="flex min-h-11 w-full items-center justify-between rounded-lg px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50">
+                                <span>{{ $item['label'] }}</span>
+                                <svg class="h-4 w-4 transition-transform" :class="expanded && 'rotate-180'" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="m19 9-7 7-7-7"/></svg>
+                            </button>
+                            <div x-show="expanded" x-cloak class="grid">
+                                @foreach($item['children'] as $child)
+                                    <a href="{{ $child['url'] }}" @if($child['new_tab']) target="_blank" rel="noopener" @endif class="flex min-h-11 items-center rounded-lg px-5 text-sm {{ $isActive($child['route'], $child['url']) ? 'bg-slate-100 font-semibold text-[var(--brand-ink)]' : 'text-slate-700 hover:bg-slate-50' }}">{{ $child['label'] }}</a>
+                                @endforeach
+                            </div>
+                        </div>
                     @endif
                 @endforeach
 

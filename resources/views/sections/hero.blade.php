@@ -27,7 +27,7 @@
 
         {{-- Hero tinggi: konten dipusatkan vertikal agar terasa lapang & formal.
              svh dipakai supaya tinggi tidak melompat saat bar browser mobile muncul/hilang. --}}
-        <div class="relative mx-auto flex min-h-[68svh] max-w-7xl flex-col justify-center px-4 py-20 sm:min-h-[76svh] sm:px-6 sm:py-28 lg:px-8">
+        <div class="relative mx-auto flex max-w-7xl flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
             {{-- Ketiganya bisa ditimpa lewat Penyusun Halaman; bila dikosongkan,
                  isinya mengikuti data edisi dan Teks Website. --}}
             {{-- Penanda yang sama dengan seluruh bagian lain; hero tidak
@@ -55,8 +55,9 @@
             </div>
 
             <div class="mt-8 flex flex-wrap gap-3">
-                <a href="{{ route('author.register.terms', ['role' => 'presenter']) }}" class="btn btn-accent">{{ __('site.home_submit_abstract') }}</a>
-                <a href="{{ route('author.register.terms', ['role' => 'non_presenter']) }}" class="btn btn-ghost">{{ __('site.home_attend_seminar') }}</a>
+                <x-participation-link class="btn-accent" :label="__('site.home_submit_abstract')" />
+                <x-participation-link role="non_presenter" class="btn-ghost" :label="__('site.home_attend_seminar')" />
             </div>
+            <x-submission-status class="mt-5 text-white/90" />
         </div>
     </section>

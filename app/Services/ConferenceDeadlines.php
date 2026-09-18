@@ -19,7 +19,7 @@ class ConferenceDeadlines
         $item = ImportantDate::where('edition_id', $editionId ?? currentEdition()?->id)
             ->where('kind', $kind)->first();
 
-        return $item?->closes_at ?? $item?->date?->copy()->endOfDay();
+        return $item?->deadlineAt();
     }
 
     public function isOpen(string $kind, ?int $editionId = null): bool

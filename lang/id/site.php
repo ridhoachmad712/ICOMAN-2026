@@ -136,4 +136,11 @@ return [
     'speakers_speakers_will_be_announced' => 'Pembicara akan diumumkan',
     'cohosts_title' => 'Institusi Co-host',
     'hero_eyebrow' => 'International Conference on Management',
+    'public_portal' => 'Portal peserta',
+    'public_submission_closed' => 'Pengiriman abstrak telah ditutup. Penulis yang sudah terdaftar dapat melanjutkan proses review dan pembayaran melalui portal peserta.',
+    'public_abstract_deadline' => 'Batas pengiriman abstrak',
+    'public_template_pending' => 'Template naskah belum diterbitkan. Silakan hubungi panitia sebelum menyiapkan tata letak akhir naskah.',
+    'public_full_paper_instructions' => 'Unggah full paper setelah pembayaran terverifikasi. Format yang diterima: PDF, DOC, atau DOCX, maksimum 20 MB. Sertakan judul, penulis dan afiliasi, abstrak, pendahuluan, metode, hasil dan pembahasan, kesimpulan, serta referensi. Gunakan template panitia ketika tersedia; ketentuan tambahan jurnal mengikuti pengumuman panitia atau editor jurnal.',
+    'public_date_passed' => 'Tanggal telah lewat',
+    'public_date_upcoming' => 'Mendatang',
 ];

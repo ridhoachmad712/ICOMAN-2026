@@ -136,4 +136,11 @@ return [
     'speakers_speakers_will_be_announced' => 'Speakers will be announced',
     'cohosts_title' => 'Co-host Institutions',
     'hero_eyebrow' => 'International Conference on Management',
+    'public_portal' => 'Participant portal',
+    'public_submission_closed' => 'Abstract submission is closed. Registered authors can continue their review and payment steps in the participant portal.',
+    'public_abstract_deadline' => 'Abstract deadline',
+    'public_template_pending' => 'The manuscript template has not been published yet. Please contact the committee before preparing the final layout.',
+    'public_full_paper_instructions' => 'Upload the full paper after payment is verified. Accepted formats are PDF, DOC, and DOCX, up to 20 MB. Include the title, authors and affiliations, abstract, introduction, methods, results and discussion, conclusion, and references. Use the committee template when available; additional journal requirements follow announcements from the committee or journal editor.',
+    'public_date_passed' => 'Date passed',
+    'public_date_upcoming' => 'Upcoming',
 ];

@@ -73,7 +73,9 @@ class SectionContent
             // Kemitraan co-host bukan harga pendaftaran: itu invoice antara
             // panitia dan institusi, jadi tidak ditampilkan di tabel biaya publik.
             'fees' => RegistrationFee::where('audience', '!=', 'cohost')->orderBy('order'),
-            'important_dates' => ImportantDate::query()->orderBy('order'),
+            'important_dates' => ImportantDate::query()
+                ->orderByRaw('CASE WHEN COALESCE(closes_at, date) IS NULL THEN 1 ELSE 0 END')
+                ->orderByRaw('COALESCE(closes_at, date)')->orderBy('order'),
             'schedule' => Schedule::query()->orderBy('day_date')->orderBy('time_start'),
             'committee' => Committee::where('is_published', true)->with('media')->orderBy('order'),
             'gallery' => Gallery::with('media')->orderBy('order'),
@@ -150,8 +152,8 @@ class SectionContent
         return ImportantDate::query()
             ->when(currentEdition(), fn ($query, $edition) => $query->where('edition_id', $edition->id))
             ->get()
-            ->filter(fn (ImportantDate $date) => $date->date && $date->date->copy()->endOfDay()->isFuture())
-            ->sortBy('date')
+            ->filter(fn (ImportantDate $date) => $date->deadlineAt()?->isFuture())
+            ->sortBy(fn (ImportantDate $date) => $date->deadlineAt()->timestamp)
             ->first();
     }
 }

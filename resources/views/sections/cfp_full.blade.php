@@ -52,9 +52,9 @@
         @endif
 
         <div class="border-y border-slate-200 bg-slate-50 p-8 text-center">
-            <p class="text-slate-600 mb-4">{{ __('site.cfp_ready_to_write_your_abstract') }}</p>
+            <x-submission-status class="text-slate-600 mb-4" />
             <div class="flex flex-wrap justify-center gap-3">
-                <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary">{{ __('site.cfp_start_abstract') }}</a>
+                <x-participation-link class="btn-primary" :label="__('site.cfp_start_abstract')" />
                 <a href="{{ route('registration') }}" class="btn btn-outline">{{ __('site.registration_fees') }}</a>
             </div>
         </div>

@@ -57,7 +57,7 @@
             @else
                 <p class="text-slate-500">-</p>
             @endif
-            <a href="{{ route('author.register', ['role' => 'presenter']) }}" class="btn btn-primary mt-5 inline-flex text-sm">{{ __('site.footer_submit_abstract') }}</a>
+            <x-participation-link class="btn-primary mt-5 text-sm" :label="__('site.footer_submit_abstract')" />
         </div>
     </div>
     <div class="border-t border-white/10">
