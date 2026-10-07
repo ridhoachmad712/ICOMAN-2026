@@ -15,10 +15,8 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 /**
- * Voucher co-host: kode yang membebaskan biaya registrasi dasar presenter,
- * dengan kuota paper gratis per institusi mitra. Mengikuti pola tarif
- * registrasi — admin registrasi boleh melihat, hanya superadmin yang mengubah,
- * karena kode ini menentukan uang yang tidak jadi masuk.
+ * Voucher registrasi. Admin registrasi dapat melihat pemakaian, sedangkan
+ * superadmin mengatur potongan dan kuotanya.
  */
 class VoucherResource extends Resource
 {
@@ -34,17 +32,17 @@ class VoucherResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return 'Voucher Co-host';
+        return 'Voucher';
     }
 
     public static function getModelLabel(): string
     {
-        return 'voucher co-host';
+        return 'voucher';
     }
 
     public static function getPluralModelLabel(): string
     {
-        return 'voucher co-host';
+        return 'voucher';
     }
 
     public static function canAccess(): bool

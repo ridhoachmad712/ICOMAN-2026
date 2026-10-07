@@ -8,11 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-/**
- * Kode voucher co-host: satu kode per institusi mitra, dipakai beberapa kali
- * sampai kuotanya habis. Membebaskan biaya registrasi dasar presenter; add-on
- * Jurnal SINTA 3 tetap ditagih seperti biasa.
- */
+/** Voucher registrasi dengan kuota penggunaan per kode. */
 class Voucher extends Model
 {
     use HasFactory;
@@ -21,6 +17,10 @@ class Voucher extends Model
         'edition_id',
         'code',
         'host_name',
+        'type',
+        'audience',
+        'discount_kind',
+        'discount_value',
         'quota',
         'is_active',
         'expires_at',
@@ -30,6 +30,7 @@ class Voucher extends Model
     {
         return [
             'quota' => 'integer',
+            'discount_value' => 'decimal:2',
             'is_active' => 'boolean',
             'expires_at' => 'datetime',
         ];
@@ -86,5 +87,24 @@ class Voucher extends Model
     public function isRedeemable(): bool
     {
         return $this->is_active && ! $this->isExpired() && $this->remainingSlots() > 0;
+    }
+
+    /** Potongan hanya berlaku pada tarif registrasi dasar, bukan add-on jurnal. */
+    public function discountFor(int $baseAmount): int
+    {
+        if (in_array($this->type, ['cohost', 'free_paper'], true)) {
+            return $baseAmount;
+        }
+
+        if ($this->type !== 'discount') {
+            return 0;
+        }
+
+        $value = (float) $this->discount_value;
+        $amount = $this->discount_kind === 'percent'
+            ? (int) round($baseAmount * $value / 100)
+            : (int) round($value);
+
+        return min($baseAmount, max(0, $amount));
     }
 }

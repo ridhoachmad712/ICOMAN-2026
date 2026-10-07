@@ -20,6 +20,8 @@ class RegistrationForm
                         Placeholder::make('peserta')->content(fn ($record) => $record?->author?->name ?? '—'),
                         Placeholder::make('email')->content(fn ($record) => $record?->author?->email ?? '—'),
                         Placeholder::make('kategori')->content(fn ($record) => $record?->registrationFee?->category ?? '—'),
+                        Placeholder::make('voucher_code')->label('Voucher')->content(fn ($record) => $record?->voucher?->code ?? '—'),
+                        TextInput::make('discount_amount')->label('Potongan voucher')->prefix('IDR')->disabled(),
                         TextInput::make('amount')->prefix('IDR')->disabled(),
                         TextInput::make('payment_method')->disabled(),
                         TextInput::make('status')->disabled(),

@@ -68,7 +68,7 @@ class RegistrationsTable
                     'paid' => 'Paid',
                     'failed' => 'Failed',
                 ]),
-                SelectFilter::make('payment_method')->options(['manual' => 'Manual', 'gateway' => 'Gateway']),
+                SelectFilter::make('payment_method')->options(['manual' => 'Manual', 'gateway' => 'Gateway', 'waived' => 'Voucher (gratis)']),
                 SelectFilter::make('edition_id')->relationship('edition', 'name')->label('Edition'),
             ])
             ->recordActions([

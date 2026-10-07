@@ -116,6 +116,8 @@ class CoHostApproval
             'edition_id' => $coHost->edition_id,
             'code' => $this->uniqueCode(),
             'host_name' => $coHost->institution_name,
+            'type' => 'cohost',
+            'audience' => 'presenter',
             'quota' => CoHost::FREE_PAPERS,
             // Menyala setelah biaya kemitraannya lunas.
             'is_active' => false,

@@ -29,7 +29,30 @@ class VouchersTable
                     ->copyable()
                     ->searchable()
                     ->sortable(),
-                TextColumn::make('host_name')->label('Co-host')->searchable()->wrap(),
+                TextColumn::make('host_name')->label('Nama')->searchable()->wrap(),
+                TextColumn::make('type')
+                    ->label('Jenis')
+                    ->badge()
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'discount' => 'Diskon',
+                        'free_paper' => 'Paper gratis',
+                        default => 'Co-host',
+                    }),
+                TextColumn::make('audience')
+                    ->label('Berlaku untuk')
+                    ->formatStateUsing(fn (string $state): string => match ($state) {
+                        'all' => 'Semua peserta',
+                        'participant' => 'Peserta seminar',
+                        default => 'Presenter',
+                    })
+                    ->toggleable(),
+                TextColumn::make('benefit')
+                    ->label('Manfaat')
+                    ->state(fn (Voucher $record): string => $record->type !== 'discount'
+                        ? 'Biaya dasar gratis'
+                        : ($record->discount_kind === 'percent'
+                            ? rtrim(rtrim((string) $record->discount_value, '0'), '.').' %'
+                            : 'IDR '.number_format((float) $record->discount_value, 0, ',', '.'))),
                 TextColumn::make('quota')
                     ->label('Terpakai')
                     // Sisa kuota adalah angka yang paling sering dicari panitia.
@@ -102,8 +125,8 @@ class VouchersTable
                 ])->label('Lainnya'),
             ])
             ->emptyStateIcon('heroicon-o-ticket')
-            ->emptyStateHeading('Belum ada voucher co-host')
-            ->emptyStateDescription('Buat kode untuk institusi mitra, lalu bagikan ke penulis mereka.');
+            ->emptyStateHeading('Belum ada voucher')
+            ->emptyStateDescription('Buat kode diskon atau paper gratis, lalu bagikan kepada pengguna.');
     }
 
     private static function slotList(Voucher $voucher): string

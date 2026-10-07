@@ -77,7 +77,10 @@ class RegistrationController extends Controller
                 'journal_target' => $data['journal_target'],
                 'journal_target_chosen_at' => now(),
             ]);
-            $locked->update(['amount' => $price['base_amount'] + $price['addon_amount'], 'pricing_snapshot' => $price]);
+            $locked->update([
+                'amount' => max(0, $price['base_amount'] + $price['addon_amount'] - (int) ($price['discount_amount'] ?? 0)),
+                'pricing_snapshot' => $price,
+            ]);
         });
 
         // Sengaja BUKAN back(): pemilihnya dibuka lewat ?step=journal, dan back()
@@ -89,7 +92,7 @@ class RegistrationController extends Controller
                 : 'Journal choice saved. Your invoice has been updated.');
     }
 
-    /** Menukarkan kode voucher co-host pada invoice presenter. */
+    /** Menukarkan kode voucher pada invoice yang belum dibayar. */
     public function redeemVoucher(Request $request, Registration $registration): RedirectResponse
     {
         $this->authorizeOwner($registration);
@@ -101,8 +104,8 @@ class RegistrationController extends Controller
         $voucher = app(VoucherRedeemer::class)->redeem($registration, $data['voucher_code']);
 
         return back()->with('status', app()->getLocale() === 'id'
-            ? 'Voucher '.$voucher->host_name.' berhasil dipakai. Biaya registrasi dasar Anda dibebaskan.'
-            : 'The '.$voucher->host_name.' voucher was applied. Your base registration fee has been waived.');
+            ? 'Voucher '.$voucher->code.' berhasil dipakai. Total tagihan telah diperbarui.'
+            : 'Voucher '.$voucher->code.' was applied. Your invoice total has been updated.');
     }
 
     public function payGateway(Request $request, Registration $registration): RedirectResponse

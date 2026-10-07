@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Penukaran kode voucher co-host pada invoice presenter.
+ * Penukaran voucher registrasi pada invoice yang belum dibayar.
  *
- * Voucher membebaskan biaya registrasi dasar; add-on Jurnal SINTA 3 tetap
+ * Diskon berlaku pada biaya registrasi dasar; add-on Jurnal SINTA 3 tetap
  * ditagih. Bila sisa tagihan menjadi nol, registrasi langsung ditandai lunas
  * dengan metode `waived` — bukan `gateway` — supaya laporan keuangan tidak
  * mencatat transaksi BorderPay Rp 0 yang tidak pernah terjadi.
@@ -35,8 +35,12 @@ class VoucherRedeemer
 
             $locked = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
 
-            $this->assertRegistrationEligible($locked);
+            $this->assertRegistrationEligible($locked, $voucher);
             $this->assertVoucherUsable($voucher);
+
+            if ($voucher->redemptions()->where('author_id', $locked->author_id)->exists()) {
+                $this->fail('Akun Anda sudah memakai kode ini.', 'Your account has already used this code.');
+            }
 
             $price = $locked->priceDetails();
 
@@ -49,12 +53,16 @@ class VoucherRedeemer
 
             $base = (int) ($price['base_amount'] ?? 0);
             $addon = (int) ($price['addon_amount'] ?? 0);
-            $discount = $base; // voucher menanggung biaya dasar, bukan add-on
+            $discount = $voucher->discountFor($base);
+            if ($discount < 1) {
+                $this->fail('Nilai diskon voucher tidak valid.', 'This voucher has an invalid discount value.');
+            }
             $payable = max(0, $base + $addon - $discount);
 
             $price['discount_amount'] = $discount;
             $price['voucher_code'] = $voucher->code;
             $price['voucher_host'] = $voucher->host_name;
+            $price['voucher_type'] = $voucher->type;
 
             VoucherRedemption::create([
                 'voucher_id' => $voucher->id,
@@ -93,17 +101,21 @@ class VoucherRedeemer
     public function release(VoucherRedemption $redemption): void
     {
         DB::transaction(function () use ($redemption): void {
+            // Same lock order as redeem(): voucher first, invoice second.
+            Voucher::whereKey($redemption->voucher_id)->lockForUpdate()->firstOrFail();
             $registration = Registration::whereKey($redemption->registration_id)->lockForUpdate()->firstOrFail();
 
-            if (! $registration->isWaived() && $registration->status === 'paid') {
+            if ((! $registration->isWaived() && $registration->status === 'paid')
+                || $registration->paidAmount() > 0
+                || $registration->hasUnresolvedPayment()) {
                 $this->fail(
-                    'Registrasi ini sudah dibayar sebagian lewat BorderPay. Lepas slotnya secara manual bersama panitia keuangan.',
-                    'This registration was partly paid through BorderPay. Release the slot together with the finance team.',
+                    'Registrasi ini memiliki transaksi pembayaran. Rekonsiliasi bersama panitia keuangan sebelum melepas voucher.',
+                    'This registration has a payment transaction. Reconcile it with the finance team before releasing the voucher.',
                 );
             }
 
             $price = $registration->priceDetails();
-            unset($price['discount_amount'], $price['voucher_code'], $price['voucher_host']);
+            unset($price['discount_amount'], $price['voucher_code'], $price['voucher_host'], $price['voucher_type']);
 
             $registration->forceFill([
                 'voucher_id' => null,
@@ -119,12 +131,16 @@ class VoucherRedeemer
         });
     }
 
-    private function assertRegistrationEligible(Registration $registration): void
+    private function assertRegistrationEligible(Registration $registration, Voucher $voucher): void
     {
-        if ($registration->submission_id === null) {
+        $audience = $registration->registrationFee?->audience;
+
+        if (! in_array($audience, ['presenter', 'participant'], true)
+            || ($voucher->audience !== 'all' && $voucher->audience !== $audience)
+            || (in_array($voucher->type, ['cohost', 'free_paper'], true) && $registration->submission_id === null)) {
             $this->fail(
-                'Voucher co-host hanya berlaku untuk pengiriman paper (presenter).',
-                'Co-host vouchers only apply to paper submissions (presenters).',
+                'Voucher ini tidak berlaku untuk kategori registrasi Anda.',
+                'This voucher does not apply to your registration category.',
             );
         }
 

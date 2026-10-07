@@ -30,9 +30,8 @@
         $isSinta = $price['journal_target'] === 'sinta3';
 
         $discount = (float) ($price['discount_amount'] ?? 0);
-        // Kotak voucher hanya muncul bila memang masih bisa dipakai: jalur
-        // presenter, tagihan belum selesai, dan belum ada voucher terpakai.
-        $canRedeemVoucher = $record->submission_id !== null
+        // Voucher berlaku untuk invoice presenter atau peserta seminar.
+        $canRedeemVoucher = in_array($record->registrationFee?->audience, ['presenter', 'participant'], true)
             && $record->voucher_id === null
             && ! ($price['legacy'] ?? false)
             && ! $record->hasUnresolvedPayment()
@@ -149,7 +148,7 @@
 
                     @if($discount > 0)
                         <div class="flex items-start justify-between gap-4 text-success-700 dark:text-success-400">
-                            <dt>{{ $id ? 'Voucher co-host' : 'Co-host voucher' }} @if(! empty($price['voucher_code']))<span class="font-mono text-xs">({{ $price['voucher_code'] }})</span>@endif</dt>
+                            <dt>{{ $id ? 'Potongan voucher' : 'Voucher discount' }} @if(! empty($price['voucher_code']))<span class="font-mono text-xs">({{ $price['voucher_code'] }})</span>@endif</dt>
                             <dd class="shrink-0 font-semibold">− {{ $money($discount) }}</dd>
                         </div>
                     @endif
@@ -178,7 +177,7 @@
                 <div class="mt-4 grid gap-3 border-t border-gray-200 pt-4 text-sm sm:grid-cols-2 dark:border-white/10">
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Metode' : 'Method' }}</p>
-                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher co-host' : 'Co-host voucher') : 'BorderPay' }}</p>
+                        <p class="mt-1 font-medium text-gray-950 dark:text-white">{{ $record->isWaived() ? ($id ? 'Voucher' : 'Voucher') : 'BorderPay' }}</p>
                     </div>
                     <div>
                         <p class="text-xs font-medium uppercase tracking-wide text-gray-500">{{ $id ? 'Abstrak' : 'Abstract' }}</p>
@@ -196,15 +195,20 @@
                     <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10" x-data="{ open: false }">
                         <button type="button" x-show="! open" x-on:click="open = true"
                                 class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-                            {{ $id ? 'Punya kode voucher co-host?' : 'Have a co-host voucher code?' }}
+                            {{ $id ? 'Punya kode voucher?' : 'Have a voucher code?' }}
                         </button>
 
                         <div x-show="open" x-cloak>
-                            <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Kode voucher co-host' : 'Co-host voucher code' }}</p>
+                            <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Kode voucher' : 'Voucher code' }}</p>
                             <p class="mt-1 text-xs leading-relaxed text-gray-500">
                                 {{ $id
-                                    ? 'Voucher membebaskan biaya registrasi dasar. Bila Anda memilih penerbitan Jurnal SINTA 3, biaya tambahannya tetap dibayar. Tentukan pilihan jurnal lebih dulu. Setelah tagihan lunas, pilihan itu tidak bisa diubah sendiri.'
-                                    : 'The voucher waives your base registration fee. If you choose SINTA 3 publication, its add-on remains payable. Settle your journal choice first. Once the invoice is paid you cannot change it yourself.' }}
+                                    ? 'Kode dapat memberikan diskon atau membebaskan biaya registrasi paper. Potongan hanya berlaku untuk biaya registrasi dasar.'
+                                    : 'A code may discount the base registration fee or waive a presenter paper fee. Discounts apply to the base fee.' }}
+                                @if($sinta3Offered)
+                                    {{ $id
+                                        ? 'Tambahan Jurnal SINTA 3 tetap dibayar. Pilih opsi jurnal lebih dulu sebelum memakai voucher.'
+                                        : 'A SINTA 3 journal add-on remains payable. Choose your journal option before applying a voucher.' }}
+                                @endif
                             </p>
 
                             <form method="POST" action="{{ route('author.registration.voucher', $record) }}" class="mt-3 flex flex-wrap items-start gap-2" x-data="{ submitting: false }" @submit="submitting = true">
@@ -224,7 +228,7 @@
                     <div class="mt-5 rounded-xl border border-success-200 bg-success-50 p-4 dark:border-success-500/20 dark:bg-success-500/10">
                         <p class="text-sm font-semibold text-success-800 dark:text-success-300">
                             {{ $record->isWaived()
-                                ? ($id ? 'Registrasi dibebaskan voucher co-host' : 'Registration waived by co-host voucher')
+                                ? ($id ? 'Registrasi dibebaskan voucher' : 'Registration waived by voucher')
                                 : ($id ? 'Pembayaran terverifikasi' : 'Payment verified') }}
                         </p>
                         <p class="mt-1 text-xs leading-relaxed text-success-700 dark:text-success-400">
