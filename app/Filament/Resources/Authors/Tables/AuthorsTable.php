@@ -2,7 +2,12 @@
 
 namespace App\Filament\Resources\Authors\Tables;
 
+use App\Filament\Resources\Registrations\RegistrationResource;
+use App\Filament\Resources\Submissions\SubmissionResource;
 use App\Models\Author;
+use App\Models\Registration;
+use App\Models\Submission;
+use App\Services\AuthorProgress;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -13,6 +18,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Hash;
 
 class AuthorsTable
@@ -28,18 +34,24 @@ class AuthorsTable
     {
         return $table
             ->defaultSort('created_at', 'desc')
-            // Jumlah abstrak dan registrasi lunas dihitung sekali untuk seluruh
-            // halaman, bukan per baris.
-            ->modifyQueryUsing(fn ($query) => $query->withCount([
-                'submissions',
-                'registrations as paid_registrations_count' => fn ($paid) => $paid->where('status', 'paid'),
-            ]))
+            // Tetap mulai dari tabel authors, bukan submissions: akun yang belum
+            // mengirim paper pun harus muncul. Relasi dibatasi edisi aktif dan
+            // dimuat bersama agar tabel tidak membuat query untuk tiap baris.
+            ->modifyQueryUsing(function (Builder $query): Builder {
+                $editionId = currentEdition()?->id ?? -1;
+
+                return $query->with([
+                    'submissions' => fn ($papers) => $papers->where('edition_id', $editionId)->with(['reviewAssignments', 'media']),
+                    'registrations' => fn ($registrations) => $registrations->where('edition_id', $editionId),
+                    'coHost' => fn ($coHost) => $coHost->where('edition_id', $editionId),
+                ]);
+            })
             ->columns([
                 // Nama dan email selalu dibaca bersama, jadi menempati satu kolom
                 // saja — barisnya jauh lebih ringkas tanpa kehilangan apa pun.
                 TextColumn::make('name')
                     ->label('Peserta')
-                    ->searchable()
+                    ->searchable(['name', 'email'])
                     ->sortable()
                     ->wrap()
                     ->weight('medium')
@@ -58,30 +70,37 @@ class AuthorsTable
                         ? null
                         : $record->registrantCategoryLabel()),
 
+                TextColumn::make('progress')
+                    ->label('Progres saat ini')
+                    ->badge()
+                    ->state(fn (Author $record): string => self::progress($record)['label'])
+                    ->color(fn (Author $record): string => self::progress($record)['color'])
+                    ->description(fn (Author $record): string => self::progress($record)['detail'])
+                    ->wrap(),
+
+                TextColumn::make('paper')
+                    ->label('Paper')
+                    ->state(fn (Author $record): string => self::progress($record)['paper']?->submission_number ?? 'Belum ada')
+                    ->description(fn (Author $record): ?string => ($paper = self::progress($record)['paper'])
+                        ? (Submission::STATUS_LABELS[$paper->status] ?? $paper->status)
+                        : null)
+                    ->color('gray'),
+
+                TextColumn::make('payment')
+                    ->label('Pembayaran')
+                    ->badge()
+                    ->state(fn (Author $record): string => self::paymentLabel(self::progress($record)['registration']))
+                    ->color(fn (Author $record): string => self::paymentColor(self::progress($record)['registration']))
+                    ->description(fn (Author $record): ?string => ($registration = self::progress($record)['registration'])
+                        ? 'Invoice #'.str_pad((string) $registration->id, 5, '0', STR_PAD_LEFT)
+                        : null),
+
                 TextColumn::make('affiliation')
                     ->label('Afiliasi')
                     ->limit(40)
                     ->wrap()
                     ->placeholder('—')
-                    ->description(fn (Author $record): ?string => $record->country
-                        ? (countryOptions()[$record->country] ?? $record->country)
-                        : null),
-
-                // Yang paling ingin diketahui panitia sebelum mereset atau
-                // menghapus akun: apakah akun ini sudah dipakai.
-                TextColumn::make('submissions_count')
-                    ->label('Aktivitas')
-                    ->badge()
-                    ->state(fn (Author $record): string => match (true) {
-                        $record->paid_registrations_count > 0 => $record->submissions_count.' abstrak · lunas',
-                        $record->submissions_count > 0 => $record->submissions_count.' abstrak',
-                        default => 'Belum ada',
-                    })
-                    ->color(fn (Author $record): string => match (true) {
-                        $record->paid_registrations_count > 0 => 'success',
-                        $record->submissions_count > 0 => 'info',
-                        default => 'gray',
-                    }),
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 TextColumn::make('phone')
                     ->label('Telepon')
@@ -97,6 +116,24 @@ class AuthorsTable
                 SelectFilter::make('registrant_category')->label('Kategori')->options(Author::CATEGORIES),
             ])
             ->recordActions([
+                Action::make('viewPaper')
+                    ->label('Lihat paper')
+                    ->icon('heroicon-o-document-text')
+                    ->color('gray')
+                    ->url(fn (Author $record): ?string => ($paper = self::progress($record)['paper'])
+                        ? SubmissionResource::getUrl('edit', ['record' => $paper], panel: 'admin')
+                        : null)
+                    ->visible(fn (Author $record): bool => self::progress($record)['paper'] !== null),
+
+                Action::make('viewInvoice')
+                    ->label('Lihat invoice')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('gray')
+                    ->url(fn (Author $record): ?string => ($registration = self::progress($record)['registration'])
+                        ? RegistrationResource::getUrl('edit', ['record' => $registration], panel: 'admin')
+                        : null)
+                    ->visible(fn (Author $record): bool => self::progress($record)['registration'] !== null),
+
                 ActionGroup::make([
                     // Portal author tidak punya reset mandiri, jadi ini satu-satunya
                     // jalan memulihkan akun yang lupa password.
@@ -104,6 +141,7 @@ class AuthorsTable
                         ->label('Reset password')
                         ->icon('heroicon-o-key')
                         ->color('warning')
+                        ->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false)
                         ->modalHeading(fn (Author $record) => 'Reset password untuk '.$record->name)
                         ->modalDescription('Password lama langsung tidak berlaku. Sampaikan password baru ini ke peserta melalui kanal resmi.')
                         ->schema([
@@ -116,6 +154,7 @@ class AuthorsTable
                                 ->helperText('Minimal 8 karakter.'),
                         ])
                         ->action(function (array $data, Author $record): void {
+                            abort_unless(auth()->user()?->isSuperadmin(), 403);
                             $record->forceFill(['password' => Hash::make($data['password'])])->save();
 
                             Notification::make()
@@ -131,22 +170,51 @@ class AuthorsTable
                     // peserta tidak bisa mendaftar ulang dengan email yang sama.
                     DeleteAction::make()
                         ->label('Hapus permanen')
+                        ->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false)
                         ->modalHeading(fn (Author $record) => 'Hapus permanen akun '.$record->name.'?')
                         ->modalDescription(fn (Author $record) => static::deletionWarning($record))
                         ->modalSubmitActionLabel('Hapus permanen')
                         ->before(fn (Author $record) => static::purgeRelated($record)),
-                ])->label('Kelola'),
+                ])->label('Kelola')->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make()
                         ->label('Hapus permanen')
                         ->before(fn ($records) => $records->each(fn (Author $author) => static::purgeRelated($author))),
-                ]),
+                ])->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false),
             ])
             ->emptyStateIcon('heroicon-o-users')
             ->emptyStateHeading('Belum ada akun author')
             ->emptyStateDescription('Akun akan muncul di sini setelah peserta mendaftar melalui portal.');
+    }
+
+    /** @return array{label: string, detail: string, color: string, percent: int, paper: ?Submission, registration: ?Registration} */
+    private static function progress(Author $author): array
+    {
+        return app(AuthorProgress::class)->snapshot($author);
+    }
+
+    private static function paymentLabel(?Registration $registration): string
+    {
+        return match ($registration?->status) {
+            'paid' => 'Lunas',
+            'pending_verification' => 'Verifikasi',
+            'failed' => 'Gagal',
+            'pending' => 'Belum lunas',
+            default => 'Belum ada invoice',
+        };
+    }
+
+    private static function paymentColor(?Registration $registration): string
+    {
+        return match ($registration?->status) {
+            'paid' => 'success',
+            'pending_verification' => 'info',
+            'failed' => 'danger',
+            'pending' => 'warning',
+            default => 'gray',
+        };
     }
 
     /** Sebutkan apa saja yang ikut hilang, supaya tidak ada kejutan. */

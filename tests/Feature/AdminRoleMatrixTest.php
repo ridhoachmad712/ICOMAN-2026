@@ -2,6 +2,19 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Authors\AuthorResource;
+use App\Filament\Resources\News\NewsResource;
+use App\Filament\Resources\Payments\PaymentResource;
+use App\Filament\Resources\RegistrationFees\RegistrationFeeResource;
+use App\Filament\Resources\Registrations\RegistrationResource;
+use App\Filament\Resources\ReviewAssignments\ReviewAssignmentResource;
+use App\Filament\Resources\Submissions\SubmissionResource;
+use App\Filament\Resources\Topics\TopicResource;
+use App\Filament\Widgets\LatestSubmissions;
+use App\Filament\Widgets\MyPendingReviews;
+use App\Filament\Widgets\OverviewStats;
+use App\Filament\Widgets\RegistrationStats;
+use App\Models\RegistrationFee;
 use App\Models\User;
 use Filament\Facades\Filament;
 use Spatie\Permission\Models\Role;
@@ -19,30 +32,30 @@ class AdminRoleMatrixTest extends TestCase
     {
         return [
             // resource => [role => boleh?]
-            \App\Filament\Resources\Submissions\SubmissionResource::class => [
+            SubmissionResource::class => [
                 'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
-            \App\Filament\Resources\Registrations\RegistrationResource::class => [
+            RegistrationResource::class => [
                 'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => true,
             ],
             // Buku transaksi: alasan utama peran bendahara ada.
-            \App\Filament\Resources\Payments\PaymentResource::class => [
+            PaymentResource::class => [
                 'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => true,
             ],
-            \App\Filament\Resources\RegistrationFees\RegistrationFeeResource::class => [
+            RegistrationFeeResource::class => [
                 'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
-            \App\Filament\Resources\Topics\TopicResource::class => [
+            TopicResource::class => [
                 'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
-            \App\Filament\Resources\ReviewAssignments\ReviewAssignmentResource::class => [
+            ReviewAssignmentResource::class => [
                 'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => true, 'bendahara' => false,
             ],
-            \App\Filament\Resources\News\NewsResource::class => [
+            NewsResource::class => [
                 'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => true, 'reviewer' => false, 'bendahara' => false,
             ],
-            \App\Filament\Resources\Authors\AuthorResource::class => [
-                'superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
+            AuthorResource::class => [
+                'superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false,
             ],
         ];
     }
@@ -67,13 +80,13 @@ class AdminRoleMatrixTest extends TestCase
     /** Tarif boleh dilihat admin registrasi, tetapi hanya superadmin yang boleh mengubah. */
     public function test_only_superadmin_can_change_fees(): void
     {
-        $fees = \App\Filament\Resources\RegistrationFees\RegistrationFeeResource::class;
+        $fees = RegistrationFeeResource::class;
 
         $this->actingAs($this->userFor('admin_registrasi'), 'web');
         $this->assertTrue($fees::canAccess(), 'Admin registrasi harus bisa melihat tarif.');
         $this->assertFalse($fees::canCreate());
-        $this->assertFalse($fees::canEdit(new \App\Models\RegistrationFee));
-        $this->assertFalse($fees::canDelete(new \App\Models\RegistrationFee));
+        $this->assertFalse($fees::canEdit(new RegistrationFee));
+        $this->assertFalse($fees::canDelete(new RegistrationFee));
 
         $this->actingAs($this->userFor('superadmin'), 'web');
         $this->assertTrue($fees::canCreate());
@@ -102,10 +115,10 @@ class AdminRoleMatrixTest extends TestCase
     {
         $this->actingAs($this->userFor('content_admin'), 'web');
 
-        $this->assertFalse(\App\Filament\Widgets\RegistrationStats::canView());
-        $this->assertFalse(\App\Filament\Widgets\LatestSubmissions::canView());
+        $this->assertFalse(RegistrationStats::canView());
+        $this->assertFalse(LatestSubmissions::canView());
         // Statistik konten/acara tetap boleh.
-        $this->assertTrue(\App\Filament\Widgets\OverviewStats::canView());
+        $this->assertTrue(OverviewStats::canView());
     }
 
     public function test_reviewer_gets_a_pending_review_widget_at_top_level(): void
@@ -113,12 +126,12 @@ class AdminRoleMatrixTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($this->userFor('reviewer'), 'web');
 
-        $this->assertTrue(\App\Filament\Widgets\MyPendingReviews::canView());
+        $this->assertTrue(MyPendingReviews::canView());
         // Menu tunggal reviewer tidak disembunyikan di dalam dropdown.
-        $this->assertNull(\App\Filament\Resources\ReviewAssignments\ReviewAssignmentResource::getNavigationGroup());
+        $this->assertNull(ReviewAssignmentResource::getNavigationGroup());
 
         $this->actingAs($this->userFor('superadmin'), 'web');
-        $this->assertSame('Submission', \App\Filament\Resources\ReviewAssignments\ReviewAssignmentResource::getNavigationGroup());
+        $this->assertSame('Submission', ReviewAssignmentResource::getNavigationGroup());
     }
 
     private function userFor(string $role): User

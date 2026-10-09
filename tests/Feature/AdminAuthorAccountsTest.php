@@ -5,6 +5,11 @@ namespace Tests\Feature;
 use App\Filament\Resources\Authors\AuthorResource;
 use App\Filament\Resources\Authors\Pages\ListAuthors;
 use App\Models\Author;
+use App\Models\CoHost;
+use App\Models\Edition;
+use App\Models\Registration;
+use App\Models\RegistrationFee;
+use App\Models\Submission;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
@@ -31,9 +36,9 @@ class AdminAuthorAccountsTest extends TestCase
             ->assertSee($author->email);
     }
 
-    public function test_only_superadmin_can_open_author_accounts(): void
+    public function test_only_submission_admins_can_open_author_progress(): void
     {
-        foreach (['superadmin' => true, 'admin_registrasi' => false, 'content_admin' => false, 'reviewer' => false] as $role => $expected) {
+        foreach (['superadmin' => true, 'admin_registrasi' => true, 'content_admin' => false, 'reviewer' => false, 'bendahara' => false] as $role => $expected) {
             Role::findOrCreate($role, 'web');
             $user = User::create(['name' => $role, 'email' => $role.'@example.test', 'password' => 'secret-password']);
             $user->assignRole($role);
@@ -41,6 +46,156 @@ class AdminAuthorAccountsTest extends TestCase
             $this->actingAs($user, 'web');
             $this->assertSame($expected, AuthorResource::canAccess(), "Akses untuk [{$role}] tidak sesuai.");
         }
+    }
+
+    public function test_registration_admin_sees_accounts_without_papers_and_each_current_stage(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Registrasi', 'email' => 'registrasi@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+
+        $empty = $this->author();
+        $draftAuthor = Author::create([
+            'name' => 'Penulis Draft', 'email' => 'draft@example.test', 'password' => 'secret-password',
+            'participation_type' => 'presenter', 'registrant_category' => 'general',
+        ]);
+        $paper = Submission::create([
+            'edition_id' => currentEdition()->id, 'author_id' => $draftAuthor->id,
+            'title' => 'Paper Draft', 'abstract' => 'Ringkasan singkat',
+            'keywords' => ['management'], 'status' => 'extended_abstract_draft',
+        ]);
+        $participant = Author::create([
+            'name' => 'Peserta Seminar', 'email' => 'seminar@example.test', 'password' => 'secret-password',
+            'participation_type' => 'participant', 'registrant_category' => 'general',
+        ]);
+        $fee = RegistrationFee::create([
+            'edition_id' => currentEdition()->id,
+            'category' => ['en' => 'Seminar'],
+            'audience' => 'participant',
+            'registrant_category' => 'general',
+            'price_regular' => 650_000,
+            'currency' => 'IDR',
+        ]);
+        $invoice = Registration::create([
+            'edition_id' => currentEdition()->id, 'author_id' => $participant->id,
+            'registration_fee_id' => $fee->id,
+            'payment_method' => 'gateway', 'amount' => 650_000, 'status' => 'paid',
+        ]);
+
+        Livewire::test(ListAuthors::class)
+            ->assertOk()
+            ->assertCanSeeTableRecords([$empty, $draftAuthor, $participant])
+            ->assertTableColumnStateSet('progress', 'Belum mulai paper', $empty)
+            ->assertTableColumnStateSet('progress', 'Draft abstract', $draftAuthor)
+            ->assertTableColumnStateSet('paper', $paper->submission_number, $draftAuthor)
+            ->assertTableColumnStateSet('progress', 'Siap hadir', $participant)
+            ->assertTableColumnStateSet('payment', 'Lunas', $participant)
+            ->assertTableColumnHasDescription('payment', 'Invoice #'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT), $participant)
+            ->assertActionVisible(TestAction::make('viewPaper')->table($draftAuthor))
+            ->assertActionVisible(TestAction::make('viewInvoice')->table($participant));
+    }
+
+    public function test_previous_edition_paper_does_not_hide_an_account_without_current_paper(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $old = Edition::create(['name' => 'ICOMAN 2025', 'is_active' => false]);
+        Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+        $this->actingAs($this->superadmin(), 'web');
+        $author = $this->author();
+        Submission::create([
+            'edition_id' => $old->id, 'author_id' => $author->id,
+            'title' => 'Paper Lama', 'abstract' => 'Ringkasan singkat',
+            'keywords' => ['management'], 'status' => 'accepted',
+        ]);
+
+        Livewire::test(ListAuthors::class)
+            ->assertCanSeeTableRecords([$author])
+            ->assertTableColumnStateSet('progress', 'Belum mulai paper', $author)
+            ->assertTableColumnStateSet('paper', 'Belum ada', $author);
+    }
+
+    public function test_progress_tabs_find_presenters_without_papers_and_with_revisions(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+        $this->actingAs($this->superadmin(), 'web');
+        $empty = $this->author();
+        $revisionAuthor = Author::create([
+            'name' => 'Penulis Revisi', 'email' => 'revisi@example.test', 'password' => 'secret-password',
+            'participation_type' => 'presenter', 'registrant_category' => 'general',
+        ]);
+        Submission::create([
+            'edition_id' => $edition->id, 'author_id' => $revisionAuthor->id,
+            'title' => 'Paper Revisi', 'abstract' => 'Ringkasan singkat',
+            'keywords' => ['management'], 'status' => 'revision_required',
+        ]);
+
+        Livewire::test(ListAuthors::class)
+            ->set('activeTab', 'not_started')
+            ->assertCanSeeTableRecords([$empty])
+            ->assertCanNotSeeTableRecords([$revisionAuthor]);
+
+        Livewire::test(ListAuthors::class)
+            ->set('activeTab', 'needs_revision')
+            ->assertCanSeeTableRecords([$revisionAuthor])
+            ->assertCanNotSeeTableRecords([$empty]);
+    }
+
+    public function test_registration_admin_cannot_manage_author_password_or_delete_accounts(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Registrasi', 'email' => 'registrasi@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $author = $this->author();
+        $this->actingAs($admin, 'web');
+
+        $this->assertFalse(AuthorResource::canDelete($author));
+        $this->assertFalse(AuthorResource::canDeleteAny());
+        Livewire::test(ListAuthors::class)
+            ->assertCanSeeTableRecords([$author])
+            ->assertActionHidden(TestAction::make('resetPassword')->table($author));
+    }
+
+    public function test_an_account_can_be_found_by_email(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $this->actingAs($this->superadmin(), 'web');
+        $wanted = $this->author();
+        $other = Author::create([
+            'name' => 'Penulis Lain', 'email' => 'lain@example.test', 'password' => 'secret-password',
+            'participation_type' => 'presenter', 'registrant_category' => 'general',
+        ]);
+
+        Livewire::test(ListAuthors::class)
+            ->searchTable($wanted->email)
+            ->assertCanSeeTableRecords([$wanted])
+            ->assertCanNotSeeTableRecords([$other]);
+    }
+
+    public function test_co_host_account_shows_its_own_application_progress(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        $edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
+        $this->actingAs($this->superadmin(), 'web');
+        $author = Author::create([
+            'name' => 'Universitas Mitra', 'email' => 'mitra@example.test', 'password' => 'secret-password',
+            'participation_type' => 'cohost', 'registrant_category' => 'general',
+        ]);
+        CoHost::create([
+            'edition_id' => $edition->id, 'author_id' => $author->id,
+            'institution_name' => 'Universitas Mitra', 'institution_type' => 'university',
+            'country' => 'ID', 'pic_position' => 'Wakil Rektor', 'status' => 'pending',
+        ]);
+
+        Livewire::test(ListAuthors::class)
+            ->set('activeTab', 'cohost')
+            ->assertCanSeeTableRecords([$author])
+            ->assertTableColumnStateSet('progress', 'Menunggu persetujuan', $author)
+            ->assertTableColumnStateSet('paper', 'Belum ada', $author);
     }
 
     public function test_admin_reset_lets_the_author_log_in_with_the_new_password(): void

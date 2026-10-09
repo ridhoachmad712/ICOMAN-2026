@@ -2,8 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Authors\AuthorResource;
+use App\Filament\Resources\ImportantDates\ImportantDateResource;
+use App\Filament\Resources\RegistrationFees\RegistrationFeeResource;
+use App\Filament\Resources\Registrations\RegistrationResource;
+use App\Filament\Resources\Speakers\SpeakerResource;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Filament\Pages\Dashboard;
 use Filament\Widgets\AccountWidget;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -43,7 +49,7 @@ class AdminNavigationTest extends TestCase
 
         foreach ($panel->getPages() as $page) {
             // Dashboard memang berdiri sendiri tanpa grup.
-            if ($page === \Filament\Pages\Dashboard::class) {
+            if ($page === Dashboard::class) {
                 continue;
             }
             $group = $page::getNavigationGroup();
@@ -74,11 +80,11 @@ class AdminNavigationTest extends TestCase
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         $this->actingAs($this->superadmin(), 'web');
 
-        $this->assertSame('Pengaturan', \App\Filament\Resources\Authors\AuthorResource::getNavigationGroup());
-        $this->assertSame('Submission', \App\Filament\Resources\Registrations\RegistrationResource::getNavigationGroup());
-        $this->assertSame('Submission', \App\Filament\Resources\RegistrationFees\RegistrationFeeResource::getNavigationGroup());
-        $this->assertSame('Website', \App\Filament\Resources\Speakers\SpeakerResource::getNavigationGroup());
-        $this->assertSame('Website', \App\Filament\Resources\ImportantDates\ImportantDateResource::getNavigationGroup());
+        $this->assertSame('Submission', AuthorResource::getNavigationGroup());
+        $this->assertSame('Submission', RegistrationResource::getNavigationGroup());
+        $this->assertSame('Submission', RegistrationFeeResource::getNavigationGroup());
+        $this->assertSame('Website', SpeakerResource::getNavigationGroup());
+        $this->assertSame('Website', ImportantDateResource::getNavigationGroup());
     }
 
     private function superadmin(): User

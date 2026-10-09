@@ -12,9 +12,8 @@ use Filament\Tables\Table;
 use UnitEnum;
 
 /**
- * Daftar akun peserta/pemakalah (guard `author`). Read-only, kecuali dua aksi:
- * reset password (portal author tidak punya reset mandiri) dan hapus permanen
- * agar alamat email yang salah daftar bisa dipakai ulang.
+ * Pemantauan semua akun peserta/pemakalah (guard `author`), termasuk yang
+ * belum memiliki submission. Aksi pengelolaan akun tetap hanya untuk superadmin.
  */
 class AuthorResource extends Resource
 {
@@ -24,15 +23,15 @@ class AuthorResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedUsers;
 
-    protected static string|UnitEnum|null $navigationGroup = 'Pengaturan';
+    protected static string|UnitEnum|null $navigationGroup = 'Submission';
 
     protected static ?string $slug = 'author-accounts';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 0;
 
     public static function getNavigationLabel(): string
     {
-        return 'Akun Author';
+        return 'Progres Peserta';
     }
 
     public static function getModelLabel(): string
@@ -50,10 +49,10 @@ class AuthorResource extends Resource
         return AuthorsTable::configure($table);
     }
 
-    /** Data peserta bersifat pribadi; batasi ke superadmin. */
+    /** Data peserta hanya untuk panitia yang menangani submission. */
     public static function canAccess(): bool
     {
-        return auth()->user()?->isSuperadmin() ?? false;
+        return auth()->user()?->managesSubmissions() ?? false;
     }
 
     public static function canCreate(): bool
