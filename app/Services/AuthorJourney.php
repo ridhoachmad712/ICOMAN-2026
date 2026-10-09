@@ -125,8 +125,9 @@ class AuthorJourney
                 );
             }
 
-            $sintaId = $accepted->sinta3_offered ? ' Paper Anda direkomendasikan untuk Jurnal SINTA 3 — tersedia opsi penerbitan dengan biaya tambahan Rp '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').' yang dapat Anda pilih saat pembayaran.' : '';
-            $sintaEn = $accepted->sinta3_offered ? ' Your paper is recommended for a SINTA 3 journal — an optional publication upgrade (extra IDR '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').') is available to choose at payment.' : '';
+            $canChooseSinta3 = $accepted->sinta3_offered && ! $accepted->sinta3OfferIsLocked();
+            $sintaId = $canChooseSinta3 ? ' Paper Anda direkomendasikan untuk Jurnal SINTA 3 — tersedia opsi penerbitan dengan biaya tambahan Rp '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').' yang dapat Anda pilih saat pembayaran.' : '';
+            $sintaEn = $canChooseSinta3 ? ' Your paper is recommended for a SINTA 3 journal — an optional publication upgrade (extra IDR '.number_format((float) rescue(fn () => siteSettings()->sinta3_fee, 0, false), 0, ',', '.').') is available to choose at payment.' : '';
 
             return $this->action(
                 'payment', 'Bayar registrasi presenter', 'Pay your presenter registration',

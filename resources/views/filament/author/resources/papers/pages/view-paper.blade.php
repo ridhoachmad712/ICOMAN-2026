@@ -91,7 +91,7 @@
                 <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
                     <span class="text-gray-500">{{ $id ? 'Target jurnal:' : 'Journal target:' }}</span>
                     <x-filament::badge :color="$record->journal_target === 'sinta3' ? 'warning' : 'gray'">{{ $record->journalTargetLabel() }}</x-filament::badge>
-                    @if($record->sinta3_offered && $record->journal_target !== 'sinta3')
+                    @if($record->sinta3_offered && $record->journal_target !== 'sinta3' && ! $record->sinta3OfferIsLocked())
                         <span class="text-xs text-warning-700">{{ $id ? '· Anda ditawari opsi penerbitan SINTA 3 (biaya tambahan) saat pembayaran.' : '· You are offered a SINTA 3 publication option (extra fee) at payment.' }}</span>
                     @endif
                 </div>

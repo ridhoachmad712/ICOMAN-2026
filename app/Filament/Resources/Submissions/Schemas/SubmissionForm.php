@@ -93,6 +93,7 @@ class SubmissionForm
                                     ->label('Tawaran SINTA 3')
                                     ->content(fn ($record): string => match (true) {
                                         ! $record => '—',
+                                        $record->sinta3OfferIsLocked() => ($record->sinta3_offered ? 'Ditawarkan' : 'Tidak ditawarkan').' (terkunci oleh pembayaran)',
                                         $record->sinta3_offered => 'Terbuka untuk author'
                                             .($record->sinta3_offer_overridden_at ? ' (ditetapkan panitia)' : ''),
                                         $record->sinta3OfferIsMissing() => 'Direkomendasikan reviewer, tapi belum dibuka',

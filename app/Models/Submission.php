@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -156,6 +157,36 @@ class Submission extends Model implements HasMedia
     }
 
     /**
+     * Penawaran hanya boleh diubah sebelum pembayaran dimulai. Pembayaran
+     * pertama (termasuk cicilan atau voucher gratis) mengunci tawaran permanen;
+     * order gateway yang masih hidup menguncinya sementara sampai selesai.
+     */
+    public function sinta3OfferLockReason(): ?string
+    {
+        foreach ($this->registrations()->with('payments')->get() as $registration) {
+            if ($registration->status === 'paid' || $registration->isWaived()
+                || $registration->payments->contains(fn ($payment): bool => $payment->status === 'success')) {
+                return 'Penawaran SINTA 3 terkunci karena pembayaran sudah diterima atau voucher gratis sudah digunakan.';
+            }
+
+            if ($registration->status === 'pending_verification') {
+                return 'Penawaran SINTA 3 terkunci selama pembayaran sedang diverifikasi.';
+            }
+
+            if ($registration->payments->contains(fn ($payment): bool => $payment->status === 'initiated' && ! $payment->hasExpired())) {
+                return 'Penawaran SINTA 3 terkunci selama transaksi pembayaran masih aktif. Periksa status pembayaran terlebih dahulu.';
+            }
+        }
+
+        return null;
+    }
+
+    public function sinta3OfferIsLocked(): bool
+    {
+        return $this->sinta3OfferLockReason() !== null;
+    }
+
+    /**
      * Menyelaraskan tawaran SINTA 3 dengan rekomendasi reviewer.
      *
      * Dipanggil setiap kali penilaian disimpan, bukan sekali saat LOA terbit:
@@ -167,7 +198,7 @@ class Submission extends Model implements HasMedia
      */
     public function refreshSinta3Offer(): self
     {
-        if ($this->sinta3_offer_overridden_at !== null) {
+        if ($this->sinta3_offer_overridden_at !== null || $this->sinta3OfferIsLocked()) {
             return $this;
         }
 
@@ -183,6 +214,10 @@ class Submission extends Model implements HasMedia
     /** Panitia menetapkan sendiri tawarannya; rekomendasi berikutnya tidak menimpanya. */
     public function setSinta3Offer(bool $offered): self
     {
+        if ($reason = $this->sinta3OfferLockReason()) {
+            throw ValidationException::withMessages(['sinta3_offer' => $reason]);
+        }
+
         $this->forceFill([
             'sinta3_offered' => $offered,
             'sinta3_offer_overridden_at' => now(),
@@ -194,7 +229,7 @@ class Submission extends Model implements HasMedia
     /** Rekomendasi reviewer ada, tapi tawarannya belum terbuka. */
     public function sinta3OfferIsMissing(): bool
     {
-        return ! $this->sinta3_offered && $this->reviewsRecommendSinta3();
+        return ! $this->sinta3OfferIsLocked() && ! $this->sinta3_offered && $this->reviewsRecommendSinta3();
     }
 
     /** Ada minimal satu reviewer (yang sudah menilai) merekomendasikan jalur SINTA 3. */
@@ -226,6 +261,18 @@ class Submission extends Model implements HasMedia
 
     protected static function booted(): void
     {
+        // Menutup jalur update langsung (mis. aksi admin baru di masa depan),
+        // bukan hanya tombol dan metode penawaran yang ada hari ini.
+        static::saving(function (Submission $submission): void {
+            if (! $submission->exists || ! $submission->isDirty('sinta3_offered')) {
+                return;
+            }
+
+            if ($reason = $submission->sinta3OfferLockReason()) {
+                throw ValidationException::withMessages(['sinta3_offer' => $reason]);
+            }
+        });
+
         static::creating(function (Submission $submission): void {
             $submission->submitted_at ??= now();
 
@@ -308,7 +355,7 @@ class Submission extends Model implements HasMedia
         $justIssuedLoa = $status === 'accepted' && $this->loa_issued_at === null;
         if ($justIssuedLoa) {
             $this->loa_issued_at = now();
-            if ($this->sinta3_offer_overridden_at === null) {
+            if ($this->sinta3_offer_overridden_at === null && ! $this->sinta3OfferIsLocked()) {
                 $this->sinta3_offered = $this->reviewsRecommendSinta3();
             }
         }

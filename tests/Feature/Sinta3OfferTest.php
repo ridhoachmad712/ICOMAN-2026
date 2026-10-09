@@ -17,6 +17,7 @@ use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -339,6 +340,110 @@ class Sinta3OfferTest extends TestCase
         $paper = $paper->fresh();
         $this->assertTrue($paper->sinta3_offered);
         $this->assertNotNull($paper->sinta3_offer_overridden_at);
+    }
+
+    public function test_a_paid_invoice_freezes_the_offer_and_hides_the_admin_action(): void
+    {
+        $paper = $this->paper();
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+        $registration->update(['status' => 'paid', 'paid_at' => now()]);
+
+        $this->superadmin();
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->assertActionHidden(TestAction::make('sinta3Offer')->table($paper));
+
+        $this->assertTrue($paper->fresh()->sinta3OfferIsLocked());
+        $this->assertFalse($paper->fresh()->sinta3OfferIsMissing());
+
+        $this->expectException(ValidationException::class);
+        $paper->fresh()->setSinta3Offer(true);
+    }
+
+    public function test_a_successful_first_installment_freezes_an_existing_offer(): void
+    {
+        $paper = $this->paper();
+        $this->review($paper, true);
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+        $registration->payments()->create([
+            'method' => 'gateway', 'gateway_name' => 'borderpay',
+            'gateway_reference' => 'ICOMAN-cicilan-pertama',
+            'amount' => 200_000, 'status' => 'success',
+        ]);
+
+        $review = $paper->reviewAssignments()->first()->review;
+        $review->update(['recommends_sinta3' => false]);
+
+        $this->assertSame('pending', $registration->fresh()->status);
+        $this->assertTrue($paper->fresh()->sinta3_offered);
+
+        $this->expectException(ValidationException::class);
+        $paper->fresh()->forceFill(['sinta3_offered' => false])->save();
+    }
+
+    public function test_a_free_voucher_freezes_the_offer_without_a_payment_row(): void
+    {
+        $paper = $this->paper();
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+        $registration->update(['payment_method' => 'waived', 'status' => 'paid']);
+
+        $this->review($paper, true);
+
+        $this->assertTrue($paper->fresh()->sinta3OfferIsLocked());
+        $this->assertFalse($paper->fresh()->sinta3_offered);
+    }
+
+    public function test_only_a_live_gateway_order_temporarily_locks_the_offer(): void
+    {
+        $paper = $this->paper();
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+        $this->liveOrder($registration, now()->addHour()->toIso8601String());
+
+        $this->assertTrue($paper->fresh()->sinta3OfferIsLocked());
+
+        $registration->payments()->first()->update([
+            'raw_response' => ['expires_at' => now()->subHour()->toIso8601String()],
+        ]);
+
+        $this->assertFalse($paper->fresh()->sinta3OfferIsLocked());
+        $paper->fresh()->setSinta3Offer(true);
+        $this->assertTrue($paper->fresh()->sinta3_offered);
+    }
+
+    public function test_refresh_command_skips_paid_papers_even_when_review_changes(): void
+    {
+        $paper = $this->paper();
+        $paper->changeStatus('accepted');
+        $registration = $this->invoiceFor($paper);
+        $registration->update(['status' => 'paid', 'paid_at' => now()]);
+        $this->review($paper, true);
+
+        $this->artisan('icoman:refresh-sinta3', ['--fix' => true])
+            ->expectsOutputToContain('dilewati karena tawaran terkunci oleh pembayaran')
+            ->assertSuccessful();
+
+        $this->assertFalse($paper->fresh()->sinta3_offered);
+    }
+
+    public function test_legacy_loa_action_preserves_the_paid_offer(): void
+    {
+        $paper = $this->paper();
+        $paper->changeStatus('accepted');
+        $paper->update(['loa_issued_at' => null]);
+        $registration = $this->invoiceFor($paper);
+        $registration->update(['status' => 'paid', 'paid_at' => now()]);
+
+        $this->superadmin();
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'all')
+            ->callAction(TestAction::make('issueLoa')->table($paper), ['sinta3_offered' => true]);
+
+        $this->assertNotNull($paper->fresh()->loa_issued_at);
+        $this->assertFalse($paper->fresh()->sinta3_offered);
     }
 
     // --- Terlihat di halaman pembayaran author --------------------------------

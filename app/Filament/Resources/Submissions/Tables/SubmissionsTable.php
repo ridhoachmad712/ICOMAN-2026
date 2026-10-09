@@ -245,13 +245,20 @@ class SubmissionsTable
                     ->icon('heroicon-o-academic-cap')
                     ->color(fn ($record): string => $record->sinta3_offered ? 'gray' : 'info')
                     ->visible(fn ($record): bool => $record->status === 'accepted'
-                        && (auth()->user()?->managesSubmissions() ?? false))
+                        && (auth()->user()?->managesSubmissions() ?? false)
+                        && ! $record->sinta3OfferIsLocked())
                     ->requiresConfirmation()
                     ->modalHeading(fn ($record): string => $record->sinta3_offered
                         ? 'Tutup tawaran Jurnal SINTA 3?'
                         : 'Buka tawaran Jurnal SINTA 3?')
                     ->modalDescription(fn ($record): string => static::sinta3Description($record))
                     ->action(function ($record): void {
+                        if ($reason = $record->sinta3OfferLockReason()) {
+                            Notification::make()->title('Tawaran SINTA 3 tidak dapat diubah.')->body($reason)->warning()->send();
+
+                            return;
+                        }
+
                         $record->setSinta3Offer(! $record->sinta3_offered);
 
                         Notification::make()
@@ -275,13 +282,17 @@ class SubmissionsTable
                         Toggle::make('sinta3_offered')
                             ->label('Tawarkan penerbitan Jurnal SINTA 3 (biaya tambahan)')
                             ->helperText('Default mengikuti rekomendasi reviewer; masih bisa diubah di sini.')
+                            ->visible(fn ($record): bool => ! $record->sinta3OfferIsLocked())
                             ->default(fn ($record) => $record->reviewsRecommendSinta3()),
                     ])
                     ->action(function (array $data, $record): void {
-                        $record->update([
-                            'loa_issued_at' => now(),
-                            'sinta3_offered' => (bool) ($data['sinta3_offered'] ?? false),
-                        ]);
+                        $attributes = ['loa_issued_at' => now()];
+
+                        if (! $record->sinta3OfferIsLocked()) {
+                            $attributes['sinta3_offered'] = (bool) ($data['sinta3_offered'] ?? false);
+                        }
+
+                        $record->update($attributes);
 
                         $record->author?->notify(new LoaIssued($record));
 

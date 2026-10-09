@@ -13,8 +13,8 @@ use Illuminate\Console\Command;
  * ke author, dan tidak ada kontrol di panel untuk membukanya. Perintah ini
  * membereskan paper yang tertinggal itu sekaligus.
  *
- * Paper yang tawarannya sudah ditetapkan panitia sengaja dilewati: keputusan
- * mereka tidak boleh ditimpa oleh perintah perawatan.
+ * Paper yang tawarannya sudah ditetapkan panitia atau pembayarannya sudah
+ * dimulai sengaja dilewati agar pilihan dan tagihan author tidak berubah.
  */
 class RefreshSinta3Offers extends Command
 {
@@ -28,11 +28,18 @@ class RefreshSinta3Offers extends Command
         $opened = [];
         $closed = [];
         $skipped = 0;
+        $locked = 0;
 
-        Submission::with('reviewAssignments.review')->chunkById(200, function ($submissions) use ($apply, &$opened, &$closed, &$skipped): void {
+        Submission::with('reviewAssignments.review')->chunkById(200, function ($submissions) use ($apply, &$opened, &$closed, &$skipped, &$locked): void {
             foreach ($submissions as $submission) {
                 if ($submission->sinta3_offer_overridden_at !== null) {
                     $skipped++;
+
+                    continue;
+                }
+
+                if ($submission->sinta3OfferIsLocked()) {
+                    $locked++;
 
                     continue;
                 }
@@ -57,6 +64,10 @@ class RefreshSinta3Offers extends Command
 
         if ($skipped > 0) {
             $this->line($skipped.' paper dilewati karena tawarannya sudah ditetapkan panitia.');
+        }
+
+        if ($locked > 0) {
+            $this->line($locked.' paper dilewati karena tawaran terkunci oleh pembayaran.');
         }
 
         $total = count($opened) + count($closed);
