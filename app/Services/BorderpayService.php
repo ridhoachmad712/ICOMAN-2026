@@ -248,13 +248,19 @@ class BorderpayService
     private function settle(Payment $candidate, array $remote): ?Registration
     {
         $status = $remote['status'] ?? null;
-        $amount = $remote['amount'] ?? null;
+        // Pada VA/e-wallet dengan biaya ditanggung peserta, `amount` di GET
+        // adalah customer_pays (tagihan + biaya). `order_amount` adalah nominal
+        // order yang kita kirim saat checkout. Respons lama tanpa order_amount
+        // tetap memakai amount agar pembayaran metode lain tidak terganggu.
+        $orderAmount = array_key_exists('order_amount', $remote)
+            ? $remote['order_amount']
+            : ($remote['amount'] ?? null);
 
-        if (! is_string($status) || ! is_numeric($amount)) {
+        if (! is_string($status) || ! is_numeric($orderAmount)) {
             return null;
         }
 
-        return DB::transaction(function () use ($candidate, $status, $amount, $remote): ?Registration {
+        return DB::transaction(function () use ($candidate, $status, $orderAmount, $remote): ?Registration {
             $registration = Registration::whereKey($candidate->registration_id)->lockForUpdate()->first();
             $payment = Payment::whereKey($candidate->id)->lockForUpdate()->first();
 
@@ -262,8 +268,8 @@ class BorderpayService
                 return null;
             }
 
-            // Nominal yang tidak sama dengan order yang kita buat bukan pembayaran ini.
-            if (number_format((float) $payment->amount, 2, '.', '') !== number_format((float) $amount, 2, '.', '')) {
+            // Cocokkan nilai tagihan, bukan total yang dibayar peserta termasuk biaya VA.
+            if (number_format((float) $payment->amount, 2, '.', '') !== number_format((float) $orderAmount, 2, '.', '')) {
                 return null;
             }
 

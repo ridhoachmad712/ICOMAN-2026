@@ -160,6 +160,28 @@ class BorderpayWebhookTest extends TestCase
         $this->assertNotNull($registration->paid_at);
     }
 
+    public function test_a_paid_virtual_account_with_customer_fee_settles_the_order_amount(): void
+    {
+        [$registration, $payment] = $this->order(650_000);
+        $this->fakeStatus([
+            'reference_id' => 'ICOMAN-ORDER-1',
+            'status' => 'paid',
+            'method' => 'va',
+            'amount' => 653_500,
+            'order_amount' => 650_000,
+            'customer_pays' => 653_500,
+            'merchant_receives' => 650_000,
+            'fee' => 3_500,
+            'fee_borne_by' => 'customer',
+        ]);
+
+        $this->deliver($this->payload(['data' => ['amount' => 653_500, 'method' => 'va']]))->assertOk();
+
+        $this->assertSame('success', $payment->refresh()->status);
+        $this->assertSame('paid', $registration->refresh()->status);
+        $this->assertNotNull($registration->paid_at);
+    }
+
     /**
      * Nominal di payload juga tidak dipakai. Kiriman yang mengaku nominal lain
      * tetap menghasilkan pelunasan sesuai angka yang dijawab gateway.
@@ -182,6 +204,23 @@ class BorderpayWebhookTest extends TestCase
 
         $this->deliver($this->payload())->assertNotFound();
 
+        $this->assertSame('pending', $registration->refresh()->status);
+    }
+
+    public function test_a_gateway_order_amount_that_does_not_match_is_refused_even_if_customer_pays_matches(): void
+    {
+        [$registration, $payment] = $this->order(650_000);
+        $this->fakeStatus([
+            'reference_id' => 'ICOMAN-ORDER-1',
+            'status' => 'paid',
+            'method' => 'va',
+            'amount' => 650_000,
+            'order_amount' => 640_000,
+        ]);
+
+        $this->deliver($this->payload())->assertNotFound();
+
+        $this->assertSame('initiated', $payment->refresh()->status);
         $this->assertSame('pending', $registration->refresh()->status);
     }
 
