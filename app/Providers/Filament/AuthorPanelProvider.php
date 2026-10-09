@@ -5,6 +5,7 @@ namespace App\Providers\Filament;
 use App\Filament\Author\Auth\Login;
 use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Pages\AuthorProfile;
+use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Http\Middleware\SetLocale;
 use App\Settings\SiteSettings;
 use Filament\Http\Middleware\Authenticate;
@@ -57,6 +58,23 @@ class AuthorPanelProvider extends PanelProvider
             ->discoverPages(in: app_path('Filament/Author/Pages'), for: 'App\Filament\Author\Pages')
             ->pages([AuthorDashboard::class])
             ->navigationItems([
+                NavigationItem::make(fn () => app()->getLocale() === 'id' ? 'Paper saya' : 'My paper')
+                    ->url(function (): string {
+                        $author = auth('author')->user();
+                        $edition = currentEdition();
+                        $paper = $edition ? $author?->submissions()->where('edition_id', $edition->id)->first() : null;
+
+                        return $paper
+                            ? PaperResource::getUrl(PaperResource::canEdit($paper) ? 'extended-abstract' : 'view', ['record' => $paper], panel: 'author')
+                            : PaperResource::getUrl('create', panel: 'author');
+                    })
+                    ->visible(fn (): bool => (bool) auth('author')->user()?->isPresenter() && (bool) currentEdition())
+                    ->icon('heroicon-o-document-text')
+                    ->sort(2),
+                NavigationItem::make(fn () => app()->getLocale() === 'id' ? 'Panduan' : 'Guidelines')
+                    ->url(fn () => route('author-guidelines', ['lang' => app()->getLocale()]))
+                    ->icon('heroicon-o-book-open')
+                    ->sort(3),
                 NavigationItem::make(fn () => app()->getLocale() === 'id' ? 'Kembali ke Website' : 'Back to Website')
                     ->url(fn () => route('home'))
                     ->icon('heroicon-o-arrow-left')

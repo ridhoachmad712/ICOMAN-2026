@@ -2,6 +2,7 @@
 
 namespace App\Filament\Author\Resources\Papers;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Resources\Papers\Pages\CreatePaper;
 use App\Filament\Author\Resources\Papers\Pages\EditExtendedAbstract;
 use App\Filament\Author\Resources\Papers\Pages\ViewPaper;
@@ -19,6 +20,7 @@ use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class PaperResource extends Resource
 {
@@ -39,12 +41,12 @@ class PaperResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'id' ? 'Abstract Saya' : 'My Abstract';
+        return app()->getLocale() === 'id' ? 'Extended Abstract Saya' : 'My Extended Abstract';
     }
 
     public static function getModelLabel(): string
     {
-        return app()->getLocale() === 'id' ? 'abstract' : 'abstract';
+        return 'extended abstract';
     }
 
     public static function form(Schema $schema): Schema
@@ -141,9 +143,9 @@ class PaperResource extends Resource
      * Filament tetap butuh URL "index" untuk hal seperti tombol Cancel pada form,
      * jadi arahkan ke Dashboard - tanpa ini halaman create melempar LogicException.
      */
-    public static function getIndexUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?\Illuminate\Database\Eloquent\Model $tenant = null, bool $shouldGuessMissingParameters = false): string
+    public static function getIndexUrl(array $parameters = [], bool $isAbsolute = true, ?string $panel = null, ?Model $tenant = null, bool $shouldGuessMissingParameters = false): string
     {
-        return \App\Filament\Author\Pages\AuthorDashboard::getUrl($parameters, $isAbsolute, $panel ?? 'author');
+        return AuthorDashboard::getUrl($parameters, $isAbsolute, $panel ?? 'author');
     }
 
     public static function getPages(): array

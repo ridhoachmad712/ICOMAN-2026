@@ -5,15 +5,16 @@
         $registrationResource = \App\Filament\Author\Resources\Registrations\RegistrationResource::class;
         $profilePage = \App\Filament\Author\Pages\AuthorProfile::class;
         $statusLabel = fn (string $status) => ($id ? [
-            'extended_abstract_draft' => 'Draft abstract',
-            'extended_abstract_submitted' => 'Abstract terkirim',
-            'extended_abstract_under_review' => 'Verifikasi reviewer', 'accepted' => 'Accepted',
+            'extended_abstract_draft' => 'Draft naskah',
+            'extended_abstract_submitted' => 'Menunggu reviewer',
+            'extended_abstract_under_review' => 'Sedang direview',
+            'revision_required' => 'Perlu revisi', 'accepted' => 'Diterima',
             'rejected' => 'Tidak lolos', 'pending' => 'Belum dibayar',
             'pending_verification' => 'Menunggu verifikasi', 'paid' => 'Lunas', 'failed' => 'Gagal',
         ][$status] ?? ucwords(str_replace('_', ' ', $status)) : ucwords(str_replace('_', ' ', $status)));
         $statusColor = fn (string $status) => match($status) {
             'accepted', 'paid' => 'success', 'rejected', 'failed' => 'danger',
-            'extended_abstract_submitted', 'pending', 'pending_verification' => 'warning', default => 'info',
+            'revision_required', 'extended_abstract_submitted', 'pending', 'pending_verification' => 'warning', default => 'info',
         };
     @endphp
 
@@ -57,13 +58,6 @@
                     {{ $nextAction['label'] }}
                 </x-filament::button>
             </div>
-            <div class="mt-5 border-t border-gray-100 pt-4">
-                <div class="mb-2 flex items-center justify-between gap-3 text-xs">
-                    <span class="font-medium text-gray-600">{{ $id ? 'Progres tahapan utama' : 'Main journey progress' }}</span>
-                    <span class="font-semibold text-gray-950">{{ $nextAction['progress'] }}%</span>
-                </div>
-                <div class="h-1.5 overflow-hidden rounded-full bg-gray-100"><div class="h-full rounded-full bg-primary-500" style="width: {{ $nextAction['progress'] }}%"></div></div>
-            </div>
         </section>
 
         <x-filament::section>
@@ -85,7 +79,7 @@
             <div class="space-y-6 lg:col-span-2">
                 @if($author->isPresenter() && $submissions->isNotEmpty())
                     <x-filament::section>
-                        <x-slot name="heading">{{ $id ? 'Paper saya' : 'My paper' }}</x-slot>
+                        <x-slot name="heading">{{ $id ? 'Extended abstract saya' : 'My extended abstract' }}</x-slot>
                         <x-slot name="description">{{ $id ? 'Status paper dan hasil review terbaru.' : 'Your paper status and latest review result.' }}</x-slot>
                         <div class="divide-y divide-gray-200">
                             @foreach($submissions as $submission)

@@ -5,8 +5,7 @@
     <title>{{ $submission->title }}</title>
     <style>
         /*
-         * Lembar abstract satu halaman. Abstract dibatasi 200-250 kata, jadi
-         * tata letaknya sengaja lapang: badan teks 10.5pt dan hanya dua
+         * Naskah extended abstract akademik: badan teks 10.5pt dan hanya dua
          * keluarga huruf (serif untuk isi, sans untuk label) supaya berkasnya
          * ringan dan mudah dibaca saat dicetak.
          */
@@ -134,9 +133,17 @@
 
         .paper-meta .separator { color: #aaa; padding: 0 2.5mm; }
 
-        /* --- Abstract & keywords --- */
+        /* --- Bagian naskah & keywords --- */
 
         .abstract-block { margin: 0 6mm; }
+
+        .manuscript-section { margin: 0 6mm 7mm; }
+        .manuscript-section h2 { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; margin: 0 0 3mm; page-break-after: avoid; }
+        .manuscript-content p { margin: 0 0 3mm; text-align: justify; }
+        .manuscript-content img { display: block; max-width: 100%; max-height: 100mm; margin: 4mm auto; }
+        .manuscript-content table { border-collapse: collapse; width: 100%; margin: 3mm 0; }
+        .manuscript-content td, .manuscript-content th { border: .4pt solid #777; padding: 2mm; }
+        .manuscript-content ul, .manuscript-content ol { margin: 2mm 0 3mm 6mm; }
 
         .abstract-heading {
             font-family: "DejaVu Sans", sans-serif;
@@ -178,8 +185,8 @@
             ?? $settings?->conference_name
             ?? config('app.name');
 
-        $documentSections = app(\App\Services\ExtendedAbstractDocument::class)->sections($submission);
-        $abstractSection = $documentSections['abstract'] ?? null;
+        $documentSections = app(\App\Services\ExtendedAbstractDocument::class)->sections($submission, embedImages: true);
+        $abstractSection = $documentSections['extended_abstract_abstract'] ?? $documentSections['abstract'] ?? null;
 
         // Review buta: identitas penulis disembunyikan dari reviewer.
         $blind = $blind ?? false;
@@ -234,7 +241,7 @@
                     <strong>{{ $conferenceName }}</strong>
                     @if($editionDates){{ $editionDates }}<br>@endif
                     @if($settings?->event_location){{ $settings->event_location }}<br>@endif
-                    Abstract Proceedings
+                    Extended Abstract
                 </td>
             </tr>
         </table>
@@ -282,6 +289,14 @@
                 @endif
             </section>
         @endif
+
+        @foreach($documentSections as $field => $section)
+            @continue(in_array($field, ['abstract', 'extended_abstract_abstract'], true) || blank($section['text']))
+            <section class="manuscript-section">
+                <h2>{{ $section['label'] }}</h2>
+                <div class="manuscript-content">{!! $section['html'] !!}</div>
+            </section>
+        @endforeach
     </main>
 </body>
 </html>

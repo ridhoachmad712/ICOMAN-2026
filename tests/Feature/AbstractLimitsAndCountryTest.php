@@ -24,22 +24,17 @@ class AbstractLimitsAndCountryTest extends TestCase
 
         $words = fn (int $n) => implode(' ', array_fill(0, $n, 'management'));
 
-        // Terlalu pendek (di bawah batas lama 150 pun kini ditolak di 199).
-        $this->actingAs($author, 'author')
-            ->post(route('author.submissions.extended-abstract', $submission), ['abstract' => $words(199)])
-            ->assertSessionHasErrors('abstract');
+        $submission->update(['abstract' => $words(199)]);
+        $this->assertFalse($submission->hasValidAbstract());
 
-        // Terlalu panjang (250 adalah batas atas baru; 251 ditolak).
-        $this->actingAs($author, 'author')
-            ->post(route('author.submissions.extended-abstract', $submission), ['abstract' => $words(251)])
-            ->assertSessionHasErrors('abstract');
+        $submission->update(['abstract' => $words(251)]);
+        $this->assertFalse($submission->hasValidAbstract());
 
-        // Dalam rentang → diterima.
-        $this->actingAs($author, 'author')
-            ->post(route('author.submissions.extended-abstract', $submission), ['abstract' => $words(220)])
-            ->assertSessionHasNoErrors();
+        $submission->update(['abstract' => $words(200)]);
+        $this->assertTrue($submission->hasValidAbstract());
 
-        $this->assertSame('extended_abstract_submitted', $submission->refresh()->status);
+        $submission->update(['abstract' => $words(250)]);
+        $this->assertTrue($submission->hasValidAbstract());
     }
 
     /** Negara dipilih dari daftar, dengan Indonesia di urutan teratas. */

@@ -23,8 +23,8 @@ class ViewPaper extends ViewRecord
     public function getSubheading(): ?string
     {
         return app()->getLocale() === 'id'
-            ? 'Lanjutkan penulisan atau pantau verifikasi reviewer.'
-            : 'Continue writing or track reviewer verification.';
+            ? 'Lihat status paper, hasil review, PDF, dan tahapan berikutnya.'
+            : 'View your paper status, reviews, PDF, and next steps.';
     }
 
     /** Resource ini tidak punya halaman index; breadcrumb mengarah ke Dashboard. */

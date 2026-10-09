@@ -76,20 +76,20 @@ class AuthorJourney
         if ($accepted) {
             $paidRegistration = $registrations->contains(fn (Registration $item) => $item->status === 'paid');
             if ($paidRegistration) {
-                // Setelah pembayaran terverifikasi: kirim naskah lengkap (full paper).
+                // Naskah lengkap adalah berkas lanjutan yang terpisah dari extended abstract.
                 if (! $accepted->hasFullPaper()) {
                     return $this->paperAction(
-                        $accepted, 'full_paper', 'Kirim full paper', 'Submit your full paper',
-                        'Pembayaran terverifikasi. Unggah naskah lengkap (full paper) sesuai template & tenggat panitia.',
-                        'Your payment is verified. Upload your full manuscript per the committee template & deadline.',
-                        'Kirim full paper', 'Submit full paper', 90, 'author'
+                        $accepted, 'full_paper', 'Unggah naskah final', 'Upload the final manuscript',
+                        'Extended abstract sudah diterima dan pembayaran lunas. Unggah naskah final sebagai berkas terpisah sesuai template panitia.',
+                        'Your extended abstract is accepted and payment is complete. Upload the separate final manuscript using the committee template.',
+                        'Buka paper', 'Open paper', 90, 'author'
                     );
                 }
 
                 return $this->paperAction(
                     $accepted, 'complete', 'Semua tahap selesai', 'All steps complete',
-                    'Abstract accepted, pembayaran terverifikasi, dan full paper sudah terkirim. Slot presentasi Anda terkunci.',
-                    'Your abstract is accepted, payment is verified, and your full paper has been submitted. Your presentation slot is secured.',
+                    'Extended abstract diterima, pembayaran lunas, dan naskah final sudah terkirim. Slot presentasi Anda aman.',
+                    'Your extended abstract is accepted, payment is complete, and the final manuscript is submitted. Your presentation slot is secured.',
                     'Lihat paper', 'View paper', 100, 'complete'
                 );
             }
@@ -103,11 +103,11 @@ class AuthorJourney
                     $waiting ? 'Bukti pembayaran sedang diverifikasi' : 'Selesaikan pembayaran',
                     $waiting ? 'Your payment proof is being verified' : 'Complete your payment',
                     $waiting
-                        ? 'Abstract Anda accepted. Panitia sedang memverifikasi bukti pembayaran registrasi presenter.'
-                        : 'Abstract Anda accepted. Selesaikan pembayaran untuk mengunci slot presentasi.',
+                        ? 'Extended abstract diterima. Panitia sedang memverifikasi pembayaran registrasi presenter.'
+                        : 'Extended abstract diterima. Selesaikan pembayaran untuk mengunci slot presentasi.',
                     $waiting
-                        ? 'Your abstract is accepted. The committee is verifying your presenter registration payment.'
-                        : 'Your abstract is accepted. Complete the payment to secure your presentation slot.',
+                        ? 'Your extended abstract is accepted. The committee is verifying your presenter registration payment.'
+                        : 'Your extended abstract is accepted. Complete the payment to secure your presentation slot.',
                     RegistrationResource::getUrl('view', ['record' => $pendingRegistration], panel: 'author'),
                     $waiting ? 'Lihat status' : 'Lanjutkan pembayaran',
                     $waiting ? 'View status' : 'Continue payment',
@@ -119,8 +119,8 @@ class AuthorJourney
             if (! $accepted->isLoaIssued()) {
                 return $this->paperAction(
                     $accepted, 'loa_wait', 'Menunggu penerbitan LOA', 'Awaiting LOA issuance',
-                    'Abstract Anda accepted. Panitia sedang menyiapkan Letter of Acceptance — pembayaran tersedia setelah LOA terbit.',
-                    'Your abstract is accepted. The committee is preparing your Letter of Acceptance — payment becomes available once the LOA is issued.',
+                    'Extended abstract diterima. Panitia sedang menyiapkan Letter of Acceptance — pembayaran tersedia setelah LOA terbit.',
+                    'Your extended abstract is accepted. The committee is preparing your Letter of Acceptance — payment becomes available once the LOA is issued.',
                     'Lihat status', 'View status', 70, 'committee'
                 );
             }
@@ -140,20 +140,26 @@ class AuthorJourney
 
         $extendedReview = $submissions->first(fn (Submission $item) => in_array($item->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true));
         if ($extendedReview) {
+            $assignments = $extendedReview->reviewAssignments->where('phase', 'extended_abstract');
+            $waitingAssignment = $assignments->isEmpty();
+            $waitingDecision = $assignments->isNotEmpty() && $assignments->every(fn ($assignment): bool => $assignment->status === 'completed');
+
             return $this->paperAction(
-                $extendedReview, 'verification', 'Menunggu verifikasi reviewer', 'Awaiting reviewer verification',
-                'Abstract sudah dikirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan penilaian.',
-                'Your abstract has been submitted. No further action is needed until the reviewer completes the assessment.',
-                'Lihat status', 'View status', 75, 'reviewer'
+                $extendedReview, 'verification',
+                $waitingAssignment ? 'Menunggu penugasan reviewer' : ($waitingDecision ? 'Menunggu keputusan panitia' : 'Sedang direview'),
+                $waitingAssignment ? 'Awaiting reviewer assignment' : ($waitingDecision ? 'Awaiting committee decision' : 'Under review'),
+                $waitingAssignment ? 'Naskah sudah terkirim. Panitia akan menugaskan reviewer.' : ($waitingDecision ? 'Semua reviewer sudah menilai. Panitia sedang menetapkan keputusan.' : 'Reviewer sedang memeriksa naskah Anda. Tidak ada tindakan yang diperlukan saat ini.'),
+                $waitingAssignment ? 'Your manuscript is submitted. The committee will assign reviewers.' : ($waitingDecision ? 'All reviewers have completed their assessments. The committee is making a decision.' : 'Reviewers are assessing your manuscript. No action is needed now.'),
+                'Lihat paper', 'View paper', 75, $waitingAssignment || $waitingDecision ? 'committee' : 'reviewer'
             );
         }
 
         $revision = $submissions->firstWhere('status', 'revision_required');
         if ($revision) {
             return $this->action(
-                'revision', 'Perbaiki abstract', 'Revise your abstract',
-                'Reviewer meminta revisi. Buka detail untuk membaca catatan reviewer, perbaiki abstract, lalu kirim ulang.',
-                'The reviewers requested changes. Open the details to read the reviewer comments, revise the abstract, then resubmit.',
+                'revision', 'Perbaiki extended abstract', 'Revise your extended abstract',
+                'Reviewer meminta revisi. Baca catatannya pada halaman paper, perbaiki naskah, lalu kirim ulang.',
+                'Reviewers requested changes. Read their comments on the paper page, revise the manuscript, then resubmit.',
                 PaperResource::getUrl('extended-abstract', ['record' => $revision], panel: 'author'),
                 'Perbaiki sekarang', 'Revise now', 45
             );
@@ -161,9 +167,9 @@ class AuthorJourney
 
         if ($submissions->isEmpty()) {
             return $this->action(
-                'submission', 'Mulai abstract', 'Start your abstract',
-                'Lengkapi data paper, lalu tulis abstract '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata dalam bahasa Inggris.',
-                'Complete the paper details, then write your abstract of '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words in English.',
+                'submission', 'Mulai extended abstract', 'Start your extended abstract',
+                'Lengkapi data paper dan penulis, lalu tulis lima bagian naskah langsung di portal.',
+                'Complete the paper and author details, then write all five manuscript sections in the portal.',
                 PaperResource::getUrl('create', panel: 'author'), 'Mulai menulis', 'Start writing', 25
             );
         }
@@ -172,9 +178,9 @@ class AuthorJourney
 
         if (in_array($existing->status, ['extended_abstract_draft'], true)) {
             return $this->action(
-                'extended', 'Lanjutkan abstract', 'Continue your abstract',
-                'Tulis abstract '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. Anda dapat menyimpan draft dan memeriksa PDF sebelum mengirim ke reviewer.',
-                'Write the abstract of '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words. You can save a draft and check the PDF before submitting it to the reviewer.',
+                'extended', 'Lanjutkan extended abstract', 'Continue your extended abstract',
+                'Lengkapi lima bagian naskah. Simpan draft dan periksa PDF sebelum mengirim ke reviewer.',
+                'Complete all five sections. Save a draft and check the PDF before submitting it for review.',
                 PaperResource::getUrl('extended-abstract', ['record' => $existing], panel: 'author'),
                 $existing->extended_abstract_draft_saved_at ? 'Lanjutkan draft' : 'Mulai menulis',
                 $existing->extended_abstract_draft_saved_at ? 'Continue draft' : 'Start writing',
@@ -183,9 +189,9 @@ class AuthorJourney
         }
 
         return $this->paperAction(
-            $existing, 'closed', 'Lihat hasil submission', 'View your submission result',
-            'Setiap akun hanya dapat mengirim satu paper pada edisi ini. Buka detail untuk melihat hasil reviewer.',
-            'Each account may submit one paper in this edition. Open the details to view the reviewer result.',
+            $existing, 'closed', 'Lihat hasil review', 'View your review result',
+            'Buka paper untuk melihat keputusan dan catatan reviewer.',
+            'Open your paper to see the decision and reviewer comments.',
             'Lihat hasil', 'View result', 75
         );
     }
@@ -242,15 +248,15 @@ class AuthorJourney
                 ));
             } elseif (in_array($submission->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true)) {
                 $updates->push($this->update(
-                    $id ? 'Abstract berhasil dikirim' : 'Abstract submitted',
-                    $id ? 'Reviewer sedang melakukan verifikasi. Tidak ada tindakan tambahan saat ini.' : 'A reviewer is verifying it. No further action is needed now.',
+                    $id ? 'Extended abstract terkirim' : 'Extended abstract submitted',
+                    $id ? 'Lihat detail paper untuk status penugasan reviewer, review, atau keputusan panitia.' : 'Open the paper details for the reviewer assignment, review, or committee decision status.',
                     $submission->extended_abstract_submitted_at ?? $submission->updated_at,
                     'info', 'heroicon-o-document-check', $route
                 ));
             } elseif (in_array($submission->status, ['extended_abstract_draft'], true)) {
                 $updates->push($this->update(
-                    $id ? 'Draft abstract tersedia' : 'Abstract draft available',
-                    $id ? 'Lanjutkan penulisan abstract sebelum mengirimkannya ke reviewer.' : 'Continue writing your abstract before submitting it to the reviewer.',
+                    $id ? 'Draft extended abstract tersedia' : 'Extended abstract draft available',
+                    $id ? 'Lengkapi lima bagian naskah, periksa PDF, lalu kirim ke reviewer.' : 'Complete all five sections, check the PDF, then submit for review.',
                     $submission->extended_abstract_draft_saved_at ?? $submission->updated_at,
                     'gray', 'heroicon-o-pencil-square', $route
                 ));
@@ -342,12 +348,17 @@ class AuthorJourney
             $inputDone => 'current',
             default => 'upcoming',
         };
+        $reviewAssignments = $submission?->reviewAssignments->where('phase', 'extended_abstract') ?? collect();
+        $reviewActor = $reviewAssignments->isEmpty()
+            || $reviewAssignments->every(fn ($assignment): bool => $assignment->status === 'completed')
+            ? 'committee'
+            : 'reviewer';
 
         return [
-            $this->step(1, 'Kirim abstract', 'Submit abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
-            $this->step(2, 'Review & LOA', 'Review & LOA', $reviewState, $accepted ? ($submission?->loa_issued_at ?? $this->phaseDate($submission, 'extended_abstract')) : ($rejected ? $this->phaseDate($submission, 'extended_abstract') : null), $reviewState === 'current' ? 'reviewer' : null),
+            $this->step(1, 'Kirim extended abstract', 'Submit extended abstract', $inputDone ? 'complete' : 'current', $submission?->extended_abstract_submitted_at, ! $inputDone ? 'author' : null),
+            $this->step(2, 'Review & LOA', 'Review & LOA', $reviewState, $accepted ? ($submission?->loa_issued_at ?? $this->phaseDate($submission, 'extended_abstract')) : ($rejected ? $this->phaseDate($submission, 'extended_abstract') : null), $reviewState === 'current' ? $reviewActor : null),
             $this->step(3, 'Pembayaran', 'Payment', $paidRegistration ? 'complete' : ($loaIssued ? 'current' : 'upcoming'), $paidRegistration?->paid_at, $loaIssued && ! $paidRegistration ? ($pendingRegistration?->status === 'pending_verification' ? 'committee' : 'author') : null),
-            $this->step(4, 'Kirim full paper', 'Submit full paper', $fullPaper ? 'complete' : ($paidRegistration ? 'current' : 'upcoming'), $submission?->full_paper_submitted_at, $paidRegistration && ! $fullPaper ? 'author' : null),
+            $this->step(4, 'Unggah naskah final', 'Upload final manuscript', $fullPaper ? 'complete' : ($paidRegistration ? 'current' : 'upcoming'), $submission?->full_paper_submitted_at, $paidRegistration && ! $fullPaper ? 'author' : null),
         ];
     }
 

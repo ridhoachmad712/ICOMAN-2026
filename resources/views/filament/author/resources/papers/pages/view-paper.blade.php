@@ -10,6 +10,11 @@
             ->latest('submitted_at')
             ->get();
         $extendedReviews = $reviews->where('assignment.phase', 'extended_abstract');
+        $assignments = $record->reviewAssignments->where('phase', 'extended_abstract');
+        $waitingAssignment = $assignments->isEmpty();
+        $waitingDecision = $assignments->isNotEmpty() && $assignments->every(fn ($assignment) => $assignment->status === 'completed');
+        $paidForPaper = $record->registrations->firstWhere('status', 'paid');
+        $fullPaperOpen = app(\App\Services\ConferenceDeadlines::class)->isOpen('full_paper', $record->edition_id);
         $statusLabel = fn (string $status) => $id ? (\App\Models\Submission::STATUS_LABELS[$status] ?? ucwords(str_replace('_', ' ', $status))) : ucwords(str_replace('_', ' ', $status));
         $statusColor = match($record->status) {
             'accepted' => 'success',
@@ -17,7 +22,6 @@
             'revision_required', 'extended_abstract_submitted' => 'warning',
             default => 'info',
         };
-        $steps = app(\App\Services\AuthorJourney::class)->timeline($record->author, collect([$record]), $record->registrations);
     @endphp
 
     <div class="space-y-6">
@@ -30,18 +34,13 @@
             <x-slot name="description">{{ $record->submission_number }}@if($record->topic) · {{ $record->topic->title }}@endif</x-slot>
             <x-slot name="afterHeader"><x-filament::badge :color="$statusColor">{{ $statusLabel($record->status) }}</x-filament::badge></x-slot>
 
-            <div class="author-policy-note">
-                <x-filament::icon icon="heroicon-o-information-circle" class="h-5 w-5 shrink-0" />
-                <span>{{ $id ? 'Paper ini menggunakan satu-satunya kuota submission akun Anda untuk edisi ini.' : 'This paper uses your account’s single submission quota for this edition.' }}</span>
-            </div>
-
-            @include('filament.author.components.journey-timeline', ['steps' => $steps])
+            <p class="text-sm text-gray-600">{{ $id ? 'Satu akun hanya dapat mengirim satu paper pada edisi ini.' : 'Each account may submit one paper in this edition.' }}</p>
         </x-filament::section>
 
         @if(in_array($record->status, ['extended_abstract_draft'], true))
             <x-filament::section icon="heroicon-o-document-text" icon-color="primary">
                 <x-slot name="heading">{{ $id ? 'Edit submission' : 'Edit submission' }}</x-slot>
-                <x-slot name="description">{{ $id ? 'Judul, topik, keywords, daftar penulis, dan seluruh isi naskah masih dapat diubah sebelum dikirim ke reviewer.' : 'The title, topic, keywords, author list, and all manuscript sections remain editable before reviewer submission.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Lengkapi lima bagian extended abstract. Simpan draft dan periksa PDF sebelum dikirim ke reviewer.' : 'Complete all five extended abstract sections. Save a draft and check the PDF before reviewer submission.' }}</x-slot>
                 <div class="flex flex-wrap gap-3">
                     <x-filament::button tag="a" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('extended-abstract', ['record' => $record]) }}" icon="heroicon-o-pencil-square">
                         {{ $id ? 'Edit submission' : 'Edit submission' }}
@@ -59,6 +58,12 @@
             <x-filament::section icon="heroicon-o-arrow-uturn-left" icon-color="warning">
                 <x-slot name="heading">{{ $id ? 'Revisi diminta reviewer' : 'Revision requested' }}</x-slot>
                 <x-slot name="description">{{ $id ? 'Perbaiki naskah sesuai catatan reviewer di bawah, lalu kirim ulang untuk putaran review berikutnya.' : 'Revise the manuscript according to the reviewer comments below, then resubmit for the next review round.' }}</x-slot>
+                @if($extendedReviews->isNotEmpty())
+                    <div class="mb-4 rounded-lg border border-warning-200 bg-warning-50 p-4 text-sm text-gray-800">
+                        <p class="font-semibold">{{ $id ? 'Catatan reviewer terbaru' : 'Latest reviewer feedback' }}</p>
+                        <p class="mt-1 whitespace-pre-line">{{ $extendedReviews->first()?->comments_for_author ?: ($id ? 'Lihat seluruh hasil review di bawah.' : 'See the full review results below.') }}</p>
+                    </div>
+                @endif
                 <div class="flex flex-wrap gap-3">
                     <x-filament::button tag="a" color="warning" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('extended-abstract', ['record' => $record]) }}" icon="heroicon-o-pencil-square">
                         {{ $id ? 'Perbaiki & Kirim Ulang' : 'Revise & Resubmit' }}
@@ -70,8 +75,8 @@
 
         @if(in_array($record->status, ['extended_abstract_submitted', 'extended_abstract_under_review'], true))
             <x-filament::section icon="heroicon-o-clock" icon-color="info">
-                <x-slot name="heading">{{ $id ? 'Menunggu verifikasi reviewer' : 'Awaiting reviewer verification' }}</x-slot>
-                <x-slot name="description">{{ $id ? 'Abstract sudah terkirim. Tidak ada tindakan tambahan sampai reviewer menyelesaikan verifikasi.' : 'Your abstract was submitted. No further action is required until reviewer verification is complete.' }}</x-slot>
+                <x-slot name="heading">{{ $waitingAssignment ? ($id ? 'Menunggu penugasan reviewer' : 'Awaiting reviewer assignment') : ($waitingDecision ? ($id ? 'Menunggu keputusan panitia' : 'Awaiting committee decision') : ($id ? 'Sedang direview' : 'Under review')) }}</x-slot>
+                <x-slot name="description">{{ $waitingAssignment ? ($id ? 'Naskah sudah terkirim. Panitia akan menugaskan reviewer.' : 'Your manuscript is submitted. The committee will assign reviewers.') : ($waitingDecision ? ($id ? 'Penilaian reviewer selesai. Panitia sedang menetapkan keputusan.' : 'The reviews are complete. The committee is making a decision.') : ($id ? 'Reviewer sedang menilai naskah. Anda belum perlu melakukan apa pun.' : 'Reviewers are assessing your manuscript. No action is needed now.')) }}</x-slot>
                 <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank" icon="heroicon-o-document-magnifying-glass">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
             </x-filament::section>
         @endif
@@ -79,7 +84,7 @@
         @if($record->status === 'accepted' && ! $record->isLoaIssued())
             <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
                 <x-slot name="heading">Accepted</x-slot>
-                <x-slot name="description">{{ $id ? 'Abstract Anda diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA), yang akan otomatis muncul di sini.' : 'Your abstract is accepted. The committee is preparing your Letter of Acceptance (LOA). It will appear here automatically.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Extended abstract diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA).' : 'Your extended abstract is accepted. The committee is preparing your Letter of Acceptance (LOA).' }}</x-slot>
                 <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
             </x-filament::section>
         @endif
@@ -87,7 +92,7 @@
         @if($record->status === 'accepted' && $record->isLoaIssued())
             <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
                 <x-slot name="heading">Accepted · LOA {{ $id ? 'terbit' : 'issued' }}</x-slot>
-                <x-slot name="description">{{ $id ? 'Letter of Acceptance sudah tersedia. Selesaikan pembayaran registrasi presenter untuk mengunci slot Anda.' : 'Your Letter of Acceptance is available. Complete the presenter registration payment to secure your slot.' }}</x-slot>
+                <x-slot name="description">{{ $paidForPaper ? ($id ? 'Letter of Acceptance tersedia dan pembayaran Anda sudah lunas.' : 'Your Letter of Acceptance is available and your payment is complete.') : ($id ? 'Letter of Acceptance sudah tersedia. Selesaikan pembayaran registrasi presenter untuk mengunci slot Anda.' : 'Your Letter of Acceptance is available. Complete the presenter registration payment to secure your slot.') }}</x-slot>
                 <div class="mb-4 flex flex-wrap items-center gap-2 text-sm">
                     <span class="text-gray-500">{{ $id ? 'Target jurnal:' : 'Journal target:' }}</span>
                     <x-filament::badge :color="$record->journal_target === 'sinta3' ? 'warning' : 'gray'">{{ $record->journalTargetLabel() }}</x-filament::badge>
@@ -103,30 +108,30 @@
         @endif
 
         @if($record->status === 'accepted' && $record->isLoaIssued())
-            @php $paidForPaper = $record->registrations->firstWhere('status', 'paid'); @endphp
             <x-filament::section icon="heroicon-o-document-arrow-up" icon-color="primary">
-                <x-slot name="heading">{{ $id ? 'Naskah lengkap (Full Paper)' : 'Full paper' }}</x-slot>
+                <x-slot name="heading">{{ $id ? 'Naskah final (berkas terpisah)' : 'Final manuscript (separate file)' }}</x-slot>
                 <x-slot name="description">
-                    {{ $id ? 'Setelah pembayaran terverifikasi, unggah naskah lengkap sesuai template & tenggat panitia (PDF/DOC/DOCX, maks 20 MB).' : 'After your payment is verified, upload the full manuscript per the committee template & deadline (PDF/DOC/DOCX, max 20 MB).' }}
+                    {{ $id ? 'Tahap lanjutan setelah extended abstract diterima dan pembayaran lunas. Unggah naskah final sesuai template panitia (PDF/DOC/DOCX, maks 20 MB).' : 'A separate step after the extended abstract is accepted and payment is complete. Upload the final manuscript using the committee template (PDF/DOC/DOCX, max 20 MB).' }}
                 </x-slot>
 
+                @if($record->hasFullPaper())
+                    <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm">
+                        <x-filament::icon icon="heroicon-o-check-circle" class="h-5 w-5 shrink-0 text-success-600" />
+                        <span class="text-success-800">
+                            {{ $id ? 'Terkirim' : 'Submitted' }}: <strong>{{ $record->fullPaperMedia()?->file_name }}</strong>
+                            @if($record->full_paper_submitted_at)· {{ $record->full_paper_submitted_at->format('d M Y, H:i') }}@endif
+                        </span>
+                        <a class="ml-auto text-primary-600 hover:underline" href="{{ route('author.submissions.full-paper.download', $record) }}">{{ $id ? 'Unduh' : 'Download' }}</a>
+                    </div>
+                @endif
                 @if(! $paidForPaper)
                     <div class="author-policy-note">
                         <x-filament::icon icon="heroicon-o-lock-closed" class="h-5 w-5 shrink-0" />
                         <span>{{ $id ? 'Pengiriman full paper akan terbuka setelah pembayaran registrasi Anda terverifikasi.' : 'Full paper submission unlocks once your registration payment is verified.' }}</span>
                     </div>
+                @elseif(! $fullPaperOpen)
+                    <div class="author-policy-note"><x-filament::icon icon="heroicon-o-clock" class="h-5 w-5 shrink-0" /><span>{{ $id ? 'Tenggat unggah naskah final telah berakhir. Hubungi panitia bila Anda perlu bantuan.' : 'The final manuscript deadline has passed. Contact the committee if you need help.' }}</span></div>
                 @else
-                    @if($record->hasFullPaper())
-                        <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm">
-                            <x-filament::icon icon="heroicon-o-check-circle" class="h-5 w-5 shrink-0 text-success-600" />
-                            <span class="text-success-800">
-                                {{ $id ? 'Terkirim' : 'Submitted' }}: <strong>{{ $record->fullPaperMedia()?->file_name }}</strong>
-                                @if($record->full_paper_submitted_at)· {{ $record->full_paper_submitted_at->format('d M Y, H:i') }}@endif
-                            </span>
-                            <a class="ml-auto text-primary-600 hover:underline" href="{{ route('author.submissions.full-paper.download', $record) }}">{{ $id ? 'Unduh' : 'Download' }}</a>
-                        </div>
-                    @endif
-
                     <form method="POST" action="{{ route('author.submissions.full-paper', $record) }}" enctype="multipart/form-data" class="flex flex-wrap items-center gap-3">
                         @csrf
                         <input type="file" name="full_paper" required accept=".pdf,.doc,.docx"
@@ -156,9 +161,9 @@
                     </div>
                 </x-filament::section>
 
-                @if($record->extended_abstract || $record->extended_abstract_draft_saved_at)
+                @if($record->hasStructuredExtendedAbstract() || filled($record->abstract))
                     <x-filament::section>
-                        <x-slot name="heading">Abstract</x-slot>
+                        <x-slot name="heading">Extended Abstract</x-slot>
                         <x-slot name="description">{{ $record->extended_abstract_submitted_at?->format('d M Y, H:i') }}</x-slot>
                         @include('components.extended-abstract-document', ['submission' => $record])
                     </x-filament::section>
