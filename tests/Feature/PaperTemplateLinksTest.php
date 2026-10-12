@@ -85,6 +85,9 @@ class PaperTemplateLinksTest extends TestCase
         $this->actingAs($author, 'author')
             ->get($url)
             ->assertOk()
+            ->assertSee('1. Download the template')
+            ->assertSee('2. Upload the final manuscript')
+            ->assertSee('File upload becomes available after your registration payment is verified.')
             ->assertSee('https://example.test/regular.docx', false)
             ->assertDontSee('https://example.test/sinta3.docx', false);
 
@@ -101,6 +104,6 @@ class PaperTemplateLinksTest extends TestCase
             ->assertOk()
             ->assertDontSee('https://example.test/regular.docx', false)
             ->assertDontSee('https://example.test/sinta3.docx', false)
-            ->assertSee('Choose your journal target');
+            ->assertSee('Choose a journal target');
     }
 }
