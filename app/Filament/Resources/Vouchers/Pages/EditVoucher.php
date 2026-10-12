@@ -31,9 +31,10 @@ class EditVoucher extends EditRecord
             (isset($this->data['code']) && Voucher::normalizeCode($this->data['code']) !== $voucher->code)
             || (isset($this->data['edition_id']) && (int) $this->data['edition_id'] !== $voucher->edition_id)
             || (isset($this->data['type']) && $this->data['type'] !== $voucher->type)
+            || (isset($this->data['registrant_category']) && $this->data['registrant_category'] !== $voucher->registrant_category)
         )) {
             throw ValidationException::withMessages([
-                'data.code' => 'Kode, jenis, dan edisi voucher yang sudah dipakai tidak dapat diubah.',
+                'data.code' => 'Kode, jenis, edisi, dan kategori peserta voucher yang sudah dipakai tidak dapat diubah.',
             ]);
         }
     }

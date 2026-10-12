@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vouchers\Schemas;
 
+use App\Models\Author;
 use App\Models\Edition;
 use App\Models\Voucher;
 use Filament\Forms\Components\DateTimePicker;
@@ -62,6 +63,15 @@ class VoucherForm
                         ->default('presenter')
                         ->required(fn (Get $get): bool => $get('type') === 'discount')
                         ->visible(fn (Get $get): bool => $get('type') === 'discount'),
+
+                    Select::make('registrant_category')
+                        ->label('Kategori peserta yang boleh memakai')
+                        ->options(['all' => 'Semua kategori peserta'] + Author::CATEGORIES)
+                        ->default('all')
+                        ->required()
+                        ->disabled(fn (?Voucher $record): bool => ($record?->usedSlots() ?? 0) > 0)
+                        ->dehydrated(fn (?Voucher $record): bool => ($record?->usedSlots() ?? 0) === 0)
+                        ->helperText('Berlaku untuk satu kategori saja, atau pilih semua kategori. Tidak dapat diubah setelah voucher dipakai.'),
 
                     Select::make('discount_kind')
                         ->label('Bentuk diskon')

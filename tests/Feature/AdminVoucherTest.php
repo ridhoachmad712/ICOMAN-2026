@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Author\Resources\Registrations\Pages\ViewRegistration;
 use App\Filament\Resources\Vouchers\Pages\CreateVoucher;
+use App\Filament\Resources\Vouchers\Pages\EditVoucher;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\Payment;
@@ -33,14 +34,14 @@ class AdminVoucherTest extends TestCase
         $this->edition = Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
     }
 
-    private function invoice(string $email, string $audience = 'presenter', bool $sinta = false): Registration
+    private function invoice(string $email, string $audience = 'presenter', bool $sinta = false, string $category = 'general'): Registration
     {
         $author = Author::create([
             'name' => 'Voucher User', 'email' => $email, 'password' => 'secret-password',
-            'participation_type' => $audience, 'registrant_category' => 'general',
+            'participation_type' => $audience, 'registrant_category' => $category,
         ]);
         $fee = RegistrationFee::firstOrCreate(
-            ['edition_id' => $this->edition->id, 'audience' => $audience, 'registrant_category' => 'general'],
+            ['edition_id' => $this->edition->id, 'audience' => $audience, 'registrant_category' => $category],
             ['category' => ['id' => 'Registrasi', 'en' => 'Registration'], 'price_regular' => 400_000, 'currency' => 'IDR'],
         );
         $submission = $audience === 'presenter' ? Submission::create([
@@ -82,6 +83,7 @@ class AdminVoucherTest extends TestCase
             ->fillForm([
                 'host_name' => 'Diskon Peserta', 'code' => 'promo-peserta',
                 'type' => 'discount', 'audience' => 'participant',
+                'registrant_category' => 'student_s1',
                 'discount_kind' => 'percent', 'discount_value' => 25,
                 'edition_id' => $this->edition->id, 'quota' => 3, 'is_active' => true,
             ])
@@ -91,6 +93,7 @@ class AdminVoucherTest extends TestCase
         $voucher = Voucher::where('code', 'PROMO-PESERTA')->firstOrFail();
         $this->assertSame('discount', $voucher->type);
         $this->assertSame('participant', $voucher->audience);
+        $this->assertSame('student_s1', $voucher->registrant_category);
         $this->assertSame(3, $voucher->quota);
     }
 
@@ -114,7 +117,70 @@ class AdminVoucherTest extends TestCase
         $voucher = Voucher::where('code', 'GRATIS-PAPER')->firstOrFail();
         $this->assertSame('free_paper', $voucher->type);
         $this->assertSame('presenter', $voucher->audience);
+        $this->assertSame('all', $voucher->registrant_category);
         $this->assertSame(5, $voucher->quota);
+    }
+
+    public function test_discount_voucher_only_applies_to_its_selected_participant_category(): void
+    {
+        $voucher = $this->voucher(['registrant_category' => 'student_s1']);
+
+        $student = $this->invoice('student-voucher@example.test', category: 'student_s1');
+        app(VoucherRedeemer::class)->redeem($student, $voucher->code);
+        $this->assertSame('300000.00', $student->refresh()->amount);
+
+        $general = $this->invoice('general-voucher@example.test');
+        try {
+            app(VoucherRedeemer::class)->redeem($general, $voucher->code);
+            $this->fail('A general participant must not redeem a student-only voucher.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('voucher_code', $exception->errors());
+        }
+
+        $this->assertNull($general->refresh()->voucher_id);
+        $this->assertSame(1, $voucher->remainingSlots());
+    }
+
+    public function test_free_paper_voucher_can_be_limited_to_general_presenters(): void
+    {
+        $voucher = $this->voucher([
+            'type' => 'free_paper', 'audience' => 'presenter',
+            'registrant_category' => 'general', 'discount_kind' => null, 'discount_value' => null,
+        ]);
+
+        $student = $this->invoice('student-free-paper@example.test', category: 'student_s1');
+        try {
+            app(VoucherRedeemer::class)->redeem($student, $voucher->code);
+            $this->fail('A student must not redeem a general-only voucher.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey('voucher_code', $exception->errors());
+        }
+
+        $general = $this->invoice('general-free-paper@example.test');
+        app(VoucherRedeemer::class)->redeem($general, $voucher->code);
+        $this->assertTrue($general->refresh()->isWaived());
+    }
+
+    public function test_admin_cannot_change_participant_category_after_voucher_is_used(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'voucher-edit-admin@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        $voucher = $this->voucher(['registrant_category' => 'student_s1']);
+        app(VoucherRedeemer::class)->redeem(
+            $this->invoice('student-used-voucher@example.test', category: 'student_s1'),
+            $voucher->code,
+        );
+
+        Livewire::test(EditVoucher::class, ['record' => $voucher->getRouteKey()])
+            ->fillForm(['registrant_category' => 'general'])
+            ->call('save')
+            ->assertHasFormErrors(['code']);
+
+        $this->assertSame('student_s1', $voucher->refresh()->registrant_category);
     }
 
     public function test_fixed_discount_reduces_the_invoice_and_quota_counts_distinct_users(): void

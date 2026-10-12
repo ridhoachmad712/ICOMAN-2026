@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Vouchers\Tables;
 
+use App\Models\Author;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
 use App\Services\VoucherRedeemer;
@@ -45,6 +46,10 @@ class VouchersTable
                         'participant' => 'Peserta seminar',
                         default => 'Presenter',
                     })
+                    ->toggleable(),
+                TextColumn::make('registrant_category')
+                    ->label('Kategori peserta')
+                    ->formatStateUsing(fn (?string $state): string => Author::CATEGORIES[$state] ?? 'Semua kategori')
                     ->toggleable(),
                 TextColumn::make('benefit')
                     ->label('Manfaat')

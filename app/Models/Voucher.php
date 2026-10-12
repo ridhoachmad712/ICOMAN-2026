@@ -19,6 +19,7 @@ class Voucher extends Model
         'host_name',
         'type',
         'audience',
+        'registrant_category',
         'discount_kind',
         'discount_value',
         'quota',

@@ -134,9 +134,11 @@ class VoucherRedeemer
     private function assertRegistrationEligible(Registration $registration, Voucher $voucher): void
     {
         $audience = $registration->registrationFee?->audience;
+        $category = $registration->registrationFee?->registrant_category;
 
         if (! in_array($audience, ['presenter', 'participant'], true)
             || ($voucher->audience !== 'all' && $voucher->audience !== $audience)
+            || ($voucher->registrant_category !== 'all' && $voucher->registrant_category !== $category)
             || (in_array($voucher->type, ['cohost', 'free_paper'], true) && $registration->submission_id === null)) {
             $this->fail(
                 'Voucher ini tidak berlaku untuk kategori registrasi Anda.',
