@@ -54,6 +54,11 @@ class SiteSettings extends Settings
     // Biaya tambahan penerbitan jurnal SINTA 3 (ditambahkan ke registrasi presenter).
     public int $sinta3_fee;
 
+    /** Tautan template naskah final, dipilih menurut target jurnal paper. */
+    public ?string $paper_template_regular_url;
+
+    public ?string $paper_template_sinta3_url;
+
     // Payment gateway BorderPay (dikelola dari admin; fallback ke .env bila dikosongkan).
     // Keduanya rahasia dan disimpan ter-enkripsi (lihat encrypted()).
     public ?string $borderpay_api_key;
@@ -108,6 +113,15 @@ class SiteSettings extends Settings
     public function brandColor2(): string
     {
         return $this->secondary_color ?: self::DEFAULT_BRAND_2;
+    }
+
+    public function paperTemplateUrlFor(?string $journalTarget): ?string
+    {
+        $url = $journalTarget === 'sinta3'
+            ? $this->paper_template_sinta3_url
+            : $this->paper_template_regular_url;
+
+        return filled($url) ? trim($url) : null;
     }
 
     public static function group(): string

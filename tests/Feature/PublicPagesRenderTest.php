@@ -108,13 +108,13 @@ class PublicPagesRenderTest extends TestCase
         );
     }
 
-    public function test_missing_manuscript_template_is_explained_on_the_guidelines_page(): void
+    public function test_journal_specific_templates_are_explained_on_the_guidelines_page(): void
     {
         Edition::create(['name' => 'ICOMAN 2026', 'is_active' => true]);
 
         $this->get('/author-guidelines')
             ->assertOk()
-            ->assertSee(__('site.public_template_pending'))
+            ->assertSee(__('site.public_template_by_target'))
             ->assertDontSee(__('site.guide_download_manuscript_template_docx'));
     }
 

@@ -209,6 +209,11 @@ class Submission extends Model implements HasMedia
         return self::JOURNAL_TARGETS[$this->journal_target] ?? self::JOURNAL_TARGETS['regular'];
     }
 
+    public function paperTemplateUrl(): ?string
+    {
+        return siteSettings()->paperTemplateUrlFor($this->journal_target);
+    }
+
     /**
      * Penawaran hanya boleh diubah sebelum pembayaran dimulai. Pembayaran
      * pertama (termasuk cicilan atau voucher gratis) mengunci tawaran permanen;

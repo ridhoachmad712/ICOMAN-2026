@@ -14,6 +14,8 @@
         $waitingAssignment = $assignments->isEmpty();
         $waitingDecision = $assignments->isNotEmpty() && $assignments->every(fn ($assignment) => $assignment->status === 'completed');
         $paidForPaper = $record->registrations->firstWhere('status', 'paid');
+        $templateChoiceReady = $record->journalTargetIsChosen() || ! $record->sinta3_offered || (bool) $paidForPaper;
+        $templateUrl = $templateChoiceReady ? $record->paperTemplateUrl() : null;
         $fullPaperOpen = app(\App\Services\ConferenceDeadlines::class)->isOpen('full_paper', $record->edition_id);
         $statusLabel = fn (string $status) => $id ? (\App\Models\Submission::STATUS_LABELS[$status] ?? ucwords(str_replace('_', ' ', $status))) : ucwords(str_replace('_', ' ', $status));
         $statusColor = match($record->status) {
@@ -113,6 +115,21 @@
                 <x-slot name="description">
                     {{ $id ? 'Tahap lanjutan setelah extended abstract diterima dan pembayaran lunas. Unggah naskah final sesuai template panitia (PDF/DOC/DOCX, maks 20 MB).' : 'A separate step after the extended abstract is accepted and payment is complete. Upload the final manuscript using the committee template (PDF/DOC/DOCX, max 20 MB).' }}
                 </x-slot>
+
+                <div class="mb-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-4">
+                    @if(! $templateChoiceReady)
+                        <p class="text-sm text-gray-700">{{ $id ? 'Pilih target jurnal pada halaman pembayaran terlebih dahulu. Template yang sesuai akan muncul otomatis di sini.' : 'Choose your journal target on the payment page first. The matching template will appear here automatically.' }}</p>
+                    @elseif($templateUrl)
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <p class="text-sm text-gray-700">{{ $id ? 'Template untuk' : 'Template for' }} <strong>{{ $record->journalTargetLabel() }}</strong></p>
+                            <x-filament::button tag="a" color="gray" outlined icon="heroicon-o-arrow-down-tray" href="{{ $templateUrl }}" target="_blank" rel="noopener noreferrer">
+                                {{ $id ? 'Unduh template' : 'Download template' }}
+                            </x-filament::button>
+                        </div>
+                    @else
+                        <p class="text-sm text-gray-700">{{ $id ? 'Template untuk '.$record->journalTargetLabel().' belum disediakan panitia. Hubungi panitia sebelum menyiapkan naskah final.' : 'The committee has not provided the template for '.$record->journalTargetLabel().' yet. Contact the committee before preparing the final manuscript.' }}</p>
+                    @endif
+                </div>
 
                 @if($record->hasFullPaper())
                     <div class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-success-200 bg-success-50 px-4 py-3 text-sm">

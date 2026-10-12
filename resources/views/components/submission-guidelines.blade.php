@@ -15,11 +15,7 @@
         <p>{{ __('site.guide_follow_the_schedule_in_central') }}</p>
     </div>
     <div class="flex flex-wrap gap-3">
-        @if(manuscriptTemplatePath())
-            <a href="{{ route('manuscript-template') }}" class="btn btn-primary">{{ __('site.guide_download_manuscript_template_docx') }}</a>
-        @else
-            <p class="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{{ __('site.public_template_pending') }}</p>
-        @endif
+        <p class="w-full rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">{{ __('site.public_template_by_target') }}</p>
         <a href="{{ route('contact') }}" class="btn btn-outline">{{ __('site.guide_contact_the_committee') }}</a>
     </div>
 </div>
