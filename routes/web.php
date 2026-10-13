@@ -81,6 +81,7 @@ Route::middleware('setlocale')->group(function () {
             // Dibatasi lajunya: kode voucher tidak boleh bisa ditebak dengan mencoba berkali-kali.
             Route::post('registration/{registration}/voucher', [RegistrationController::class, 'redeemVoucher'])->middleware('throttle:6,1')->name('registration.voucher');
             Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
+            Route::post('registration/{registration}/cancel-payment', [RegistrationController::class, 'cancelUnpaidCheckout'])->middleware('throttle:6,1')->name('registration.cancel-payment');
             Route::post('registration/{registration}/sync', [RegistrationController::class, 'synchronize'])->middleware('throttle:6,1')->name('registration.sync');
         });
     });

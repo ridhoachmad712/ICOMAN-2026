@@ -36,6 +36,14 @@
             && ! ($price['legacy'] ?? false)
             && ! $record->hasUnresolvedPayment()
             && $record->isPayable();
+        $activeCheckout = $record->payments
+            ->filter(fn ($payment) => $payment->status === 'initiated' && ! $payment->hasExpired())
+            ->sortByDesc('id')
+            ->first();
+        $canCancelCheckout = $record->isPayable()
+            && $record->paidAmount() <= 0
+            && $activeCheckout?->gateway_name === 'borderpay'
+            && filled($activeCheckout?->checkout_url);
     @endphp
 
     <div class="space-y-6">
@@ -51,6 +59,26 @@
             <form method="POST" action="{{ route('author.registration.sync', $record) }}">@csrf
                 <x-filament::button type="submit" color="gray">{{ $id ? 'Periksa Status Pembayaran' : 'Check Payment Status' }}</x-filament::button>
             </form>
+        @endif
+        @error('payment')<p role="alert" class="rounded-xl border border-danger-200 bg-danger-50 p-4 text-sm text-danger-800 dark:border-danger-500/20 dark:bg-danger-500/10 dark:text-danger-300">{{ $message }}</p>@enderror
+        @if($canCancelCheckout)
+            <div class="rounded-xl border border-warning-200 bg-warning-50 p-5 dark:border-warning-500/20 dark:bg-warning-500/10">
+                <h2 class="text-sm font-semibold text-warning-900 dark:text-warning-200">{{ $id ? 'Transaksi pembayaran masih aktif' : 'A payment checkout is still active' }}</h2>
+                <p class="mt-1 text-sm leading-relaxed text-warning-800 dark:text-warning-300">
+                    {{ $id
+                        ? 'Belum membayar? Batalkan transaksi ini terlebih dahulu jika ingin mengganti bayar lunas/cicilan, pilihan jurnal, atau memakai voucher. Nomor VA dan tautan pembayaran lama tidak boleh digunakan lagi setelah dibatalkan.'
+                        : 'Not paid yet? Cancel this checkout first to change full payment/instalments, your journal choice, or apply a voucher. The old VA number and payment link must not be used after cancellation.' }}
+                </p>
+                <div class="mt-4 flex flex-wrap items-center gap-3">
+                    <form method="POST" action="{{ route('author.registration.cancel-payment', $record) }}" x-data="{ submitting: false }" @submit="submitting = true">
+                        @csrf
+                        <x-filament::button type="submit" color="warning" x-bind:disabled="submitting">
+                            {{ $id ? 'Batalkan transaksi & ubah pilihan' : 'Cancel checkout & change choices' }}
+                        </x-filament::button>
+                    </form>
+                    <x-filament::link href="{{ $activeCheckout->checkout_url }}">{{ $id ? 'Lanjutkan pembayaran lama' : 'Continue existing checkout' }}</x-filament::link>
+                </div>
+            </div>
         @endif
         @if($journalLocked)
             <div class="rounded-xl border border-gray-200 bg-gray-50 p-5 dark:border-white/10 dark:bg-white/5">
@@ -68,8 +96,8 @@
                             : 'Your payment is being verified by the committee. The publication option reopens once that is done.' }}
                     @else
                         {{ $id
-                            ? 'Ada pembayaran yang belum selesai, jadi total tagihan tidak bisa diubah sekarang. Selesaikan pembayarannya, atau tekan "Periksa Status Pembayaran" di atas bila Anda sudah membatalkannya, dan pilihan jurnal akan muncul kembali.'
-                            : 'A payment is still open, so the total cannot change right now. Finish that payment, or press "Check Payment Status" above if you abandoned it, and the journal choice will come back.' }}
+                            ? 'Ada transaksi yang masih aktif. Jika belum membayar, gunakan tombol "Batalkan transaksi & ubah pilihan" di atas agar pilihan jurnal terbuka kembali.'
+                            : 'A checkout is still active. If you have not paid, use "Cancel checkout & change choices" above to reopen the journal choice.' }}
                     @endif
                 </p>
             </div>
@@ -192,35 +220,39 @@
                 @if($canRedeemVoucher)
                     {{-- Sengaja di bawah pilihan jurnal: begitu voucher menutup
                          seluruh tagihan, registrasi lunas dan opsi jurnal terkunci. --}}
-                    <div class="mt-5 border-t border-gray-200 pt-4 dark:border-white/10" x-data="{ open: false }">
-                        <button type="button" x-show="! open" x-on:click="open = true"
-                                class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-400">
-                            {{ $id ? 'Punya kode voucher?' : 'Have a voucher code?' }}
-                        </button>
-
-                        <div x-show="open" x-cloak>
-                            <p class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Kode voucher' : 'Voucher code' }}</p>
-                            <p class="mt-1 text-xs leading-relaxed text-gray-500">
-                                {{ $id
-                                    ? 'Kode dapat memberikan diskon atau membebaskan biaya registrasi paper. Potongan hanya berlaku untuk biaya registrasi dasar.'
-                                    : 'A code may discount the base registration fee or waive a presenter paper fee. Discounts apply to the base fee.' }}
-                                @if($sinta3Offered)
+                    <div class="mt-5 rounded-xl border border-primary-200 bg-primary-50/50 p-4 dark:border-primary-500/30 dark:bg-primary-500/5 sm:p-5">
+                        <div class="flex items-start gap-3">
+                            <x-filament::icon icon="heroicon-o-ticket" class="mt-0.5 h-5 w-5 shrink-0 text-primary-600 dark:text-primary-400" />
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-950 dark:text-white">{{ $id ? 'Punya kode voucher?' : 'Have a voucher code?' }}</h3>
+                                <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
                                     {{ $id
-                                        ? 'Tambahan Jurnal SINTA 3 tetap dibayar. Pilih opsi jurnal lebih dulu sebelum memakai voucher.'
-                                        : 'A SINTA 3 journal add-on remains payable. Choose your journal option before applying a voucher.' }}
-                                @endif
-                            </p>
+                                        ? 'Masukkan sebelum membayar. Jika valid, potongan langsung dihitung pada total tagihan.'
+                                        : 'Enter it before paying. If valid, the discount will be reflected in your total.' }}
+                                </p>
+                            </div>
+                        </div>
 
-                            <form method="POST" action="{{ route('author.registration.voucher', $record) }}" class="mt-3 flex flex-wrap items-start gap-2" x-data="{ submitting: false }" @submit="submitting = true">
-                                @csrf
-                                <input type="text" name="voucher_code" required maxlength="40" autocomplete="off"
-                                       placeholder="{{ $id ? 'Masukkan kode' : 'Enter code' }}"
-                                       class="min-w-0 flex-1 rounded-lg border-gray-300 font-mono text-sm uppercase shadow-sm placeholder:font-sans placeholder:normal-case focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-white/5 dark:text-white">
-                                <x-filament::button type="submit" color="gray" x-bind:disabled="submitting">
+                        <form method="POST" action="{{ route('author.registration.voucher', $record) }}" class="mt-4" x-data="{ submitting: false }" @submit="submitting = true">
+                            @csrf
+                            <label for="voucher-code-{{ $record->id }}" class="block text-sm font-medium text-gray-900 dark:text-white">{{ $id ? 'Kode voucher' : 'Voucher code' }}</label>
+                            <div class="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start">
+                                <input id="voucher-code-{{ $record->id }}" type="text" name="voucher_code" required maxlength="40" autocomplete="off"
+                                       value="{{ old('voucher_code') }}" aria-describedby="voucher-help-{{ $record->id }}" @if($errors->has('voucher_code')) aria-invalid="true" @endif
+                                       placeholder="{{ $id ? 'Contoh: ICOMAN-XXXX' : 'Example: ICOMAN-XXXX' }}"
+                                       class="min-h-10 w-full min-w-0 rounded-lg border-gray-300 bg-white font-mono text-sm uppercase shadow-sm placeholder:font-sans placeholder:normal-case focus:border-primary-500 focus:ring-primary-500 dark:border-white/10 dark:bg-gray-900 dark:text-white sm:max-w-md">
+                                <x-filament::button type="submit" color="gray" x-bind:disabled="submitting" class="w-full justify-center sm:w-auto">
                                     {{ $id ? 'Pakai Voucher' : 'Apply Voucher' }}
                                 </x-filament::button>
-                            </form>
-                        </div>
+                            </div>
+                            @error('voucher_code')<p role="alert" class="mt-2 text-sm text-danger-600 dark:text-danger-400">{{ $message }}</p>@enderror
+                            <p id="voucher-help-{{ $record->id }}" class="mt-3 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
+                                {{ $id ? 'Voucher memotong biaya registrasi dasar.' : 'Vouchers apply to the base registration fee.' }}
+                                @if($sinta3Offered)
+                                    {{ $id ? 'Tambahan Jurnal SINTA 3 tetap dibayar.' : 'A SINTA 3 journal add-on remains payable.' }}
+                                @endif
+                            </p>
+                        </form>
                     </div>
                 @endif
 
@@ -252,7 +284,11 @@
                     @endphp
 
                     <div class="mt-5 border-t border-gray-200 pt-5 dark:border-white/10">
-                        @if($record->isPartiallyPaid())
+                        @if($canCancelCheckout)
+                            <p class="text-sm text-gray-600 dark:text-gray-400">
+                                {{ $id ? 'Pilihan pembayaran dan voucher terbuka kembali setelah transaksi aktif di atas dibatalkan.' : 'Payment choices and vouchers will reopen once the active checkout above is cancelled.' }}
+                            </p>
+                        @elseif($record->isPartiallyPaid())
                             {{-- Cicilan berjalan: yang tersisa hanya satu langkah, jadi tidak ada pilihan lagi. --}}
                             <p class="text-sm font-semibold text-gray-950 dark:text-white">
                                 {{ $id ? 'Cicilan 1 dari 2 sudah lunas' : 'Instalment 1 of 2 settled' }}

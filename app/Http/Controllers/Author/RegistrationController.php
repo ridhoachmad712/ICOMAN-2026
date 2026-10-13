@@ -163,4 +163,25 @@ class RegistrationController extends Controller
 
         return back()->with('status', app()->getLocale() === 'id' ? 'Status pembayaran diperbarui.' : 'Payment status refreshed.');
     }
+
+    public function cancelUnpaidCheckout(Registration $registration): RedirectResponse
+    {
+        $this->authorizeOwner($registration);
+
+        try {
+            app(BorderpayService::class)->cancelUnpaidCheckout($registration);
+        } catch (ValidationException $exception) {
+            throw $exception;
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return back()->with('error', app()->getLocale() === 'id'
+                ? 'BorderPay belum dapat mengonfirmasi pembatalan. Pilihan pembayaran tetap terkunci; periksa status atau coba lagi nanti.'
+                : 'BorderPay could not confirm cancellation. Payment choices remain locked; check status or try again later.');
+        }
+
+        return back()->with('status', app()->getLocale() === 'id'
+            ? 'Transaksi lama dibatalkan. Anda dapat memilih cara pembayaran lain atau memakai voucher.'
+            : 'The previous checkout was cancelled. You can now choose another payment plan or apply a voucher.');
+    }
 }

@@ -82,4 +82,15 @@ class BorderpayGatewayTest extends TestCase
 
         Http::assertSent(fn ($request) => $request->url() === 'https://borderpay.id/api/v1/payments/ICOMAN-1-X');
     }
+
+    public function test_cancellation_uses_the_gateway_cancel_endpoint(): void
+    {
+        Http::fake(['borderpay.id/*' => Http::response(['reference_id' => 'ICOMAN-1-X', 'status' => 'expired'])]);
+
+        $response = app(BorderpayGateway::class)->cancelPayment('bp_test_key', 'ICOMAN-1-X');
+
+        $this->assertSame('expired', $response['status']);
+        Http::assertSent(fn ($request) => $request->method() === 'POST'
+            && $request->url() === 'https://borderpay.id/api/v1/payments/ICOMAN-1-X/cancel');
+    }
 }

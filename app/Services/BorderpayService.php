@@ -97,8 +97,14 @@ class BorderpayService
                 $usable = $existing->checkout_url !== null
                     || $existing->created_at?->greaterThan(now()->subMinutes(2));
 
-                if ($sameGateway && $sameAmount && $usable) {
+                if ($sameGateway && $sameAmount && $usable && ! $existing->hasExpired()) {
                     return [$registration, $existing, false];
+                }
+
+                if ($sameGateway && ! $existing->hasExpired() && $existing->checkout_url !== null) {
+                    throw ValidationException::withMessages(['payment' => app()->getLocale() === 'id'
+                        ? 'Transaksi lama masih aktif. Batalkan transaksi tersebut sebelum mengganti cara pembayaran.'
+                        : 'The previous checkout is still active. Cancel it before changing how you pay.']);
                 }
 
                 $existing->update(['status' => 'failed']);
@@ -177,6 +183,91 @@ class BorderpayService
 
         foreach ($payments as $payment) {
             $this->refresh($payment->gateway_reference);
+        }
+    }
+
+    /**
+     * Release an unpaid checkout before the author changes its amount or plan.
+     * The remote order must be expired first: marking it failed only in our
+     * database would leave an old VA payable at BorderPay.
+     */
+    public function cancelUnpaidCheckout(Registration $registration): void
+    {
+        $result = DB::transaction(function () use ($registration): string {
+            $locked = Registration::whereKey($registration->id)->lockForUpdate()->firstOrFail();
+
+            if (! $locked->isPayable() || $locked->paidAmount() > 0 || $locked->isWaived()) {
+                return 'paid';
+            }
+
+            $payments = $locked->payments()
+                ->where('status', 'initiated')
+                ->lockForUpdate()
+                ->get();
+
+            if ($payments->isEmpty()) {
+                return 'ready';
+            }
+
+            foreach ($payments as $payment) {
+                if ($payment->gateway_name !== 'borderpay' || blank($payment->gateway_reference) || blank($payment->checkout_url)) {
+                    return 'unresolved';
+                }
+
+                $reference = $payment->gateway_reference;
+                $remote = $this->gateway->getPayment($this->apiKey, $reference);
+
+                if (($remote['reference_id'] ?? null) !== $reference || ! $this->settle($payment, $remote)) {
+                    return 'unresolved';
+                }
+
+                if ($locked->refresh()->paidAmount() > 0 || ! $locked->isPayable()) {
+                    return 'paid';
+                }
+
+                if ($payment->refresh()->status === 'failed') {
+                    continue;
+                }
+
+                if (($remote['status'] ?? null) !== 'pending') {
+                    return 'unresolved';
+                }
+
+                try {
+                    $cancelled = $this->gateway->cancelPayment($this->apiKey, $reference);
+                } catch (\Throwable $exception) {
+                    // A payment may land between GET and cancel.
+                    $this->refresh($reference);
+
+                    return $locked->refresh()->paidAmount() > 0 ? 'paid' : 'unresolved';
+                }
+
+                if (($cancelled['reference_id'] ?? null) !== $reference || ($cancelled['status'] ?? null) !== 'expired') {
+                    return 'unresolved';
+                }
+
+                // Confirm via GET, the same trusted source used by webhooks.
+                $this->refresh($reference);
+                if ($locked->refresh()->paidAmount() > 0 || ! $locked->isPayable()) {
+                    return 'paid';
+                }
+                if ($payment->refresh()->status !== 'failed') {
+                    return 'unresolved';
+                }
+            }
+
+            return 'ready';
+        });
+
+        if ($result !== 'ready') {
+            throw ValidationException::withMessages(['payment' => match ($result) {
+                'paid' => app()->getLocale() === 'id'
+                    ? 'Pembayaran sudah diterima. Periksa status tagihan sebelum mengubah pilihan.'
+                    : 'A payment has already been received. Check the invoice status before changing your choice.',
+                default => app()->getLocale() === 'id'
+                    ? 'Transaksi belum dapat dibatalkan di BorderPay. Periksa status pembayaran atau hubungi panitia; jangan gunakan nomor VA lama untuk tagihan baru.'
+                    : 'The checkout could not be cancelled at BorderPay. Check payment status or contact the committee; do not use the old VA for a new invoice.',
+            }]);
         }
     }
 
@@ -289,7 +380,16 @@ class BorderpayService
             }
             $payment->save();
 
-            if ($registration->status !== 'paid') {
+            // BorderPay can report paid after an earlier expired status. If an
+            // author has since used a voucher or paid through another order,
+            // keep the money in the ledger but require reconciliation.
+            if ($success && $registration->paidAmount() > (float) $registration->amount) {
+                $registration->update(['status' => 'pending_verification', 'paid_at' => null, 'gateway_payload' => $remote]);
+                Log::warning('Payments exceed the invoice amount; reconcile manually.', [
+                    'registration_id' => $registration->id,
+                    'payment_id' => $payment->id,
+                ]);
+            } elseif ($registration->status !== 'paid') {
                 if ($success) {
                     // Yang menentukan lunas adalah jumlah seluruh pembayaran yang
                     // berhasil, bukan satu pembayaran terhadap total tagihan:
@@ -297,13 +397,7 @@ class BorderpayService
                     $received = $registration->paidAmount();
                     $total = (float) $registration->amount;
 
-                    if ($received > $total) {
-                        $registration->update(['status' => 'pending_verification', 'paid_at' => null, 'gateway_payload' => $remote]);
-                        Log::warning('Payments exceed the invoice amount; reconcile manually.', [
-                            'registration_id' => $registration->id,
-                            'payment_id' => $payment->id,
-                        ]);
-                    } elseif ($received >= $total) {
+                    if ($received >= $total) {
                         $registration->update(['status' => 'paid', 'paid_at' => now(), 'gateway_payload' => $remote]);
                     } else {
                         // Cicilan pertama: uangnya tercatat, tapi registrasinya

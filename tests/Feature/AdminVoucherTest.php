@@ -206,7 +206,10 @@ class AdminVoucherTest extends TestCase
         $this->actingAs($registration->author, 'author');
 
         Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
-            ->assertSee('voucher_code', escape: false);
+            ->assertSee('voucher_code', escape: false)
+            ->assertSee('Have a voucher code?')
+            ->assertSee('voucher-code-'.$registration->id, escape: false)
+            ->assertDontSee('x-show="open"', escape: false);
 
         $this->post(route('author.registration.voucher', $registration), ['voucher_code' => 'PROMO-2026'])
             ->assertRedirect();

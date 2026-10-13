@@ -11,6 +11,7 @@ use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\Submission;
 use App\Models\User;
+use App\Models\Voucher;
 use App\Services\BorderpayGateway;
 use App\Services\BorderpayService;
 use App\Settings\SiteSettings;
@@ -111,6 +112,8 @@ class InstallmentPaymentTest extends TestCase
                 /** @var array<string, array<string, mixed>> */
                 public array $statuses = [];
 
+                public bool $cancelFails = false;
+
                 public function __construct(private array &$captured) {}
 
                 public function createPayment(string $apiKey, array $body): array
@@ -134,6 +137,17 @@ class InstallmentPaymentTest extends TestCase
                 public function getPayment(string $apiKey, string $reference): array
                 {
                     return $this->statuses[$reference] ?? ['reference_id' => $reference, 'status' => 'pending', 'amount' => 0];
+                }
+
+                public function cancelPayment(string $apiKey, string $reference): array
+                {
+                    if ($this->cancelFails) {
+                        throw new \RuntimeException('BorderPay cancellation unavailable');
+                    }
+
+                    $this->statuses[$reference]['status'] = 'expired';
+
+                    return ['reference_id' => $reference, 'status' => 'expired'];
                 }
             };
         });
@@ -263,6 +277,12 @@ class InstallmentPaymentTest extends TestCase
         $this->post(route('author.registration.pay', $registration))->assertRedirect();
         $this->assertSame(350000, $captured[0]['amount']);
 
+        $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])
+            ->assertSessionHasErrors('payment');
+        $this->assertCount(1, $captured, 'An active checkout must not be replaced before BorderPay cancels it.');
+
+        $this->post(route('author.registration.cancel-payment', $registration))->assertRedirect();
+
         $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])->assertRedirect();
 
         $this->assertCount(2, $captured);
@@ -284,6 +304,8 @@ class InstallmentPaymentTest extends TestCase
         $this->post(route('author.registration.pay', $registration), ['plan' => 'installment'])->assertRedirect();
         $this->assertSame(200000, $captured[0]['amount']);
 
+        $this->post(route('author.registration.cancel-payment', $registration))->assertRedirect();
+
         $this->post(route('author.registration.pay', $registration))->assertRedirect();
 
         $this->assertSame(350000, $captured[1]['amount']);
@@ -298,10 +320,129 @@ class InstallmentPaymentTest extends TestCase
         $this->actingAs($registration->author, 'author');
 
         $this->post(route('author.registration.pay', $registration));
+        $this->post(route('author.registration.cancel-payment', $registration))->assertRedirect();
         $this->post(route('author.registration.pay', $registration), ['plan' => 'installment']);
 
         $this->assertSame(1, $registration->payments()->where('status', 'initiated')->count());
         $this->assertSame(200000.0, (float) $registration->payments()->where('status', 'initiated')->value('amount'));
+    }
+
+    public function test_an_unpaid_checkout_can_be_cancelled_then_a_voucher_applied(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+        Filament::setCurrentPanel(Filament::getPanel('author'));
+
+        Voucher::create([
+            'edition_id' => $this->edition->id,
+            'code' => 'STUDENT-100',
+            'host_name' => 'Student discount',
+            'type' => 'discount',
+            'audience' => 'presenter',
+            'registrant_category' => 'student_s1',
+            'discount_kind' => 'fixed',
+            'discount_value' => 100000,
+            'quota' => 1,
+            'is_active' => true,
+        ]);
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $checkout = $registration->payments()->firstOrFail();
+        $url = RegistrationResource::getUrl('view', ['record' => $registration], panel: 'author');
+
+        $this->get($url)->assertOk()
+            ->assertSee(route('author.registration.cancel-payment', $registration), false)
+            ->assertDontSee('name="voucher_code"', false);
+        $this->post(route('author.registration.voucher', $registration), ['voucher_code' => 'STUDENT-100'])
+            ->assertSessionHasErrors('voucher_code');
+
+        $this->post(route('author.registration.cancel-payment', $registration))->assertRedirect();
+        $this->assertSame('failed', $checkout->refresh()->status);
+        $this->assertSame('expired', app(BorderpayGateway::class)->statuses[$checkout->gateway_reference]['status']);
+
+        $this->get($url)->assertOk()->assertSee('name="voucher_code"', false);
+        $this->post(route('author.registration.voucher', $registration), ['voucher_code' => 'STUDENT-100'])
+            ->assertRedirect();
+        $this->assertSame(250000.0, (float) $registration->refresh()->amount);
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $this->assertCount(2, $captured);
+        $this->assertSame(250000, $captured[1]['amount']);
+    }
+
+    public function test_a_payment_received_before_cancellation_keeps_changes_locked(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $checkout = $registration->payments()->firstOrFail();
+        app(BorderpayGateway::class)->statuses[$checkout->gateway_reference]['status'] = 'paid';
+
+        $this->post(route('author.registration.cancel-payment', $registration))
+            ->assertSessionHasErrors('payment');
+
+        $this->assertSame('success', $checkout->refresh()->status);
+        $this->assertSame('paid', $registration->refresh()->status);
+        $this->assertSame(350000.0, $registration->paidAmount());
+    }
+
+    public function test_a_failed_gateway_cancellation_keeps_the_checkout_and_voucher_locked(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $checkout = $registration->payments()->firstOrFail();
+        app(BorderpayGateway::class)->cancelFails = true;
+
+        $this->post(route('author.registration.cancel-payment', $registration))
+            ->assertSessionHasErrors('payment');
+
+        $this->assertSame('initiated', $checkout->refresh()->status);
+        $this->assertTrue($registration->refresh()->hasUnresolvedPayment());
+    }
+
+    public function test_a_late_payment_after_cancellation_and_full_voucher_requires_reconciliation(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $registration = $this->registration($this->fee());
+        $this->actingAs($registration->author, 'author');
+
+        $this->post(route('author.registration.pay', $registration))->assertRedirect();
+        $checkout = $registration->payments()->firstOrFail();
+        $this->post(route('author.registration.cancel-payment', $registration))->assertRedirect();
+
+        Voucher::create([
+            'edition_id' => $this->edition->id,
+            'code' => 'FREE-REGISTRATION',
+            'host_name' => 'Full registration discount',
+            'type' => 'discount',
+            'audience' => 'presenter',
+            'registrant_category' => 'student_s1',
+            'discount_kind' => 'fixed',
+            'discount_value' => 350000,
+            'quota' => 1,
+            'is_active' => true,
+        ]);
+        $this->post(route('author.registration.voucher', $registration), ['voucher_code' => 'FREE-REGISTRATION'])
+            ->assertRedirect();
+        $this->assertTrue($registration->refresh()->isWaived());
+        $this->assertSame('paid', $registration->status);
+
+        app(BorderpayGateway::class)->statuses[$checkout->gateway_reference]['status'] = 'paid';
+        app(BorderpayService::class)->refresh($checkout->gateway_reference);
+
+        $this->assertSame('success', $checkout->refresh()->status);
+        $this->assertSame('pending_verification', $registration->refresh()->status);
+        $this->assertNull($registration->paid_at);
     }
 
     /** Tab kedua dengan pilihan yang sama tetap tidak boleh membuka tagihan kedua. */
