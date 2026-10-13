@@ -12,8 +12,7 @@
         // Speaker "asli" = yang namanya bukan placeholder TBA. Kalau belum ada,
         // tampilkan state "To Be Announced" yang ringkas.
         $announcedSpeakers = $content->records($section)
-            ->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'))
-            ->take(5);
+            ->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'));
         $shouldScroll = $announcedSpeakers->count() > 1;
         // One copy must exceed the widest content area to avoid an empty gap.
         $repeat = $shouldScroll ? max(1, (int) ceil(5 / $announcedSpeakers->count())) : 1;

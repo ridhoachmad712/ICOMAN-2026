@@ -35,14 +35,14 @@ class SpeakerCarouselTest extends TestCase
             ->assertDontSee('data-speaker-marquee-toggle', false);
     }
 
-    public function test_homepage_limits_the_preview_to_five_speakers(): void
+    public function test_homepage_marquee_includes_every_published_speaker(): void
     {
         $this->speakers(7);
 
         $response = $this->get('/')->assertOk();
         $response->assertSee('Pembicara 5');
-        $response->assertDontSee('Pembicara 6');
-        $response->assertDontSee('Pembicara 7');
+        $response->assertSee('Pembicara 6');
+        $response->assertSee('Pembicara 7');
     }
 
     public function test_the_full_speakers_page_also_uses_a_five_column_grid(): void

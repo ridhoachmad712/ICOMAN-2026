@@ -135,7 +135,7 @@ class PageBuilderTest extends TestCase
         $this->get(route('home'))->assertOk()->assertSee('Good block');
     }
 
-    public function test_a_block_limit_caps_how_many_records_show(): void
+    public function test_an_old_speaker_block_limit_does_not_hide_published_speakers(): void
     {
         $this->speaker('Pembicara Satu');
         $this->speaker('Pembicara Dua');
@@ -148,7 +148,7 @@ class PageBuilderTest extends TestCase
         $html = $this->get(route('home'))->assertOk()->getContent();
 
         $this->assertStringContainsString('Pembicara Satu', $html);
-        $this->assertStringNotContainsString('Pembicara Dua', $html);
+        $this->assertStringContainsString('Pembicara Dua', $html);
     }
 
     /** Blok milik edisi lain tidak boleh bocor ke edisi berjalan. */

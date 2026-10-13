@@ -105,7 +105,7 @@ class PageSection extends Model implements HasMedia
     ];
 
     /** Blok yang menampilkan daftar dan bisa dibatasi jumlahnya. */
-    public const LIMITED_TYPES = ['speakers', 'gallery', 'news', 'faq', 'important_dates', 'topics'];
+    public const LIMITED_TYPES = ['gallery', 'news', 'faq', 'important_dates', 'topics'];
 
     /** Blok yang menarik isi sebuah halaman CMS. */
     public const PAGE_TYPES = ['page_content'];

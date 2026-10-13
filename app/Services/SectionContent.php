@@ -97,7 +97,9 @@ class SectionContent
             $query->where('edition_id', $editionId);
         }
 
-        return $limit > 0 ? $query->limit($limit)->get() : $query->get();
+        // Speaker sections always show every published speaker. Older blocks
+        // may still have a saved limit from before the homepage marquee.
+        return $limit > 0 && $type !== 'speakers' ? $query->limit($limit)->get() : $query->get();
     }
 
     /** Komite dikelompokkan per kategori, seperti tampilan halamannya. */
