@@ -14,6 +14,10 @@
         $announcedSpeakers = $content->records($section)
             ->reject(fn ($sp) => str_contains(strtolower((string) $sp->name), 'tba'))
             ->take(5);
+        $shouldScroll = $announcedSpeakers->count() > 1;
+        // One copy must exceed the widest content area to avoid an empty gap.
+        $repeat = $shouldScroll ? max(1, (int) ceil(5 / $announcedSpeakers->count())) : 1;
+        $duration = max(28, $announcedSpeakers->count() * $repeat * 6);
     @endphp
     <section class="bg-white py-16">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -27,13 +31,38 @@
                     <p class="text-lg font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
                 </div>
             @else
-                {{-- Lima pembicara langsung terlihat. Susunan turun menjadi
-                     dua dan satu kolom pada layar yang lebih kecil. --}}
-                <div class="grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
-                    @foreach($announcedSpeakers as $speaker)
-                        <x-card-speaker :speaker="$speaker" />
-                    @endforeach
-                </div>
+                @if($shouldScroll)
+                    <div class="mb-3 flex justify-end">
+                        <button type="button" class="speaker-marquee-toggle text-sm font-medium text-[var(--brand-ink)] underline-offset-4 hover:underline focus-visible:underline"
+                                data-speaker-marquee-toggle
+                                data-pause-label="{{ app()->getLocale() === 'id' ? 'Jeda gerakan' : 'Pause motion' }}"
+                                data-resume-label="{{ app()->getLocale() === 'id' ? 'Lanjutkan gerakan' : 'Resume motion' }}"
+                                aria-pressed="false">
+                            {{ app()->getLocale() === 'id' ? 'Jeda gerakan' : 'Pause motion' }}
+                        </button>
+                    </div>
+                    <div class="speaker-marquee overflow-hidden" aria-label="{{ $heading ?: __('site.keynote_speakers') }}">
+                        <div class="speaker-marquee-track flex w-max" style="animation-duration: {{ $duration }}s">
+                            @foreach([1, 2] as $copy)
+                                <div class="speaker-marquee-set flex w-max gap-6 pr-6" @if($copy === 2) aria-hidden="true" @endif>
+                                    @for($repeatIndex = 0; $repeatIndex < $repeat; $repeatIndex++)
+                                        @foreach($announcedSpeakers as $speaker)
+                                            <div class="speaker-marquee-card w-64 shrink-0 sm:w-72" @if($repeatIndex > 0) aria-hidden="true" @endif>
+                                                <x-card-speaker :speaker="$speaker" />
+                                            </div>
+                                        @endforeach
+                                    @endfor
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @else
+                    <div class="mx-auto max-w-72">
+                        @foreach($announcedSpeakers as $speaker)
+                            <x-card-speaker :speaker="$speaker" />
+                        @endforeach
+                    </div>
+                @endif
 
                 <div class="text-center mt-8">
                     <a href="{{ route('speakers') }}" class="link-more">{{ __('site.view_speakers') }}</a>

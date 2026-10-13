@@ -37,3 +37,16 @@ if (document.readyState === 'loading') {
     initReveal();
 }
 document.addEventListener('livewire:navigated', initReveal);
+
+// Keep the speaker pause control working after Livewire page navigation.
+document.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-speaker-marquee-toggle]');
+    if (! button) return;
+
+    const marquee = button.parentElement?.nextElementSibling;
+    if (! marquee?.classList.contains('speaker-marquee')) return;
+
+    const paused = marquee.classList.toggle('is-paused');
+    button.setAttribute('aria-pressed', String(paused));
+    button.textContent = paused ? button.dataset.resumeLabel : button.dataset.pauseLabel;
+});

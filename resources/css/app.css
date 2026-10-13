@@ -284,6 +284,25 @@
     .sponsor-marquee-set:last-child { display: none; }
 }
 
+/* The second speaker set follows the first without a gap at the loop seam. */
+@keyframes speaker-marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+}
+
+.speaker-marquee-track { animation: speaker-marquee linear infinite; }
+.speaker-marquee:hover .speaker-marquee-track,
+.speaker-marquee:focus-within .speaker-marquee-track,
+.speaker-marquee.is-paused .speaker-marquee-track { animation-play-state: paused; }
+
+@media (prefers-reduced-motion: reduce) {
+    .speaker-marquee-toggle { display: none; }
+    .speaker-marquee-track { animation: none; display: block; width: 100%; }
+    .speaker-marquee-set:first-child { flex-wrap: wrap; justify-content: center; width: 100%; padding-right: 0; }
+    .speaker-marquee-set:last-child,
+    .speaker-marquee-card[aria-hidden="true"] { display: none; }
+}
+
 /* ---------------------------------------------------------------------------
    Kendali tampilan per blok (Penyusun Halaman).
 

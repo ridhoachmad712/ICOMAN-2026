@@ -7,21 +7,32 @@ use App\Models\Speaker;
 use Tests\TestCase;
 
 /**
- * Section speakers menampilkan lima pembicara langsung dalam satu grid.
+ * The homepage speaker preview loops, while the full page remains a grid.
  */
 class SpeakerCarouselTest extends TestCase
 {
-    public function test_five_speakers_render_together_without_a_carousel(): void
+    public function test_homepage_speakers_render_in_a_looping_track_with_a_pause_control(): void
     {
         $this->speakers(5);
 
         $response = $this->get('/')->assertOk();
 
-        $response->assertDontSee('aria-roledescription="carousel"', false);
-        $response->assertSee('lg:grid-cols-5', false);
+        $response->assertSee('speaker-marquee-track', false);
+        $response->assertSee('data-speaker-marquee-toggle', false);
+        $this->assertSame(2, substr_count($response->getContent(), 'speaker-marquee-set flex w-max'));
         for ($i = 1; $i <= 5; $i++) {
             $response->assertSee('Pembicara '.$i);
         }
+    }
+
+    public function test_a_single_speaker_is_static_without_a_pause_control(): void
+    {
+        $this->speakers(1);
+
+        $this->get('/')->assertOk()
+            ->assertSee('Pembicara 1')
+            ->assertDontSee('speaker-marquee-track', false)
+            ->assertDontSee('data-speaker-marquee-toggle', false);
     }
 
     public function test_homepage_limits_the_preview_to_five_speakers(): void
