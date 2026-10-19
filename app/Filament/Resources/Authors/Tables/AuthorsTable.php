@@ -8,6 +8,7 @@ use App\Models\Author;
 use App\Models\Registration;
 use App\Models\Submission;
 use App\Services\AuthorProgress;
+use App\Services\ParticipantContactExport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -16,6 +17,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -176,6 +178,20 @@ class AuthorsTable
                         ->modalSubmitActionLabel('Hapus permanen')
                         ->before(fn (Author $record) => static::purgeRelated($record)),
                 ])->label('Kelola')->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false),
+            ])
+            ->headerActions([
+                Action::make('exportContacts')
+                    ->label('Unduh Data Peserta')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->tooltip('Nama, afiliasi, email, dan nomor HP dalam Excel. Mengikuti tab, filter, dan pencarian yang sedang aktif.')
+                    // Diambil dari query tabel yang sudah tersaring, jadi berkasnya
+                    // berisi persis daftar yang sedang dilihat panitia.
+                    ->action(function (HasTable $livewire, ParticipantContactExport $export) {
+                        return response()
+                            ->download($export->create($livewire->getFilteredSortedTableQuery()), $export->fileName())
+                            ->deleteFileAfterSend();
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
