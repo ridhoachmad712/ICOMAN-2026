@@ -311,6 +311,7 @@ class PageSectionForm
                         ->options([
                             'plain' => 'Satu kolom (isi penuh)',
                             'split' => 'Dua kolom (ringkasan + info acara)',
+                            'features' => 'Pita biru dengan butir daftar sebagai kartu',
                         ])
                         ->default('plain')
                         ->visible(fn ($get) => in_array($get('type'), PageSection::PAGE_TYPES, true)),

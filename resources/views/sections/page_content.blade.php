@@ -15,7 +15,7 @@
 @endphp
 
 @if($split)
-    <section class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-20">
+    <section class="section-y mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="grid gap-10 lg:grid-cols-2 lg:items-center">
             <div data-reveal>
                 <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow ?: __('nav.about')" :center="false" />
@@ -29,7 +29,8 @@
                 <div class="space-y-1">
                     @php
                         $factRows = array_filter([
-                            $edition?->start_date ? ['calendar', __('site.home_date'), $edition->start_date->translatedFormat('d M Y').($edition->end_date && ! $edition->end_date->equalTo($edition->start_date) ? ' – '.$edition->end_date->translatedFormat('d M Y') : '')] : null,
+                            // Tanggal sudah tampil di panel fakta hero; di sini cukup
+                            // rincian tempat dan format pelaksanaan.
                             $s->event_location ? ['map-pin', __('site.home_location'), $s->event_location] : null,
                             $s->event_mode ? ['monitor', 'Format', $s->event_mode] : null,
                         ]);
@@ -40,12 +41,23 @@
                                 <x-ui-icon :name="$icon" class="h-5 w-5" />
                             </span>
                             <div>
-                                <div class="text-xs font-semibold uppercase tracking-wider text-slate-400">{{ $label }}</div>
+                                <div class="text-sm text-slate-500">{{ $label }}</div>
                                 <div class="mt-0.5 font-semibold text-[var(--brand-2)]">{{ $value }}</div>
                             </div>
                         </div>
                     @endforeach
                 </div>
+            </div>
+        </div>
+    </section>
+@elseif($section->setting('layout') === 'features')
+    {{-- Pita biru tua dengan butir daftar sebagai kartu. Dipakai untuk luaran
+         publikasi: bukti yang paling dicari calon pemakalah. --}}
+    <section class="on-dark section-band section-y">
+        <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+            <x-section-heading :section="$section" :title="$heading" :eyebrow="$section->eyebrow" :subtitle="$section->subheading" :center="false" dark />
+            <div data-reveal class="prose prose-invert prose-features max-w-none text-white/80">
+                {!! $page?->content !!}
             </div>
         </div>
     </section>

@@ -3,9 +3,29 @@
     $edition = currentEdition();
     $content = app(\App\Services\SectionContent::class);
     $heroImage = $s->hero_image ? \Illuminate\Support\Facades\Storage::disk('public')->url($s->hero_image) : null;
-    $heading = $section->heading;
-    $eyebrow = $section->eyebrow;
-    $subheading = $section->subheading;
+
+    // Panel fakta kunci: hanya data yang benar-benar ada, tidak ada angka
+    // karangan. Sel yang datanya kosong tidak ditampilkan.
+    $dateText = $edition?->start_date
+        ? $edition->start_date->translatedFormat('d M Y').($edition->end_date && ! $edition->end_date->equalTo($edition->start_date) ? ' – '.$edition->end_date->translatedFormat('d M Y') : '')
+        : null;
+    $nextDeadline = $content->nextDeadline();
+    $lowestFee = \App\Models\RegistrationFee::query()
+        ->when($edition, fn ($query) => $query->where('edition_id', $edition->id))
+        ->get()
+        ->groupBy('currency')
+        ->map(fn ($fees) => $fees->min(fn ($fee) => (float) $fee->currentPrice()));
+    $feeCurrency = $lowestFee->has('IDR') ? 'IDR' : $lowestFee->keys()->first();
+    $topicCount = \App\Models\Topic::query()
+        ->when($edition, fn ($query) => $query->where('edition_id', $edition->id))
+        ->count();
+
+    $facts = array_values(array_filter([
+        $dateText ? ['calendar', __('site.home_date'), $dateText, $s->event_mode] : null,
+        $nextDeadline ? ['clock', __('site.next_deadline'), $nextDeadline->deadlineAt()->translatedFormat('d M Y'), $nextDeadline->label] : null,
+        $feeCurrency ? ['ticket', __('site.hero_fee_from'), $feeCurrency.' '.number_format((float) $lowestFee[$feeCurrency], 0, ',', '.'), null] : null,
+        $topicCount ? ['academic-cap', __('site.hero_subthemes'), __('site.hero_subthemes_count', ['count' => $topicCount]), null] : null,
+    ]));
 @endphp
 
     {{-- HERO --}}
@@ -25,39 +45,46 @@
         {{-- Vignette: menggelapkan tepi bawah tempat teks berada. --}}
         <div aria-hidden="true" class="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_0%,transparent_50%,rgba(0,0,0,0.4))]"></div>
 
-        {{-- Hero tinggi: konten dipusatkan vertikal agar terasa lapang & formal.
-             svh dipakai supaya tinggi tidak melompat saat bar browser mobile muncul/hilang. --}}
-        <div class="relative mx-auto flex max-w-7xl flex-col justify-center px-4 py-12 sm:px-6 sm:py-20 lg:px-8">
-            {{-- Ketiganya bisa ditimpa lewat Penyusun Halaman; bila dikosongkan,
-                 isinya mengikuti data edisi dan Teks Website. --}}
-            {{-- Penanda yang sama dengan seluruh bagian lain; hero tidak
-                 dikecualikan, karena motif yang punya pengecualian bukan motif. --}}
-            <div class="section-mark"></div>
-            <p class="eyebrow">
-                {{ $section->eyebrow ?: __('site.hero_eyebrow') }}
-            </p>
-            <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight max-w-4xl">
-                {{ $section->heading ?: ($edition?->name ?: $s->conference_name) }}
-            </h1>
-            <p class="mt-5 max-w-4xl text-2xl leading-snug font-medium text-white/90 sm:text-3xl lg:text-4xl">
-                {{ $section->subheading ?: $edition?->theme }}
-            </p>
+        {{-- Dua kolom di layar lebar: ajakan di kiri, fakta yang bisa diperiksa
+             di kanan. Dulu sisi kanan kosong dan fakta yang sama muncul dua kali
+             (chip di hero dan kartu di bagian Tentang). --}}
+        <div class="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-12 lg:items-center lg:gap-12 lg:px-8 lg:py-20">
+            <div class="lg:col-span-7">
+                {{-- Penanda yang sama dengan seluruh bagian lain; hero tidak
+                     dikecualikan, karena motif yang punya pengecualian bukan motif. --}}
+                <div class="section-mark"></div>
+                <p class="eyebrow">
+                    {{ $section->eyebrow ?: __('site.hero_eyebrow') }}
+                </p>
+                <h1 class="mt-3 text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight">
+                    {{ $section->heading ?: ($edition?->name ?: $s->conference_name) }}
+                </h1>
+                <p class="mt-5 max-w-3xl text-xl leading-snug font-medium text-white/90 sm:text-2xl lg:text-3xl">
+                    {{ $section->subheading ?: $edition?->theme }}
+                </p>
 
-            {{-- Info chips --}}
-            <div class="mt-7 flex flex-wrap items-center gap-2.5 text-sm text-white">
-                @if($edition?->start_date)
-                    <span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">
-                        {{ $edition->start_date->translatedFormat('d M Y') }}@if($edition->end_date && ! $edition->end_date->equalTo($edition->start_date)) – {{ $edition->end_date->translatedFormat('d M Y') }}@endif
-                    </span>
-                @endif
-                @if($s->event_location && ! str_contains(strtolower((string) $s->event_mode), 'online'))<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_location }}</span>@endif
-                @if($s->event_mode)<span class="inline-flex items-center rounded-full bg-white/10 px-3.5 py-1.5 ring-1 ring-white/15 backdrop-blur">{{ $s->event_mode }}</span>@endif
+                <div class="mt-8 flex flex-wrap gap-3">
+                    <x-participation-link class="btn-accent" :label="__('site.home_submit_abstract')" />
+                    <x-participation-link role="non_presenter" class="btn-ghost" :label="__('site.home_attend_seminar')" />
+                </div>
+                <x-submission-status class="mt-5 max-w-2xl text-white/90" />
             </div>
 
-            <div class="mt-8 flex flex-wrap gap-3">
-                <x-participation-link class="btn-accent" :label="__('site.home_submit_abstract')" />
-                <x-participation-link role="non_presenter" class="btn-ghost" :label="__('site.home_attend_seminar')" />
-            </div>
-            <x-submission-status class="mt-5 text-white/90" />
+            @if($facts)
+                <dl class="grid grid-cols-2 gap-px overflow-hidden rounded-2xl bg-white/15 ring-1 ring-white/15 lg:col-span-5">
+                    @foreach($facts as [$icon, $label, $value, $note])
+                        <div class="bg-[var(--brand-2)]/85 p-4 backdrop-blur sm:p-5">
+                            <dt class="flex items-center gap-2 text-sm text-white/75">
+                                <x-ui-icon :name="$icon" class="h-4 w-4 shrink-0 text-[var(--brand-ink)]" />
+                                {{ $label }}
+                            </dt>
+                            <dd class="mt-1.5 font-display text-lg font-bold leading-tight text-white sm:text-xl">{{ $value }}</dd>
+                            @if(filled($note))
+                                <dd class="mt-1 text-xs leading-snug text-white/75 sm:text-sm">{{ $note }}</dd>
+                            @endif
+                        </div>
+                    @endforeach
+                </dl>
+            @endif
         </div>
     </section>

@@ -150,14 +150,17 @@
     }
 
     /* ── Eyebrow / chip / divider ───────────────────────── */
+    /*
+     * Label kecil di atas judul. DESIGN.md melarang huruf kapital dengan jarak
+     * huruf lebar, jadi label ini ditulis apa adanya (huruf kalimat), cukup
+     * dibedakan lewat warna merek dan ketebalan.
+     */
     .eyebrow {
         display: inline-flex;
         align-items: center;
         gap: 0.5rem;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.16em;
-        text-transform: uppercase;
+        font-size: 0.875rem;
+        font-weight: 600;
         color: var(--accent-ink);
     }
     /*
@@ -206,6 +209,33 @@
         background: #f8fafc;
     }
 
+    /*
+     * Pita biru tua: satu-satunya bagian gelap di tengah halaman, dipakai
+     * untuk bukti yang paling berbobot (luaran publikasi). Satu kali saja,
+     * supaya tetap terbaca sebagai aksen dan bukan pola.
+     */
+    .section-band {
+        background: var(--brand-2);
+        color: #fff;
+    }
+
+    /*
+     * Ritme vertikal bagian beranda. Sebelumnya tiap bagian memakai py-16
+     * sampai py-20 sehingga beranda setinggi ±6.000px; DESIGN.md meminta
+     * susunan yang padat dan bisa dipindai.
+     */
+    .section-y {
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+    @media (min-width: 640px) {
+        .section-y {
+            padding-top: 4rem;
+            padding-bottom: 4rem;
+        }
+    }
+
+
     /* Avatar inisial gradient (fallback tanpa foto). */
     .avatar-fallback {
         background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 22%, #fff), color-mix(in srgb, var(--brand-2) 30%, #fff));
@@ -213,6 +243,47 @@
     }
 
 }
+
+/*
+ * Daftar luaran dalam konten halaman (tata letak "features"): setiap butir
+ * <li> menjadi kartu, dan bagian tebal di awalnya menjadi judul kartu.
+ * Sengaja di luar @layer: gaya bawaan `prose` berada di lapisan utilities
+ * dan akan menimpa indentasi daftar bila aturan ini ada di components.
+ * Isinya tetap HTML biasa dari editor halaman, jadi panitia tidak perlu
+ * mengisi apa pun secara khusus.
+ */
+.prose-features ul {
+    display: grid;
+    gap: 1rem;
+    list-style: none;
+    margin: 1.75rem 0 0;
+    padding: 0;
+}
+@media (min-width: 640px) {
+    .prose-features ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) {
+    .prose-features ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+.prose-features li {
+    margin: 0;
+    padding: 1.25rem 1.25rem 1.25rem 1.25rem;
+    border-radius: 1rem;
+    background: color-mix(in srgb, #fff 6%, transparent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 14%, transparent);
+    border-top: 3px solid var(--brand);
+    line-height: 1.6;
+}
+.prose-features li::marker { content: none; }
+.prose-features li strong:first-child {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    color: #fff;
+}
+/* Paragraf dan judul kecil di dalam konten halaman sudah diwakili judul bagian. */
+.prose-features h3:first-child { display: none; }
 
 /* ── Scroll reveal (fade-up saat elemen masuk viewport) ──
    Hanya aktif jika JS hidup (.js di <html>) → tanpa JS konten tetap tampil.

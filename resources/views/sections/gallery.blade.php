@@ -10,7 +10,7 @@
 @php $records = $content->records($section); @endphp
 
     {{-- GALLERY HIGHLIGHT --}}
-            <section class="py-16">
+            <section class="section-y bg-white">
             <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
                 <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

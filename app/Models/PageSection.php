@@ -136,7 +136,7 @@ class PageSection extends Model implements HasMedia
         ['type' => 'topics', 'heading_key' => 'site.call_for_papers', 'subheading_key' => 'site.topics'],
         ['type' => 'fees', 'heading_key' => 'site.registration_fees', 'eyebrow_key' => 'site.home_investment'],
         ['type' => 'important_dates', 'heading_key' => 'site.important_dates'],
-        ['type' => 'page_content', 'settings' => ['page_slug' => 'publication'], 'heading_key' => 'site.publication_indexing'],
+        ['type' => 'page_content', 'settings' => ['page_slug' => 'publication', 'layout' => 'features'], 'heading_key' => 'site.publication_indexing'],
         ['type' => 'gallery', 'heading_key' => 'site.gallery', 'settings' => ['limit' => 6]],
         ['type' => 'news', 'heading_key' => 'site.latest_news', 'settings' => ['limit' => 3]],
         ['type' => 'faq', 'heading_key' => 'site.faq_title', 'settings' => ['limit' => 5]],

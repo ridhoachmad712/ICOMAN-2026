@@ -18,16 +18,21 @@
         $repeat = $shouldScroll ? max(1, (int) ceil(5 / $announcedSpeakers->count())) : 1;
         $duration = max(28, $announcedSpeakers->count() * $repeat * 6);
     @endphp
-    <section class="bg-white py-16">
+    <section class="section-tint section-y">
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <x-section-heading :section="$section" :title="$heading" :eyebrow="$eyebrow" :subtitle="$subheading" />
 
             @if($announcedSpeakers->isEmpty())
-                <div data-reveal class="mx-auto max-w-md text-center">
-                    <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
+                {{-- Belum ada pembicara terkonfirmasi: satu baris ringkas, bukan
+                     blok besar yang kosong. --}}
+                <div data-reveal class="card mx-auto flex max-w-2xl items-center gap-4 p-5 text-left">
+                    <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
                         <x-ui-icon name="users" class="h-6 w-6" />
+                    </span>
+                    <div>
+                        <p class="font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
+                        <p class="mt-0.5 text-sm text-slate-600">{{ __('site.speakers_pending_note') }}</p>
                     </div>
-                    <p class="text-lg font-semibold text-[var(--brand-2)]">{{ __('site.home_to_be_announced') }}</p>
                 </div>
             @else
                 @if($shouldScroll)
