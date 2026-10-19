@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Notifications\LoaIssued;
 use App\Notifications\SubmissionStatusChanged;
-use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -53,7 +52,7 @@ class Submission extends Model implements HasMedia
     ];
 
     public const STATUS_LABELS = [
-        'extended_abstract_draft' => 'Draft extended abstract',
+        'extended_abstract_draft' => 'Draft abstract',
         'extended_abstract_submitted' => 'Menunggu reviewer',
         'extended_abstract_under_review' => 'Sedang direview',
         'revision_required' => 'Perlu revisi',
@@ -131,66 +130,27 @@ class Submission extends Model implements HasMedia
         return $count >= self::ABSTRACT_MIN_WORDS && $count <= self::ABSTRACT_MAX_WORDS;
     }
 
-    public function hasStructuredExtendedAbstract(): bool
-    {
-        return collect(array_keys(self::EXTENDED_ABSTRACT_FIELDS))
-            ->contains(function (string $field): bool {
-                $content = $this->{$field};
-
-                return is_array($content) && filled($content['content'] ?? null);
-            });
-    }
-
-    /** Draft lama yang hanya berisi abstract tetap dapat dibaca dan direview. */
+    /**
+     * Author kini hanya mengisi abstract (teks biasa). Nama method tetap demi
+     * pemanggil lama; kolom extended_abstract_* dibiarkan di DB tapi tidak
+     * lagi diisi, divalidasi, maupun ditampilkan.
+     */
     public function hasValidExtendedAbstract(): bool
     {
-        if (! $this->hasValidAbstract()) {
-            return false;
-        }
-
-        if (! $this->hasStructuredExtendedAbstract()) {
-            return true;
-        }
-
-        $sections = $this->extendedAbstractSections();
-
-        foreach (array_keys(self::EXTENDED_ABSTRACT_FIELDS) as $field) {
-            if (blank($sections[$field]['text'] ?? null)) {
-                return false;
-            }
-        }
-
-        return true;
+        return $this->hasValidAbstract();
     }
 
     /** @return array<string, array{label: string, html: string, text: string}> */
     public function extendedAbstractSections(): array
     {
-        if (! $this->hasStructuredExtendedAbstract()) {
-            $text = trim((string) $this->abstract);
-            $html = collect(preg_split('/\R{2,}/', $text) ?: [])
-                ->map(fn (string $paragraph): string => trim($paragraph))
-                ->filter()
-                ->map(fn (string $paragraph): string => '<p>'.nl2br(e($paragraph)).'</p>')
-                ->implode('');
+        $text = trim((string) $this->abstract);
+        $html = collect(preg_split('/\R{2,}/', $text) ?: [])
+            ->map(fn (string $paragraph): string => trim($paragraph))
+            ->filter()
+            ->map(fn (string $paragraph): string => '<p>'.nl2br(e($paragraph)).'</p>')
+            ->implode('');
 
-            return ['abstract' => ['label' => 'Abstract', 'html' => $html, 'text' => $text]];
-        }
-
-        $sections = [];
-
-        foreach (self::EXTENDED_ABSTRACT_FIELDS as $field => $label) {
-            $content = $this->{$field};
-            $renderer = RichContentRenderer::make(is_array($content) ? $content : null)
-                ->fileAttachmentsDisk('public');
-            $sections[$field] = [
-                'label' => $label,
-                'html' => $renderer->toHtml(),
-                'text' => trim($renderer->toText()),
-            ];
-        }
-
-        return $sections;
+        return ['abstract' => ['label' => 'Abstract', 'html' => $html, 'text' => $text]];
     }
 
     public function isLoaIssued(): bool

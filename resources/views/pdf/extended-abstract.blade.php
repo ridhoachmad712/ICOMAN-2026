@@ -5,7 +5,7 @@
     <title>{{ $submission->title }}</title>
     <style>
         /*
-         * Naskah extended abstract akademik: badan teks 10.5pt dan hanya dua
+         * Naskah abstract akademik: badan teks 10.5pt dan hanya dua
          * keluarga huruf (serif untuk isi, sans untuk label) supaya berkasnya
          * ringan dan mudah dibaca saat dicetak.
          */
@@ -241,7 +241,7 @@
                     <strong>{{ $conferenceName }}</strong>
                     @if($editionDates){{ $editionDates }}<br>@endif
                     @if($settings?->event_location){{ $settings->event_location }}<br>@endif
-                    Extended Abstract
+                    Abstract
                 </td>
             </tr>
         </table>

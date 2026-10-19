@@ -94,8 +94,8 @@ class DevSeeder extends Seeder
             ],
             [
                 'label' => [
-                    'en' => 'Extended Abstract & Registration Payment Deadline',
-                    'id' => 'Batas Input Extended Abstract & Pembayaran',
+                    'en' => 'Abstract & Registration Payment Deadline',
+                    'id' => 'Batas Input Abstract & Pembayaran',
                 ],
                 'date' => '2026-10-25',
                 'is_highlighted' => false,

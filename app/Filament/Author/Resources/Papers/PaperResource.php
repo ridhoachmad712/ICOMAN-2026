@@ -41,12 +41,12 @@ class PaperResource extends Resource
 
     public static function getNavigationLabel(): string
     {
-        return app()->getLocale() === 'id' ? 'Extended Abstract Saya' : 'My Extended Abstract';
+        return app()->getLocale() === 'id' ? 'Abstract Saya' : 'My Abstract';
     }
 
     public static function getModelLabel(): string
     {
-        return 'extended abstract';
+        return 'abstract';
     }
 
     public static function form(Schema $schema): Schema
@@ -153,7 +153,7 @@ class PaperResource extends Resource
         return [
             'create' => CreatePaper::route('/create'),
             'view' => ViewPaper::route('/{record}'),
-            'extended-abstract' => EditExtendedAbstract::route('/{record}/extended-abstract'),
+            'extended-abstract' => EditExtendedAbstract::route('/{record}/abstract'),
         ];
     }
 }

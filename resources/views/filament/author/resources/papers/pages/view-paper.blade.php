@@ -42,7 +42,7 @@
         @if(in_array($record->status, ['extended_abstract_draft'], true))
             <x-filament::section icon="heroicon-o-document-text" icon-color="primary">
                 <x-slot name="heading">{{ $id ? 'Edit submission' : 'Edit submission' }}</x-slot>
-                <x-slot name="description">{{ $id ? 'Lengkapi lima bagian extended abstract. Simpan draft dan periksa PDF sebelum dikirim ke reviewer.' : 'Complete all five extended abstract sections. Save a draft and check the PDF before reviewer submission.' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Lengkapi abstract. Simpan draft dan periksa PDF sebelum dikirim ke reviewer.' : 'Complete your abstract. Save a draft and check the PDF before reviewer submission.' }}</x-slot>
                 <div class="flex flex-wrap gap-3">
                     <x-filament::button tag="a" href="{{ \App\Filament\Author\Resources\Papers\PaperResource::getUrl('extended-abstract', ['record' => $record]) }}" icon="heroicon-o-pencil-square">
                         {{ $id ? 'Edit submission' : 'Edit submission' }}
@@ -86,7 +86,7 @@
         @if($record->status === 'accepted' && ! $record->isLoaIssued())
             <x-filament::section icon="heroicon-o-check-circle" icon-color="success">
                 <x-slot name="heading">Accepted</x-slot>
-                <x-slot name="description">{{ $id ? 'Extended abstract diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA).' : 'Your extended abstract is accepted. The committee is preparing your Letter of Acceptance (LOA).' }}</x-slot>
+                <x-slot name="description">{{ $id ? 'Abstract diterima. Panitia sedang menyiapkan Letter of Acceptance (LOA).' : 'Your abstract is accepted. The committee is preparing your Letter of Acceptance (LOA).' }}</x-slot>
                 <x-filament::button tag="a" color="gray" outlined href="{{ route('author.submissions.extended-abstract.preview', $record) }}" target="_blank">{{ $id ? 'Buka PDF' : 'Open PDF' }}</x-filament::button>
             </x-filament::section>
         @endif
@@ -113,7 +113,7 @@
             <x-filament::section icon="heroicon-o-document-arrow-up" icon-color="primary">
                 <x-slot name="heading">{{ $id ? 'Naskah final' : 'Final manuscript' }}</x-slot>
                 <x-slot name="description">
-                    {{ $id ? 'Setelah extended abstract diterima, siapkan berkas naskah final sesuai template jurnal tujuan Anda.' : 'After your extended abstract is accepted, prepare the final manuscript using the template for your selected journal.' }}
+                    {{ $id ? 'Setelah abstract diterima, siapkan berkas naskah final sesuai template jurnal tujuan Anda.' : 'After your abstract is accepted, prepare the final manuscript using the template for your selected journal.' }}
                 </x-slot>
 
                 <div class="divide-y divide-gray-200">
@@ -193,9 +193,9 @@
                     </div>
                 </x-filament::section>
 
-                @if($record->hasStructuredExtendedAbstract() || filled($record->abstract))
+                @if(filled($record->abstract))
                     <x-filament::section>
-                        <x-slot name="heading">Extended Abstract</x-slot>
+                        <x-slot name="heading">Abstract</x-slot>
                         <x-slot name="description">{{ $record->extended_abstract_submitted_at?->format('d M Y, H:i') }}</x-slot>
                         @include('components.extended-abstract-document', ['submission' => $record])
                     </x-filament::section>

@@ -40,7 +40,7 @@ class SubmissionForm
                                         : '—'),
                             ]),
 
-                        Section::make('Extended Abstract')
+                        Section::make('Abstract')
                             ->headerActions([
                                 Action::make('previewPdf')
                                     ->label('Buka Preview PDF')

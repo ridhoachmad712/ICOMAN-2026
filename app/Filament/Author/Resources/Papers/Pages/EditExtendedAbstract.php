@@ -10,11 +10,11 @@ use App\Services\ConferenceDeadlines;
 use Filament\Actions\Action;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\RichEditor;
 use Filament\Forms\Components\RichEditor\RichContentRenderer;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TagsInput;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\EditRecord;
@@ -31,14 +31,14 @@ class EditExtendedAbstract extends EditRecord
 
     public function getTitle(): string
     {
-        return app()->getLocale() === 'id' ? 'Tulis Extended Abstract' : 'Write Extended Abstract';
+        return app()->getLocale() === 'id' ? 'Tulis Abstract' : 'Write Abstract';
     }
 
     public function getSubheading(): ?string
     {
         return app()->getLocale() === 'id'
-            ? 'Isi lima bagian naskah, simpan draft, periksa PDF, lalu kirim ke reviewer. Semua data dapat diubah sebelum dikirim.'
-            : 'Complete all five sections, save a draft, check the PDF, then submit it for review. You can edit everything before submission.';
+            ? 'Isi informasi paper dan abstract, simpan draft, periksa PDF, lalu kirim ke reviewer. Naskah lengkap diunggah sebagai berkas setelah LOA terbit dan pembayaran lunas.'
+            : 'Complete the paper details and abstract, save a draft, check the PDF, then submit it for review. The full paper is uploaded as a file after the LOA is issued and payment is complete.';
     }
 
     public function form(Schema $schema): Schema
@@ -105,49 +105,29 @@ class EditExtendedAbstract extends EditRecord
                             Toggle::make('is_corresponding')->label('Corresponding author'),
                         ]),
                 ]),
-            ...$this->manuscriptSections($id),
+            $this->abstractSection($id),
         ]);
     }
 
-    private function manuscriptSections(bool $id): array
+    private function abstractSection(bool $id): Section
     {
-        $descriptions = [
-            'extended_abstract_abstract' => $id
+        return Section::make('Abstract')
+            ->description($id
                 ? 'Ringkas latar belakang, tujuan, metode, hasil, dan kesimpulan dalam '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata berbahasa Inggris.'
-                : 'Summarize the background, objective, method, findings, and conclusion in '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' English words.',
-            'extended_abstract_introduction' => $id ? 'Jelaskan konteks, masalah, dan tujuan penelitian.' : 'Explain the context, research problem, and objective.',
-            'extended_abstract_method' => $id ? 'Jelaskan rancangan, data, dan cara analisis.' : 'Describe the design, data, and analysis method.',
-            'extended_abstract_results_discussion' => $id ? 'Paparkan temuan utama dan maknanya.' : 'Present the main findings and discuss their meaning.',
-            'extended_abstract_conclusion' => $id ? 'Simpulkan kontribusi dan implikasi penelitian.' : 'Summarize the contribution and implications.',
-        ];
-
-        $sections = [];
-
-        foreach (Submission::EXTENDED_ABSTRACT_FIELDS as $field => $label) {
-            $editor = RichEditor::make($field)
-                ->hiddenLabel()
-                ->json()
-                ->fileAttachmentsDisk('public')
-                ->fileAttachmentsDirectory(fn (): string => 'submissions/'.$this->record->id.'/figures')
-                ->fileAttachmentsAcceptedFileTypes(['image/png', 'image/jpeg', 'image/gif'])
-                ->fileAttachmentsMaxSize(2048)
-                ->helperText($id
-                    ? 'Paragraf, daftar, tabel, gambar, dan notasi superscript/subscript tersedia. Untuk rumus kompleks, sisipkan sebagai gambar. Maksimal 2 MB per gambar.'
-                    : 'Paragraphs, lists, tables, images, and superscript/subscript are available. Insert complex equations as images. Maximum 2 MB per image.');
-
-            if ($field === 'extended_abstract_abstract') {
-                $editor->live(onBlur: true)
-                    ->hint(fn ($state): string => $this->wordCount($this->richText($state)).($id ? ' kata' : ' words'))
-                    ->hintColor(fn ($state): string => $this->wordCountInRange($this->richText($state)) ? 'success' : 'danger');
-            }
-
-            $sections[] = Section::make($label)
-                ->description($descriptions[$field])
-                ->icon('heroicon-o-document-text')
-                ->schema([$editor]);
-        }
-
-        return $sections;
+                : 'Summarize the background, objective, method, findings, and conclusion in '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' English words.')
+            ->icon('heroicon-o-document-text')
+            ->schema([
+                Textarea::make('abstract')
+                    ->hiddenLabel()
+                    ->rows(14)
+                    ->autosize()
+                    ->live(onBlur: true)
+                    ->hint(fn ($state): string => $this->wordCount($state).($id ? ' kata' : ' words'))
+                    ->hintColor(fn ($state): string => $this->wordCountInRange($state) ? 'success' : 'danger')
+                    ->helperText($id
+                        ? 'Teks biasa. Pisahkan paragraf dengan baris kosong.'
+                        : 'Plain text. Separate paragraphs with a blank line.'),
+            ]);
     }
 
     protected function getHeaderActions(): array
@@ -177,10 +157,10 @@ class EditExtendedAbstract extends EditRecord
                 ->icon('heroicon-o-paper-airplane')
                 ->color('success')
                 ->requiresConfirmation()
-                ->modalHeading(app()->getLocale() === 'id' ? 'Kirim extended abstract?' : 'Submit extended abstract?')
+                ->modalHeading(app()->getLocale() === 'id' ? 'Kirim abstract?' : 'Submit abstract?')
                 ->modalDescription(app()->getLocale() === 'id'
-                    ? 'Pastikan kelima bagian dan preview PDF sudah benar. Setelah dikirim, naskah dikunci selama proses review.'
-                    : 'Check all five sections and the PDF preview. After submission, the manuscript is locked during review.')
+                    ? 'Pastikan abstract dan preview PDF sudah benar. Setelah dikirim, abstract dikunci selama proses review.'
+                    : 'Check the abstract and the PDF preview. After submission, the abstract is locked during review.')
                 ->action(fn () => $this->submitForReview()),
             $this->getCancelFormAction(),
         ];
@@ -197,16 +177,11 @@ class EditExtendedAbstract extends EditRecord
         $this->save(shouldRedirect: false, shouldSendSavedNotification: false);
 
         if (! $this->record->refresh()->hasValidExtendedAbstract()) {
-            $sections = $this->record->extendedAbstractSections();
-            $missing = collect(Submission::EXTENDED_ABSTRACT_FIELDS)
-                ->filter(fn (string $label, string $field): bool => blank($sections[$field]['text'] ?? null))
-                ->values()
-                ->implode(', ');
             Notification::make()
-                ->title(app()->getLocale() === 'id' ? 'Naskah belum lengkap' : 'The manuscript is incomplete')
+                ->title(app()->getLocale() === 'id' ? 'Abstract belum sesuai' : 'The abstract is not valid yet')
                 ->body(app()->getLocale() === 'id'
-                    ? 'Abstract wajib '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. '.($missing ? 'Lengkapi: '.$missing.'.' : '')
-                    : 'The abstract must be '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words. '.($missing ? 'Complete: '.$missing.'.' : ''))
+                    ? 'Abstract wajib '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' kata. Saat ini '.$this->record->abstractWordCount().' kata.'
+                    : 'The abstract must be '.Submission::ABSTRACT_MIN_WORDS.'–'.Submission::ABSTRACT_MAX_WORDS.' words. It currently has '.$this->record->abstractWordCount().' words.')
                 ->danger()
                 ->send();
 
@@ -231,7 +206,7 @@ class EditExtendedAbstract extends EditRecord
         });
 
         Notification::make()
-            ->title(app()->getLocale() === 'id' ? 'Extended abstract berhasil dikirim' : 'Extended abstract submitted')
+            ->title(app()->getLocale() === 'id' ? 'Abstract berhasil dikirim' : 'Abstract submitted')
             ->success()
             ->send();
 
@@ -240,7 +215,7 @@ class EditExtendedAbstract extends EditRecord
 
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $data['abstract'] = $this->richText($data['extended_abstract_abstract'] ?? null);
+        $data['abstract'] = trim((string) ($data['abstract'] ?? ''));
         $data['extended_abstract_draft_saved_at'] = now();
 
         return $data;
@@ -248,17 +223,10 @@ class EditExtendedAbstract extends EditRecord
 
     protected function mutateFormDataBeforeFill(array $data): array
     {
-        // Paper lama menyimpan abstract sebagai teks. Tampilkan isinya di editor
-        // baru agar revisi tidak dimulai dari kolom yang tampak kosong.
-        if (blank($data['extended_abstract_abstract'] ?? null) && filled($data['abstract'] ?? null)) {
-            $paragraphs = preg_split('/\R{2,}/', trim($data['abstract'])) ?: [];
-            $data['extended_abstract_abstract'] = [
-                'type' => 'doc',
-                'content' => array_map(fn (string $paragraph): array => [
-                    'type' => 'paragraph',
-                    'content' => [['type' => 'text', 'text' => trim($paragraph)]],
-                ], $paragraphs),
-            ];
+        // Draft dari editor lima bagian lama: bila kolom teks kosong, ambil
+        // isi bagian Abstract-nya agar author tidak mulai dari kolom kosong.
+        if (blank($data['abstract'] ?? null) && is_array($data['extended_abstract_abstract'] ?? null)) {
+            $data['abstract'] = $this->richText($data['extended_abstract_abstract']);
         }
 
         return $data;

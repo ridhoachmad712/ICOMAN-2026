@@ -129,8 +129,8 @@ class SubmissionController extends Controller
         // bagian pada editor baru. Arahkan kembali tanpa mengubah submission.
         return redirect(PaperResource::getUrl('extended-abstract', ['record' => $submission], panel: 'author'))
             ->with('status', app()->getLocale() === 'id'
-                ? 'Lengkapi dan kirim kelima bagian extended abstract melalui editor.'
-                : 'Complete and submit all five extended abstract sections in the editor.');
+                ? 'Lengkapi dan kirim abstract melalui formulir di portal.'
+                : 'Complete and submit your abstract through the portal form.');
     }
 
     private function authorizeOwner(Submission $submission): void

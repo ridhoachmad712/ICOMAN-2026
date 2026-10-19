@@ -171,7 +171,7 @@ class AdminSubmissionsPageTest extends TestCase
             // Kolom lebar: naskahnya.
             ->assertSee('Judul Paper Yang Panjang')
             ->assertSee('Content Quality')
-            ->assertSee('Extended Abstract')
+            ->assertSee('Abstract')
             // Kolom sempit: keterangan pendeknya.
             ->assertSee($submission->submission_number)
             ->assertSee('Sedang direview')

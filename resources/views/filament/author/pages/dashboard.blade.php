@@ -79,7 +79,7 @@
             <div class="space-y-6 lg:col-span-2">
                 @if($author->isPresenter() && $submissions->isNotEmpty())
                     <x-filament::section>
-                        <x-slot name="heading">{{ $id ? 'Extended abstract saya' : 'My extended abstract' }}</x-slot>
+                        <x-slot name="heading">{{ $id ? 'Abstract saya' : 'My abstract' }}</x-slot>
                         <x-slot name="description">{{ $id ? 'Status paper dan hasil review terbaru.' : 'Your paper status and latest review result.' }}</x-slot>
                         <div class="divide-y divide-gray-200">
                             @foreach($submissions as $submission)
