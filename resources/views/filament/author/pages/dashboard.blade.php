@@ -35,7 +35,7 @@
                 </div>
                 <h2 class="text-xl font-semibold text-gray-950 sm:text-2xl">{{ $id ? 'Selamat datang, '.$author->name : 'Welcome, '.$author->name }}</h2>
                 @if(filled($author->affiliation))
-                    <p class="mt-1 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                    <p class="mt-1 flex items-center gap-2 text-sm font-medium text-gray-700">
                         <x-filament::icon icon="heroicon-o-building-library" class="h-4 w-4 shrink-0 text-gray-400" />
                         <span>{{ $author->affiliation }}</span>
                     </p>
