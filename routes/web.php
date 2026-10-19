@@ -94,6 +94,8 @@ Route::middleware(['auth'])->get(
 
 Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaperForAdmin'])->name('admin.submissions.full-paper.download');
 
+Route::middleware('auth')->get('admin/registrations/{registration}/payment-proof', [RegistrationController::class, 'paymentProofForAdmin'])->name('admin.registrations.payment-proof');
+
 /*
 |--------------------------------------------------------------------------
 | Payment gateway (BorderPay) — di luar grup lokal/auth.

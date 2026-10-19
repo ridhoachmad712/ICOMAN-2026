@@ -15,6 +15,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 
 class RegistrationController extends Controller
 {
@@ -183,5 +185,25 @@ class RegistrationController extends Controller
         return back()->with('status', app()->getLocale() === 'id'
             ? 'Transaksi lama dibatalkan. Anda dapat memilih cara pembayaran lain atau memakai voucher.'
             : 'The previous checkout was cancelled. You can now choose another payment plan or apply a voucher.');
+    }
+
+    /**
+     * Bukti transfer untuk pengurus uang (superadmin, admin registrasi,
+     * bendahara). Berkasnya di disk privat, jadi ini satu-satunya pintunya.
+     */
+    public function paymentProofForAdmin(Registration $registration): Response
+    {
+        abort_unless(Auth::guard('web')->user()?->handlesMoney(), 403);
+
+        $media = $registration->getFirstMedia('payment_proof');
+        abort_unless($media && is_file($media->getPath()), 404);
+
+        return response()->file($media->getPath(), [
+            'Content-Type' => $media->mime_type,
+            'Content-Disposition' => HeaderUtils::makeDisposition(HeaderUtils::DISPOSITION_INLINE, $media->file_name, 'payment-proof'),
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => 'sandbox',
+        ]);
     }
 }

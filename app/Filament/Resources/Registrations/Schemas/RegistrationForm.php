@@ -29,10 +29,8 @@ class RegistrationForm
                         Placeholder::make('bukti')
                             ->label('Bukti Transfer')
                             ->content(function ($record): HtmlString {
-                                $url = $record?->getFirstMediaUrl('payment_proof');
-
-                                return new HtmlString($url
-                                    ? '<a href="'.$url.'" target="_blank" class="text-primary-600 underline">Lihat bukti</a>'
+                                return new HtmlString($record?->hasMedia('payment_proof')
+                                    ? '<a href="'.e(route('admin.registrations.payment-proof', $record)).'" target="_blank" rel="noopener" class="text-primary-600 underline">Lihat bukti</a>'
                                     : '—');
                             }),
                     ]),

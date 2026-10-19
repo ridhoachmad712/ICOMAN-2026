@@ -78,9 +78,9 @@ class RegistrationsTable
                     ->label('Bukti')
                     ->icon('heroicon-o-photo')
                     ->color('gray')
-                    ->url(fn (Registration $record) => $record->getFirstMediaUrl('payment_proof') ?: null)
+                    ->url(fn (Registration $record) => route('admin.registrations.payment-proof', $record))
                     ->openUrlInNewTab()
-                    ->visible(fn (Registration $record) => (bool) $record->getFirstMediaUrl('payment_proof')),
+                    ->visible(fn (Registration $record) => $record->hasMedia('payment_proof')),
 
                 // Jaring pengaman: bila notifikasi BorderPay gagal masuk (webhook/queue
                 // bermasalah) admin tetap bisa menandai invoice yang sudah dibayar.

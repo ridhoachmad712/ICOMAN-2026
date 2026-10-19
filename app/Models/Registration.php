@@ -214,8 +214,10 @@ class Registration extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
-        // Bukti transfer (khusus payment_method = manual).
+        // Bukti transfer (khusus payment_method = manual). Disk privat: tidak
+        // punya URL publik, dibuka lewat route admin.payment-proof.
         $this->addMediaCollection('payment_proof')
+            ->useDisk('payment_proofs')
             ->singleFile()
             ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
     }

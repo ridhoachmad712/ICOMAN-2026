@@ -38,6 +38,16 @@ return [
             'throw' => true,
         ],
 
+        // Bukti transfer memuat nama dan nomor rekening pembayar: privat,
+        // hanya tersaji lewat route yang memeriksa peran pengurus uang.
+        'payment_proofs' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/payment-proofs'),
+            'visibility' => 'private',
+            'serve' => false,
+            'throw' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),
