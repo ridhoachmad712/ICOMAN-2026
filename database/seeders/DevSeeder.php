@@ -53,7 +53,7 @@ class DevSeeder extends Seeder
             ],
             [
                 'en' => 'Sub-theme 2: AI-Driven Experiential Marketing and Inclusive Sustainable Consumer Behavior',
-                'id' => 'Sub-tema 2: Pemasaran Berbasis Pengalaman Berbasis AI dan Perilaku Konsumen Berkelanjutan yang Inklusif',
+                'id' => 'Sub-tema 2: Pemasaran Eksperiensial Berbasis AI dan Perilaku Konsumen yang Inklusif dan Berkelanjutan',
             ],
             [
                 'en' => 'Sub-theme 3: Financial Inclusion, Green Investment, and Risk Management in the AI Era',
@@ -263,14 +263,14 @@ class DevSeeder extends Seeder
 
 <h4>1. Latar Belakang dan Urgensi</h4>
 <p>Memasuki pertengahan dekade 2020-an, lanskap bisnis global mengalami transformasi struktural yang belum pernah terjadi sebelumnya. Akselerasi adopsi Kecerdasan Buatan (Artificial Intelligence/AI) generatif dan agentik di berbagai fungsi organisasi—mulai dari manajemen sumber daya manusia, pemasaran, keuangan, hingga tata kelola strategis—secara fundamental membentuk ulang cara organisasi menciptakan nilai, bersaing, dan bertahan di iklim bisnis yang VUCA (Volatile, Uncertain, Complex, Ambiguous) dan BANI (Brittle, Anxious, Nonlinear, Incomprehensible). Di tahun 2026, dunia bisnis tidak lagi bertanya "apakah" perlu mengadopsi AI, melainkan "bagaimana" mengintegrasikannya secara etis, inklusif, dan berkelanjutan.</p>
-<p>Di saat yang sama, tuntutan global terhadap pembangunan berkelanjutan (Sustainable Development Goals/SDGs, standar ISSB, dan kerangka ESG) kian menguat. Fenomena ini menghadirkan tantangan ganda bagi praktisi maupun akademisi: bagaimana memanfaatkan kecepatan dan efisiensi AI tanpa mengorbankan prinsip inklusivitas, keadilan sosial, dan kelestarian lingkungan—khususnya di kawasan ASEAN dan negara berkembang.</p>
+<p>Di saat yang sama, tuntutan global terhadap pembangunan berkelanjutan (Sustainable Development Goals/SDGs, regulasi pelaporan keberlanjutan ISSB, dan kerangka ESG) kian menguat. Fenomena ini menghadirkan tantangan ganda bagi praktisi maupun akademisi: bagaimana memanfaatkan kecepatan dan efisiensi AI tanpa mengorbankan prinsip inklusivitas, keadilan sosial, dan kelestarian lingkungan—khususnya di kawasan ASEAN dan negara berkembang.</p>
 
 <h4>2. Tujuan Strategis</h4>
 <ul>
   <li><strong>Tujuan Akademik:</strong> Menyediakan forum ilmiah internasional untuk diseminasi temuan riset mutakhir terkait integrasi AI, ketahanan bisnis, dan pembangunan berkelanjutan inklusif.</li>
   <li><strong>Tujuan Kolaborasi & Jejaring Riset:</strong> Membangun dan memperluas jaringan riset internasional lintas negara dan institusi antara perguruan tinggi, lembaga riset, dan mitra industri.</li>
   <li><strong>Tujuan Praktis & Terapan:</strong> Menjembatani kesenjangan akademisi–praktisi melalui pertukaran wawasan penerapan AI yang bertanggung jawab dalam dunia bisnis.</li>
-  <li><strong>Tujuan Dampak Kebijakan:</strong> Merumuskan rekomendasi kebijakan strategis berbasis bukti bagi regulator untuk ekosistem bisnis era AI.</li>
+  <li><strong>Tujuan Dampak Kebijakan:</strong> Merumuskan rekomendasi kebijakan berbasis bukti bagi pembuat kebijakan dan regulator untuk mendorong ekosistem bisnis yang inklusif, tangguh, dan berkelanjutan.</li>
   <li><strong>Tujuan Publikasi Ilmiah:</strong> Memfasilitasi publikasi hasil penelitian berkualitas tinggi melalui prosiding terindeks dan jurnal mitra bereputasi.</li>
 </ul>
 
@@ -327,7 +327,7 @@ class DevSeeder extends Seeder
 Jl. Raya Pendidikan, Makassar, South Sulawesi, Indonesia<br>
 Official Email: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
                     'id' => '<h3>Konferensi Daring Penuh melalui Zoom Meeting</h3>
-<p>Guna menjamin aksesibilitas partisipasi bagi peserta dan pemakalah dari berbagai belahan dunia tanpa kendala geografis, sekaligus menegaskan komitmen keberlanjutan dalam meminimalkan jejak karbon emisi perjalanan, <strong>ICOMAN 2026 diselenggarakan secara penuh secara daring (virtual conference) melalui platform Zoom Meeting</strong>.</p>
+<p>Guna menjamin aksesibilitas partisipasi bagi peserta dan pemakalah dari berbagai belahan dunia tanpa kendala geografis, sekaligus menegaskan komitmen keberlanjutan dalam meminimalkan jejak karbon emisi perjalanan, <strong>ICOMAN 2026 diselenggarakan sepenuhnya secara daring (virtual conference) melalui platform Zoom Meeting</strong>.</p>
 
 <h4>Format Sesi</h4>
 <ul>
@@ -423,7 +423,7 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
   <li>Manajemen talenta berkelanjutan lintas generasi</li>
 </ul>
 
-<h4>Sub-tema 2: Pemasaran Berbasis Pengalaman Berbasis AI dan Perilaku Konsumen Berkelanjutan yang Inklusif</h4>
+<h4>Sub-tema 2: Pemasaran Eksperiensial Berbasis AI dan Perilaku Konsumen yang Inklusif dan Berkelanjutan</h4>
 <ul>
   <li>Personalisasi dan hyper-targeting dalam pemasaran melalui generative AI</li>
   <li>Etika pemasaran dan privasi data dalam kampanye berbasis AI</li>
@@ -486,8 +486,8 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
 <p>Seluruh paper yang dipresentasikan di ICOMAN 2026 akan melalui proses peer-review yang ketat. Paper terpilih berkesempatan mendapatkan luaran publikasi dan apresiasi ilmiah:</p>
 
 <ul>
-  <li><strong>Edisi Khusus Jurnal Mitra Bereputasi:</strong> Paper berkualitas terbaik berkesempatan direkomendasikan untuk terbit pada Special Issue jurnal mitra terakreditasi dan bereputasi.</li>
-  <li><strong>Policy Brief:</strong> Sintesis hasil diskusi panel dan riset yang disusun sebagai ringkasan kebijakan strategis bagi para pembuat kebijakan dan pelaku bisnis.</li>
+  <li><strong>Edisi Khusus Jurnal Mitra Bereputasi:</strong> Paper berkualitas terbaik berkesempatan direkomendasikan untuk terbit pada Special Issue jurnal mitra bereputasi.</li>
+  <li><strong>Policy Brief:</strong> Sintesis hasil diskusi panel dan riset yang disusun menjadi policy brief berbasis bukti dan disebarkan kepada para pemangku kepentingan utama.</li>
   <li><strong>Best Paper Award:</strong> Apresiasi dan penghargaan naskah terbaik dengan kontribusi ilmiah orisinal tertinggi pada masing-masing dari 4 sub-tema.</li>
   <li><strong>Sertifikat Internasional:</strong> Sertifikat kepesertaan dan/atau presentasi berskala internasional bagi seluruh peserta dan pemakalah terdaftar.</li>
   <li><strong>Kolaborasi Riset Institusional:</strong> Kesempatan memperluas jejaring riset internasional serta inisiasi kerja sama formal (MoU/MoA).</li>
@@ -507,7 +507,7 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
                 ],
                 'a' => [
                     'en' => 'ICOMAN 2026 is conducted fully online (virtual conference) via the Zoom Meeting platform to allow seamless global participation while minimizing carbon emissions.',
-                    'id' => 'ICOMAN 2026 diselenggarakan secara penuh secara daring (virtual conference) melalui platform Zoom Meeting untuk memudahkan partisipasi global dan menekan jejak karbon.',
+                    'id' => 'ICOMAN 2026 diselenggarakan sepenuhnya secara daring (virtual conference) melalui platform Zoom Meeting untuk memudahkan partisipasi global dan menekan jejak karbon.',
                 ],
             ],
             [
@@ -517,7 +517,7 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
                 ],
                 'a' => [
                     'en' => 'English is the official language for all paper submissions, oral presentations, and keynote panel sessions.',
-                    'id' => 'Bahasa Inggris (English) adalah bahasa resmi untuk seluruh penulisan paper, presentasi oral, serta sesi pleno pembicara utama.',
+                    'id' => 'Bahasa Inggris (English) adalah bahasa resmi untuk seluruh pengiriman paper, presentasi oral, serta sesi pleno pembicara utama.',
                 ],
             ],
             [
@@ -527,7 +527,7 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
                 ],
                 'a' => [
                     'en' => 'Parallel sessions will be held across 20 Zoom Breakout Rooms. Each presenter is allotted 7 minutes for presentation followed by 3 minutes for Q&A and discussant feedback.',
-                    'id' => 'Sesi paralel dilaksanakan di 20 Zoom Breakout Rooms. Setiap pemakalah dialokasikan 7 menit untuk presentasi dan 3 menit untuk tanya jawab serta masukan dari reviewer.',
+                    'id' => 'Sesi paralel dilaksanakan di 20 Zoom Breakout Rooms. Setiap pemakalah dialokasikan 7 menit untuk presentasi dan 3 menit untuk tanya jawab serta masukan dari pembahas (discussant).',
                 ],
             ],
             [
@@ -573,7 +573,7 @@ Email Resmi: <a href="mailto:icoman@unm.ac.id">icoman@unm.ac.id</a></p>',
                 'country' => null,
                 'topic' => [
                     'en' => 'AI-Driven Experiential Marketing and Sustainable Consumer Behavior',
-                    'id' => 'Pemasaran Berbasis Pengalaman Berbasis AI dan Perilaku Konsumen Berkelanjutan',
+                    'id' => 'Pemasaran Eksperiensial Berbasis AI dan Perilaku Konsumen Berkelanjutan',
                 ],
                 'bio' => 'To Be Announced (TBA)',
             ],
