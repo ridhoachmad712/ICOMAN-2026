@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Author;
 use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Http\Controllers\Controller;
 use App\Models\Submission;
+use App\Services\AbstractWordDocument;
 use App\Services\ConferenceDeadlines;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
@@ -118,6 +119,20 @@ class SubmissionController extends Controller
 
         // Reviewer murni menerima versi tanpa identitas penulis.
         return $this->extendedAbstractPdf($submission, blind: ! $mayManage);
+    }
+
+    /** Abstrak yang diterima dalam format Word, khusus panitia pengelola submission. */
+    public function downloadAbstractWordForAdmin(Submission $submission, AbstractWordDocument $document): Response
+    {
+        abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);
+        abort_unless($submission->status === 'accepted', 404);
+
+        return response()
+            ->download($document->create($submission), $document->fileName($submission), [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Cache-Control' => 'private, no-store',
+            ])
+            ->deleteFileAfterSend();
     }
 
     public function submitExtendedAbstract(Request $request, Submission $submission): RedirectResponse

@@ -34,6 +34,12 @@
                     @if(currentEdition())<span class="text-sm text-gray-500">{{ currentEdition()->name }}</span>@endif
                 </div>
                 <h2 class="text-xl font-semibold text-gray-950 sm:text-2xl">{{ $id ? 'Selamat datang, '.$author->name : 'Welcome, '.$author->name }}</h2>
+                @if(filled($author->affiliation))
+                    <p class="mt-1 flex items-center gap-1.5 text-sm font-medium text-gray-700">
+                        <x-filament::icon icon="heroicon-o-building-library" class="h-4 w-4 shrink-0 text-gray-400" />
+                        <span>{{ $author->affiliation }}</span>
+                    </p>
+                @endif
                 <p class="mt-1 text-sm text-gray-600">{{ $id ? 'Lanjutkan dari langkah yang paling membutuhkan perhatian Anda.' : 'Continue from the step that needs your attention most.' }}</p>
             </div>
             <x-filament::button tag="a" color="gray" outlined icon="heroicon-o-user" href="{{ $profilePage::getUrl(panel: 'author') }}">

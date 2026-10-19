@@ -63,7 +63,11 @@ class SubmissionsTable
                     ->searchable(query: fn (Builder $query, string $search) => $query
                         ->where('title', 'like', "%{$search}%")
                         ->orWhere('submission_number', 'like', "%{$search}%")),
-                TextColumn::make('author.name')->label('Submitter')->searchable()->toggleable(),
+                TextColumn::make('author.name')
+                    ->label('Submitter')
+                    ->description(fn ($record): ?string => $record->author?->affiliation)
+                    ->searchable(['name', 'affiliation'])
+                    ->toggleable(),
                 // Judul disembunyikan agar tabel ringkas; bisa diaktifkan lewat
                 // tombol pemilih kolom bila sewaktu-waktu dibutuhkan.
                 TextColumn::make('title')
@@ -309,6 +313,13 @@ class SubmissionsTable
                         ->visible(fn ($record) => $record->extended_abstract_draft_saved_at || filled($record->abstract))
                         ->url(fn ($record): string => route('admin.submissions.extended-abstract.preview', $record))
                         ->openUrlInNewTab(),
+                    Action::make('downloadAbstractWord')
+                        ->label('Unduh Word')
+                        ->icon('heroicon-o-document-text')
+                        ->color('gray')
+                        ->visible(fn ($record) => $record->status === 'accepted'
+                            && (auth()->user()?->managesSubmissions() ?? false))
+                        ->url(fn ($record): string => route('admin.submissions.abstract-word', $record)),
                     Action::make('reviewDirectly')
                         ->label('Review Langsung')
                         ->icon('heroicon-o-pencil-square')

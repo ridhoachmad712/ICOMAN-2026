@@ -92,6 +92,8 @@ Route::middleware(['auth'])->get(
     [SubmissionController::class, 'previewExtendedAbstractForAdmin'],
 )->name('admin.submissions.extended-abstract.preview');
 
+Route::middleware('auth')->get('admin/submissions/{submission}/abstract.docx', [SubmissionController::class, 'downloadAbstractWordForAdmin'])->name('admin.submissions.abstract-word');
+
 Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaperForAdmin'])->name('admin.submissions.full-paper.download');
 
 Route::middleware('auth')->get('admin/registrations/{registration}/payment-proof', [RegistrationController::class, 'paymentProofForAdmin'])->name('admin.registrations.payment-proof');

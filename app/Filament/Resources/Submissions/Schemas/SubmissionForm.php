@@ -51,6 +51,15 @@ class SubmissionForm
                                         : null)
                                     ->openUrlInNewTab()
                                     ->visible(fn ($record): bool => static::hasAbstract($record)),
+                                Action::make('downloadWord')
+                                    ->label('Unduh Word')
+                                    ->icon('heroicon-o-document-text')
+                                    ->color('gray')
+                                    ->url(fn ($record): ?string => $record
+                                        ? route('admin.submissions.abstract-word', $record)
+                                        : null)
+                                    ->visible(fn ($record): bool => $record?->status === 'accepted'
+                                        && (auth()->user()?->managesSubmissions() ?? false)),
                             ])
                             ->schema([
                                 Placeholder::make('extended_abstract_document')

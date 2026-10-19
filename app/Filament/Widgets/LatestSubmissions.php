@@ -53,7 +53,9 @@ class LatestSubmissions extends BaseWidget
 
                 TextColumn::make('title')->label('Judul')->limit(40)->wrap(),
 
-                TextColumn::make('author.name')->label('Submitter'),
+                TextColumn::make('author.name')
+                    ->label('Submitter')
+                    ->description(fn (Submission $record): ?string => $record->author?->affiliation),
 
                 TextColumn::make('reviewer')
                     ->label('Reviewer')
