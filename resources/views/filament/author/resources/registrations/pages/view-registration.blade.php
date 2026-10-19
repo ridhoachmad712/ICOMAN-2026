@@ -270,6 +270,11 @@
                             @if($record->paid_at) · {{ $record->paid_at->format('d M Y, H:i') }} @endif
                         </p>
                     </div>
+                    {{-- Grup peserta untuk presenter dan peserta seminar; invoice
+                         kemitraan co-host bukan pendaftaran peserta. --}}
+                    @if($record->registrationFee?->audience !== 'cohost')
+                        @include('filament.author.components.whatsapp-group', ['class' => 'mt-4'])
+                    @endif
                 @elseif($record->status !== 'pending_verification')
                     @php
                         $canInstall = $record->allowsInstallments();

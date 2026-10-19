@@ -47,6 +47,10 @@
             </x-filament::button>
         </header>
 
+        @if($author->hasSeminarAccess())
+            @include('filament.author.components.whatsapp-group')
+        @endif
+
         <section class="rounded-xl border border-primary-200 bg-white p-5 sm:p-6">
             <div class="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
                 <div class="max-w-2xl">

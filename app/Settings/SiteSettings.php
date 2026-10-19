@@ -22,6 +22,9 @@ class SiteSettings extends Settings
 
     public ?string $contact_address;
 
+    /** Undangan grup WhatsApp peserta; hanya ditampilkan kepada yang sudah lunas. */
+    public ?string $whatsapp_group_url;
+
     public ?string $social_instagram;
 
     public ?string $social_twitter;

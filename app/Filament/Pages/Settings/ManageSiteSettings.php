@@ -99,6 +99,12 @@ class ManageSiteSettings extends SettingsPage
                         TextInput::make('contact_email')->email(),
                         TextInput::make('contact_whatsapp'),
                         Textarea::make('contact_address')->rows(2)->columnSpanFull(),
+                        TextInput::make('whatsapp_group_url')
+                            ->label('Link grup WhatsApp peserta')
+                            ->url()
+                            ->placeholder('https://chat.whatsapp.com/...')
+                            ->helperText('Hanya tampil di portal bagi presenter dan peserta yang pembayarannya sudah lunas. Kosongkan untuk menyembunyikan.')
+                            ->columnSpanFull(),
                     ]),
 
                 Section::make('Media Sosial')
