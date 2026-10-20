@@ -77,6 +77,13 @@ class ListSubmissions extends ListRecords
                 ->badgeColor('success')
                 ->modifyQueryUsing(fn ($query) => $query->where('status', 'accepted')),
 
+            // Diukur dari berkasnya (lihat Submission::scopeWithFullPaper), sama
+            // dengan kolom dan filter Full paper di tabel.
+            'full_paper' => Tab::make('Full Paper Masuk')
+                ->badge(Submission::ofCurrentEdition()->withFullPaper()->count())
+                ->badgeColor('success')
+                ->modifyQueryUsing(fn ($query) => $query->withFullPaper()),
+
             'rejected' => Tab::make('Ditolak')
                 ->badge(Submission::ofCurrentEdition()->where('status', 'rejected')->count())
                 ->badgeColor('gray')

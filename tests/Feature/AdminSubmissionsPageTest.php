@@ -55,7 +55,7 @@ class AdminSubmissionsPageTest extends TestCase
         $page = Livewire::test(ListSubmissions::class)->assertOk();
 
         $tabs = array_keys($page->instance()->getTabs());
-        $this->assertSame(['action', 'under_review', 'accepted', 'rejected', 'all'], $tabs);
+        $this->assertSame(['action', 'under_review', 'accepted', 'full_paper', 'rejected', 'all'], $tabs);
     }
 
     /** Tabel diringkas: kode submission tampil, judul disembunyikan — tapi tetap bisa dicari. */

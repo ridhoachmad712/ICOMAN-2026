@@ -144,6 +144,24 @@ class SubmissionDownloadsTest extends TestCase
         $this->assertSame('Belum', $fullPaper['Budi']);
     }
 
+    public function test_the_full_paper_tabs_list_only_authors_who_uploaded(): void
+    {
+        Storage::fake('papers');
+        $topic = $this->topic(1, 'Sub-tema 1');
+        $done = $this->withFullPaper($this->paper('accepted', $topic, 'Rina', 'Unhas', 'Sudah kumpul'));
+        $missing = $this->paper('accepted', $topic, 'Budi', 'UNM', 'Belum kumpul');
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'full_paper')
+            ->assertCanSeeTableRecords([$done])
+            ->assertCanNotSeeTableRecords([$missing]);
+
+        Livewire::test(\App\Filament\Resources\Authors\Pages\ListAuthors::class)
+            ->set('activeTab', 'full_paper')
+            ->assertCanSeeTableRecords([$done->author])
+            ->assertCanNotSeeTableRecords([$missing->author]);
+    }
+
     public function test_full_papers_download_as_one_zip_named_by_code_and_title(): void
     {
         Storage::fake('papers');

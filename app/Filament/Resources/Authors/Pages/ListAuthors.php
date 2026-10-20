@@ -37,6 +37,12 @@ class ListAuthors extends ListRecords
                     ->where('status', 'revision_required'))
             : $query->whereRaw('1 = 0');
 
+        $withFullPaper = fn (Builder $query): Builder => $editionId
+            ? $query->whereHas('submissions', fn (Builder $papers) => $papers
+                ->where('edition_id', $editionId)
+                ->withFullPaper())
+            : $query->whereRaw('1 = 0');
+
         return [
             'all' => Tab::make('Semua')->badge(Author::count()),
             'not_started' => Tab::make('Belum mulai paper')
@@ -47,6 +53,10 @@ class ListAuthors extends ListRecords
                 ->badge($editionId ? $presentersNeedingRevision(Author::query())->count() : 0)
                 ->badgeColor('warning')
                 ->modifyQueryUsing($presentersNeedingRevision),
+            'full_paper' => Tab::make('Full paper masuk')
+                ->badge($editionId ? $withFullPaper(Author::query())->count() : 0)
+                ->badgeColor('success')
+                ->modifyQueryUsing($withFullPaper),
             'presenter' => Tab::make('Presenter')
                 ->badge(Author::where('participation_type', 'presenter')->count())
                 ->badgeColor('primary')
