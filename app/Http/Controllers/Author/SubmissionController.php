@@ -84,10 +84,7 @@ class SubmissionController extends Controller
     {
         $this->authorizeOwner($submission);
 
-        $media = $submission->fullPaperMedia();
-        abort_unless($media, 404);
-
-        return response()->download($media->getPath(), $media->file_name);
+        return $this->fullPaperDownload($submission);
     }
 
     public function previewExtendedAbstract(Submission $submission): Response
@@ -102,10 +99,41 @@ class SubmissionController extends Controller
         $user = Auth::guard('web')->user();
         abort_unless($user && ($user->hasAnyRole(['superadmin', 'admin_registrasi'])
             || $submission->reviewAssignments()->where('reviewer_id', $user->id)->exists()), 403);
+        return $this->fullPaperDownload($submission);
+    }
+
+    /**
+     * Unduhan full paper untuk author maupun panitia.
+     *
+     * Header dikirim lewat argumen download(), bukan ->header(): yang
+     * dikembalikan adalah BinaryFileResponse milik Symfony, yang tidak punya
+     * method itu — pemanggilan berantai dulu membuat setiap unduhan admin
+     * berakhir 500. Berkas yang tercatat tapi hilang dari disk dilaporkan ke
+     * log dan dijawab 404 yang jelas, bukan 500.
+     */
+    private function fullPaperDownload(Submission $submission): Response
+    {
         $media = $submission->fullPaperMedia();
         abort_unless($media, 404);
 
-        return response()->download($media->getPath(), $media->file_name)->header('Cache-Control', 'private, no-store');
+        $path = $media->getPath();
+
+        if (! is_file($path) || ! is_readable($path)) {
+            Log::error('Berkas full paper tercatat tetapi tidak dapat dibaca dari disk.', [
+                'submission_id' => $submission->id,
+                'submission_number' => $submission->submission_number,
+                'media_id' => $media->id,
+                'disk' => $media->disk,
+                'path' => $path,
+                'exists' => file_exists($path),
+            ]);
+
+            abort(404, app()->getLocale() === 'id'
+                ? 'Berkas full paper tidak ditemukan di server. Panitia sudah dapat melihat catatannya; minta author mengunggah ulang bila perlu.'
+                : 'The full paper file could not be found on the server. Please ask the author to upload it again if needed.');
+        }
+
+        return response()->download($path, $media->file_name, ['Cache-Control' => 'private, no-store']);
     }
 
     public function previewExtendedAbstractForAdmin(Submission $submission): Response
