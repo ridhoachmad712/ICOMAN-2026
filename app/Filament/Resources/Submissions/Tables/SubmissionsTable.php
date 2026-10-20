@@ -6,8 +6,11 @@ use App\Models\Review;
 use App\Models\Submission;
 use App\Models\User;
 use App\Notifications\LoaIssued;
+use App\Services\AbstractWordDocument;
+use App\Services\SubmissionListExport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -18,6 +21,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -428,11 +432,72 @@ class SubmissionsTable
                     ->button()
                     ->hiddenLabel(),
             ])
+            // Keduanya diambil dari query tabel yang sudah tersaring, jadi isinya
+            // mengikuti tab, filter, dan pencarian yang sedang aktif.
+            ->headerActions([
+                ActionGroup::make([
+                    Action::make('downloadPaperList')
+                        ->label('Daftar paper (Excel)')
+                        ->icon('heroicon-o-table-cells')
+                        ->action(fn (HasTable $livewire, SubmissionListExport $export) => response()
+                            ->download($export->create($livewire->getFilteredSortedTableQuery()), $export->fileName())
+                            ->deleteFileAfterSend()),
+                    Action::make('downloadAcceptedAbstracts')
+                        ->label('Abstrak Accepted (Word, satu file)')
+                        ->icon('heroicon-o-document-text')
+                        ->action(fn (HasTable $livewire) => static::downloadAbstracts(
+                            $livewire->getFilteredSortedTableQuery()->where('status', 'accepted')->get(),
+                        )),
+                ])
+                    ->label('Unduh')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->color('gray')
+                    ->button()
+                    ->visible(fn (): bool => auth()->user()?->managesSubmissions() ?? false),
+            ])
             ->toolbarActions([
                 BulkActionGroup::make([
+                    BulkAction::make('downloadSelectedAbstracts')
+                        ->label('Unduh abstrak (Word)')
+                        ->icon('heroicon-o-document-text')
+                        ->deselectRecordsAfterCompletion()
+                        ->action(fn (Collection $records) => static::downloadAbstracts(
+                            $records->where('status', 'accepted'),
+                        )),
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /**
+     * Satu berkas Word berisi abstrak Accepted, satu per halaman, diurutkan
+     * per sub-tema lalu nomor paper: susunan yang lazim untuk book of abstracts.
+     */
+    private static function downloadAbstracts(Collection $submissions)
+    {
+        if ($submissions->isEmpty()) {
+            Notification::make()
+                ->title('Tidak ada abstrak Accepted di daftar ini')
+                ->body('Hanya abstrak berstatus Accepted yang diunduh sebagai Word. Buka tab Accepted atau pilih paper yang sudah diterima.')
+                ->warning()
+                ->send();
+
+            return null;
+        }
+
+        $submissions->loadMissing(['edition', 'topic', 'authors']);
+        $ordered = $submissions
+            ->sortBy([
+                fn (Submission $a, Submission $b) => ($a->topic?->order ?? PHP_INT_MAX) <=> ($b->topic?->order ?? PHP_INT_MAX),
+                fn (Submission $a, Submission $b) => strcmp((string) $a->submission_number, (string) $b->submission_number),
+            ])
+            ->values();
+
+        $document = app(AbstractWordDocument::class);
+
+        return response()
+            ->download($document->createCombined($ordered), $document->combinedFileName())
+            ->deleteFileAfterSend();
     }
 
     /** Reviewer yang pantas menilai sub-tema paper ini. */

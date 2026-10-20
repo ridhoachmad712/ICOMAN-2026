@@ -15,11 +15,31 @@ use ZipArchive;
  */
 class AbstractWordDocument
 {
-    /** Membuat berkas .docx sementara dan mengembalikan path-nya. */
+    /** Membuat berkas .docx sementara untuk satu abstrak dan mengembalikan path-nya. */
     public function create(Submission $submission): string
     {
-        $submission->loadMissing(['edition', 'topic', 'authors']);
+        return $this->write([$submission]);
+    }
 
+    /**
+     * Banyak abstrak dalam satu berkas, satu abstrak per halaman: bahan awal
+     * book of abstracts. Urutannya mengikuti koleksi yang diberikan.
+     *
+     * @param  iterable<Submission>  $submissions
+     */
+    public function createCombined(iterable $submissions): string
+    {
+        return $this->write($submissions);
+    }
+
+    public function combinedFileName(): string
+    {
+        return 'abstrak-accepted-'.now()->format('Ymd-His').'.docx';
+    }
+
+    /** @param  iterable<Submission>  $submissions */
+    private function write(iterable $submissions): string
+    {
         $path = tempnam(sys_get_temp_dir(), 'abstract-');
         $zip = new ZipArchive;
 
@@ -31,7 +51,7 @@ class AbstractWordDocument
         $zip->addFromString('_rels/.rels', $this->packageRelationships());
         $zip->addFromString('word/_rels/document.xml.rels', $this->documentRelationships());
         $zip->addFromString('word/styles.xml', $this->styles());
-        $zip->addFromString('word/document.xml', $this->document($submission));
+        $zip->addFromString('word/document.xml', $this->document($submissions));
         $zip->close();
 
         return $path;
@@ -42,7 +62,28 @@ class AbstractWordDocument
         return $submission->submission_number.'-abstract.docx';
     }
 
-    private function document(Submission $submission): string
+    /** @param  iterable<Submission>  $submissions */
+    private function document(iterable $submissions): string
+    {
+        $pages = [];
+        foreach ($submissions as $submission) {
+            $submission->loadMissing(['edition', 'topic', 'authors']);
+            $pages[] = implode('', $this->body($submission));
+        }
+
+        // Pemisah halaman di antara abstrak, bukan sesudah yang terakhir.
+        $pageBreak = '<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+
+        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+            .'<w:body>'.implode($pageBreak, $pages)
+            .'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
+            .'<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>'
+            .'</w:body></w:document>';
+    }
+
+    /** @return list<string> paragraf-paragraf satu abstrak */
+    private function body(Submission $submission): array
     {
         $settings = rescue(fn () => siteSettings(), null, false);
         $conferenceName = $submission->edition?->name ?? $settings?->conference_name ?? config('app.name');
@@ -116,12 +157,7 @@ class AbstractWordDocument
             ], before: 120);
         }
 
-        return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
-            .'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
-            .'<w:body>'.implode('', $body)
-            .'<w:sectPr><w:pgSz w:w="11906" w:h="16838"/>'
-            .'<w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="720" w:footer="720" w:gutter="0"/></w:sectPr>'
-            .'</w:body></w:document>';
+        return $body;
     }
 
     /** @param  list<string>  $runs */
