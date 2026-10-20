@@ -116,6 +116,25 @@ class SubmissionForm
                                 Placeholder::make('loa_display')
                                     ->label('LOA terbit')
                                     ->content(fn ($record): string => $record?->loa_issued_at?->format('d M Y') ?? 'Belum terbit'),
+                                // Gaya ditulis inline: kelas Tailwind lepas tidak ikut
+                                // dikompilasi di CSS panel admin (lihat authorBlocks()).
+                                Placeholder::make('full_paper_display')
+                                    ->label('Full paper')
+                                    ->content(function ($record): HtmlString|string {
+                                        $media = $record?->fullPaperMedia();
+
+                                        if (! $media) {
+                                            return 'Belum diunggah';
+                                        }
+
+                                        $uploadedAt = ($record->full_paper_submitted_at ?? $media->created_at)?->format('d M Y H:i');
+
+                                        return new HtmlString(
+                                            '<a href="'.e(route('admin.submissions.full-paper.download', $record)).'" target="_blank" rel="noopener"'
+                                            .' style="font-weight:600;text-decoration:underline;word-break:break-all">'.e($media->file_name).'</a>'
+                                            .($uploadedAt ? '<br><span style="opacity:.7">Diunggah '.e($uploadedAt).'</span>' : '')
+                                        );
+                                    }),
                             ]),
 
                         Section::make('Authors')

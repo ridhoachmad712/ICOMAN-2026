@@ -11,14 +11,14 @@ use OpenSpout\Writer\XLSX\Writer;
 use RuntimeException;
 
 /**
- * Daftar paper dalam Excel: pengirim, seluruh penulis, judul, afiliasi, dan
- * sub-tema. Excel, bukan CSV, karena judul paper memuat koma dan karakter
+ * Daftar paper dalam Excel: pengirim, seluruh penulis, judul, afiliasi,
+ * sub-tema, dan apakah full paper sudah dikumpulkan. Excel, bukan CSV, karena judul paper memuat koma dan karakter
  * non-ASCII yang sering rusak saat CSV dibuka di Excel berbahasa Indonesia.
  */
 class SubmissionListExport
 {
     public const HEADINGS = [
-        'No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status',
+        'No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper',
     ];
 
     public function create(Builder $submissions): string
@@ -30,7 +30,7 @@ class SubmissionListExport
         }
 
         $options = new Options;
-        foreach ([6, 16, 28, 20, 48, 60, 36, 48, 18] as $index => $width) {
+        foreach ([6, 16, 28, 20, 48, 60, 36, 48, 18, 12, 18] as $index => $width) {
             $options->setColumnWidth($width, $index + 1);
         }
 
@@ -40,7 +40,7 @@ class SubmissionListExport
 
         $number = 0;
         $submissions->clone()
-            ->with(['author', 'topic', 'authors'])
+            ->with(['author', 'topic', 'authors', 'media'])
             ->chunk(200, function ($rows) use ($writer, &$number): void {
                 foreach ($rows as $submission) {
                     /** @var Submission $submission */
@@ -59,6 +59,10 @@ class SubmissionListExport
                         $this->affiliation($submission),
                         (string) $submission->topic?->title,
                         Submission::STATUS_LABELS[$submission->status] ?? (string) $submission->status,
+                        $submission->hasFullPaper() ? 'Sudah' : 'Belum',
+                        $submission->hasFullPaper()
+                            ? (string) ($submission->full_paper_submitted_at ?? $submission->fullPaperMedia()?->created_at)?->format('d M Y H:i')
+                            : '',
                     ]));
                 }
             });

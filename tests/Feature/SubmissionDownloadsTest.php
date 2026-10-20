@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Submissions\Pages\ListSubmissions;
+use App\Filament\Resources\Submissions\SubmissionResource;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\Submission;
@@ -10,6 +11,8 @@ use App\Models\Topic;
 use App\Models\User;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use OpenSpout\Reader\XLSX\Reader;
 use Spatie\Permission\Models\Role;
@@ -46,7 +49,7 @@ class SubmissionDownloadsTest extends TestCase
 
         $rows = $this->xlsxRows($this->download('downloadPaperList', 'accepted'));
 
-        $this->assertSame(['No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status'], $rows[0]);
+        $this->assertSame(['No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper'], $rows[0]);
         $this->assertSame('Rina Saputri', $rows[1][2]);
         $this->assertSame('Dosen / Umum', $rows[1][3]);
         $this->assertSame('Rina Saputri (Universitas Hasanuddin); Andi Wijaya (UNM)', $rows[1][4]);
@@ -117,6 +120,82 @@ class SubmissionDownloadsTest extends TestCase
             ->callAction(TestAction::make('downloadAcceptedAbstracts')->table())
             ->assertNotified('Tidak ada abstrak Accepted di daftar ini')
             ->assertNoFileDownloaded();
+    }
+
+    public function test_the_full_paper_filter_separates_who_has_submitted(): void
+    {
+        Storage::fake('papers');
+        $topic = $this->topic(1, 'Sub-tema 1');
+        $done = $this->withFullPaper($this->paper('accepted', $topic, 'Rina', 'Unhas', 'Sudah kumpul'));
+        $missing = $this->paper('accepted', $topic, 'Budi', 'UNM', 'Belum kumpul');
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'accepted')
+            ->filterTable('full_paper', true)
+            ->assertCanSeeTableRecords([$done])
+            ->assertCanNotSeeTableRecords([$missing])
+            ->filterTable('full_paper', false)
+            ->assertCanSeeTableRecords([$missing])
+            ->assertCanNotSeeTableRecords([$done]);
+
+        $rows = $this->xlsxRows($this->download('downloadPaperList', 'accepted'));
+        $fullPaper = collect(array_slice($rows, 1))->mapWithKeys(fn (array $row) => [$row[2] => $row[9]])->all();
+        $this->assertSame('Sudah', $fullPaper['Rina']);
+        $this->assertSame('Belum', $fullPaper['Budi']);
+    }
+
+    public function test_full_papers_download_as_one_zip_named_by_code_and_title(): void
+    {
+        Storage::fake('papers');
+        $topic = $this->topic(1, 'Sub-tema 1');
+        $paper = $this->withFullPaper($this->paper('accepted', $topic, 'Rina', 'Unhas', 'Dampak AI: Studi Kasus'));
+        $this->paper('accepted', $topic, 'Budi', 'UNM', 'Belum kumpul');
+
+        $path = $this->download('downloadFullPapers', 'accepted');
+        $zip = new ZipArchive;
+        $this->assertTrue($zip->open($path) === true);
+        $names = [];
+        for ($index = 0; $index < $zip->numFiles; $index++) {
+            $names[] = $zip->getNameIndex($index);
+        }
+        $content = $zip->getFromIndex(0);
+        $zip->close();
+        unlink($path);
+
+        // Titik dua tidak sah di nama berkas Windows, jadi diganti spasi.
+        $this->assertSame([$paper->submission_number.' - Dampak AI  Studi Kasus.pdf'], $names);
+        $this->assertSame('%PDF-1.4 full paper', $content);
+    }
+
+    public function test_no_full_paper_means_no_zip_and_a_warning(): void
+    {
+        $this->paper('accepted', $this->topic(1, 'Sub-tema 1'), 'Budi', 'UNM', 'Belum kumpul');
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'accepted')
+            ->callAction(TestAction::make('downloadFullPapers')->table())
+            ->assertNotified('Belum ada full paper di daftar ini')
+            ->assertNoFileDownloaded();
+    }
+
+    public function test_the_detail_page_links_the_full_paper(): void
+    {
+        Storage::fake('papers');
+        $paper = $this->withFullPaper($this->paper('accepted', $this->topic(1, 'Sub-tema 1'), 'Rina', 'Unhas', 'Paper lengkap'));
+
+        $this->get(SubmissionResource::getUrl('edit', ['record' => $paper]))
+            ->assertOk()
+            ->assertSee(route('admin.submissions.full-paper.download', $paper), false)
+            ->assertSee('naskah-final.pdf');
+    }
+
+    private function withFullPaper(Submission $submission): Submission
+    {
+        $submission->addMedia(UploadedFile::fake()->createWithContent('naskah-final.pdf', '%PDF-1.4 full paper'))
+            ->toMediaCollection('camera_ready');
+        $submission->forceFill(['full_paper_submitted_at' => now()])->save();
+
+        return $submission->refresh();
     }
 
     private function download(string $action, string $tab): string

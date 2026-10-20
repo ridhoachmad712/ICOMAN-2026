@@ -434,6 +434,21 @@ class Submission extends Model implements HasMedia
     }
 
     /** Dibatasi edition aktif, supaya tahun lalu tidak ikut terhitung. */
+    /**
+     * Paper yang full paper-nya sudah diunggah. Diukur dari berkasnya sendiri
+     * (koleksi media `camera_ready`), sama seperti hasFullPaper(), bukan dari
+     * full_paper_submitted_at — supaya filter dan tombol unduh tidak berbeda.
+     */
+    public function scopeWithFullPaper(Builder $query): Builder
+    {
+        return $query->whereHas('media', fn (Builder $media) => $media->where('collection_name', 'camera_ready'));
+    }
+
+    public function scopeWithoutFullPaper(Builder $query): Builder
+    {
+        return $query->whereDoesntHave('media', fn (Builder $media) => $media->where('collection_name', 'camera_ready'));
+    }
+
     public function scopeOfCurrentEdition(Builder $query): Builder
     {
         $edition = currentEdition();

@@ -7,6 +7,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Notifications\LoaIssued;
 use App\Services\AbstractWordDocument;
+use App\Services\FullPaperArchive;
 use App\Services\SubmissionListExport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -23,6 +24,7 @@ use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
@@ -96,9 +98,30 @@ class SubmissionsTable
                     })
                     ->sortable(),
                 TextColumn::make('submitted_at')->dateTime('d M Y H:i')->sortable(),
+                // Siapa yang sudah dan belum mengumpulkan full paper, tanpa membuka
+                // paper satu per satu.
+                TextColumn::make('full_paper')
+                    ->label('Full paper')
+                    ->state(fn (Submission $record): string => $record->hasFullPaper() ? 'Sudah' : 'Belum')
+                    ->badge()
+                    ->color(fn (string $state): string => $state === 'Sudah' ? 'success' : 'gray')
+                    ->description(fn (Submission $record): ?string => $record->hasFullPaper()
+                        ? ($record->full_paper_submitted_at ?? $record->fullPaperMedia()?->created_at)?->format('d M Y')
+                        : null)
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(self::STATUS_OPTIONS),
+                TernaryFilter::make('full_paper')
+                    ->label('Full paper')
+                    ->placeholder('Semua')
+                    ->trueLabel('Sudah diunggah')
+                    ->falseLabel('Belum diunggah')
+                    ->queries(
+                        true: fn (Builder $query) => $query->withFullPaper(),
+                        false: fn (Builder $query) => $query->withoutFullPaper(),
+                        blank: fn (Builder $query) => $query,
+                    ),
                 SelectFilter::make('edition_id')->relationship('edition', 'name')->label('Edition'),
             ])
             ->recordActions([
@@ -448,6 +471,12 @@ class SubmissionsTable
                         ->action(fn (HasTable $livewire) => static::downloadAbstracts(
                             $livewire->getFilteredSortedTableQuery()->where('status', 'accepted')->get(),
                         )),
+                    Action::make('downloadFullPapers')
+                        ->label('Full paper (ZIP)')
+                        ->icon('heroicon-o-archive-box-arrow-down')
+                        ->action(fn (HasTable $livewire) => static::downloadFullPapers(
+                            $livewire->getFilteredSortedTableQuery()->withFullPaper()->with('media')->get(),
+                        )),
                 ])
                     ->label('Unduh')
                     ->icon('heroicon-o-arrow-down-tray')
@@ -464,9 +493,35 @@ class SubmissionsTable
                         ->action(fn (Collection $records) => static::downloadAbstracts(
                             $records->where('status', 'accepted'),
                         )),
+                    BulkAction::make('downloadSelectedFullPapers')
+                        ->label('Unduh full paper (ZIP)')
+                        ->icon('heroicon-o-archive-box-arrow-down')
+                        ->deselectRecordsAfterCompletion()
+                        ->action(fn (Collection $records) => static::downloadFullPapers($records)),
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    /** Full paper paper-paper ini dalam satu ZIP; yang belum mengunggah dilewati. */
+    private static function downloadFullPapers(Collection $submissions)
+    {
+        $archive = app(FullPaperArchive::class);
+        $result = $archive->create($submissions->sortBy('submission_number')->values());
+
+        if ($result['count'] === 0) {
+            Notification::make()
+                ->title('Belum ada full paper di daftar ini')
+                ->body('Tidak ada paper yang sudah mengunggah full paper. Gunakan filter "Full paper: Sudah diunggah" untuk melihat yang sudah mengumpulkan.')
+                ->warning()
+                ->send();
+
+            return null;
+        }
+
+        return response()
+            ->download($result['path'], $archive->fileName(), ['Cache-Control' => 'private, no-store'])
+            ->deleteFileAfterSend();
     }
 
     /**
