@@ -11,14 +11,14 @@ use OpenSpout\Writer\XLSX\Writer;
 use RuntimeException;
 
 /**
- * Daftar paper dalam Excel: pengirim, seluruh penulis, judul, afiliasi,
+ * Daftar paper dalam Excel: pengirim beserta kontaknya, seluruh penulis, judul, afiliasi,
  * sub-tema, dan apakah full paper sudah dikumpulkan. Excel, bukan CSV, karena judul paper memuat koma dan karakter
  * non-ASCII yang sering rusak saat CSV dibuka di Excel berbahasa Indonesia.
  */
 class SubmissionListExport
 {
     public const HEADINGS = [
-        'No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper',
+        'No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Email', 'No. HP / WhatsApp', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper',
     ];
 
     public function create(Builder $submissions): string
@@ -30,7 +30,7 @@ class SubmissionListExport
         }
 
         $options = new Options;
-        foreach ([6, 16, 28, 20, 48, 60, 36, 48, 18, 12, 18] as $index => $width) {
+        foreach ([6, 16, 28, 20, 34, 22, 48, 60, 36, 48, 18, 12, 18] as $index => $width) {
             $options->setColumnWidth($width, $index + 1);
         }
 
@@ -52,6 +52,9 @@ class SubmissionListExport
                         (string) $submission->author?->name,
                         // Kategori tarif pengirim: Mahasiswa S1, Dosen / Umum, atau International.
                         (string) $submission->author?->registrantCategoryLabel(),
+                        (string) $submission->author?->email,
+                        // Selalu teks, supaya 0 atau + di depan nomor tidak hilang.
+                        (string) $submission->author?->phone,
                         $authors
                             ->map(fn ($author) => $author->name.($author->affiliation ? ' ('.$author->affiliation.')' : ''))
                             ->implode('; '),

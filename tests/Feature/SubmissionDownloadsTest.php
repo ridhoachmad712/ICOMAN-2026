@@ -44,18 +44,22 @@ class SubmissionDownloadsTest extends TestCase
     {
         $topic = $this->topic(1, 'Sub-tema 1: Ketahanan SDM');
         $paper = $this->paper('accepted', $topic, 'Rina Saputri', 'Universitas Hasanuddin', 'Dampak AI, Ketahanan, dan Bisnis');
+        $paper->author->update(['phone' => '081234567890']);
         $paper->authors()->create(['name' => 'Rina Saputri', 'email' => 'rina@example.test', 'affiliation' => 'Universitas Hasanuddin', 'is_corresponding' => true, 'order' => 1]);
         $paper->authors()->create(['name' => 'Andi Wijaya', 'email' => 'andi@example.test', 'affiliation' => 'UNM', 'order' => 2]);
 
         $rows = $this->xlsxRows($this->download('downloadPaperList', 'accepted'));
 
-        $this->assertSame(['No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper'], $rows[0]);
+        $this->assertSame(['No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Email', 'No. HP / WhatsApp', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status', 'Full paper', 'Tanggal full paper'], $rows[0]);
         $this->assertSame('Rina Saputri', $rows[1][2]);
         $this->assertSame('Dosen / Umum', $rows[1][3]);
-        $this->assertSame('Rina Saputri (Universitas Hasanuddin); Andi Wijaya (UNM)', $rows[1][4]);
-        $this->assertSame('Dampak AI, Ketahanan, dan Bisnis', $rows[1][5]);
-        $this->assertSame('Universitas Hasanuddin', $rows[1][6]);
-        $this->assertSame('Sub-tema 1: Ketahanan SDM', $rows[1][7]);
+        $this->assertSame($paper->author->email, $rows[1][4]);
+        // Nomor HP tetap teks: angka 0 di depan tidak hilang.
+        $this->assertSame('081234567890', $rows[1][5]);
+        $this->assertSame('Rina Saputri (Universitas Hasanuddin); Andi Wijaya (UNM)', $rows[1][6]);
+        $this->assertSame('Dampak AI, Ketahanan, dan Bisnis', $rows[1][7]);
+        $this->assertSame('Universitas Hasanuddin', $rows[1][8]);
+        $this->assertSame('Sub-tema 1: Ketahanan SDM', $rows[1][9]);
     }
 
     public function test_the_paper_list_shows_each_participation_type(): void
@@ -139,7 +143,7 @@ class SubmissionDownloadsTest extends TestCase
             ->assertCanNotSeeTableRecords([$done]);
 
         $rows = $this->xlsxRows($this->download('downloadPaperList', 'accepted'));
-        $fullPaper = collect(array_slice($rows, 1))->mapWithKeys(fn (array $row) => [$row[2] => $row[9]])->all();
+        $fullPaper = collect(array_slice($rows, 1))->mapWithKeys(fn (array $row) => [$row[2] => $row[11]])->all();
         $this->assertSame('Sudah', $fullPaper['Rina']);
         $this->assertSame('Belum', $fullPaper['Budi']);
     }
