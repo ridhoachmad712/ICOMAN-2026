@@ -21,7 +21,7 @@ use RuntimeException;
 class ParticipantContactExport
 {
     public const HEADINGS = [
-        'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Kategori', 'Status pembayaran',
+        'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan', 'Status pembayaran',
     ];
 
     private const PATHS = [

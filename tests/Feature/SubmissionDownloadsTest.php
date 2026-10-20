@@ -46,12 +46,30 @@ class SubmissionDownloadsTest extends TestCase
 
         $rows = $this->xlsxRows($this->download('downloadPaperList', 'accepted'));
 
-        $this->assertSame(['No', 'Kode', 'Nama', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status'], $rows[0]);
+        $this->assertSame(['No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status'], $rows[0]);
         $this->assertSame('Rina Saputri', $rows[1][2]);
-        $this->assertSame('Rina Saputri (Universitas Hasanuddin); Andi Wijaya (UNM)', $rows[1][3]);
-        $this->assertSame('Dampak AI, Ketahanan, dan Bisnis', $rows[1][4]);
-        $this->assertSame('Universitas Hasanuddin', $rows[1][5]);
-        $this->assertSame('Sub-tema 1: Ketahanan SDM', $rows[1][6]);
+        $this->assertSame('Dosen / Umum', $rows[1][3]);
+        $this->assertSame('Rina Saputri (Universitas Hasanuddin); Andi Wijaya (UNM)', $rows[1][4]);
+        $this->assertSame('Dampak AI, Ketahanan, dan Bisnis', $rows[1][5]);
+        $this->assertSame('Universitas Hasanuddin', $rows[1][6]);
+        $this->assertSame('Sub-tema 1: Ketahanan SDM', $rows[1][7]);
+    }
+
+    public function test_the_paper_list_shows_each_participation_type(): void
+    {
+        $topic = $this->topic(1, 'Sub-tema 1');
+        foreach (['student_s1' => 'Mahasiswa', 'general' => 'Dosen', 'international' => 'Asing'] as $category => $name) {
+            $this->paper('accepted', $topic, $name, 'Kampus', 'Paper '.$name)
+                ->author->update(['registrant_category' => $category]);
+        }
+
+        $types = collect(array_slice($this->xlsxRows($this->download('downloadPaperList', 'accepted')), 1))
+            ->mapWithKeys(fn (array $row) => [$row[2] => $row[3]])
+            ->all();
+
+        $this->assertSame('Mahasiswa S1', $types['Mahasiswa']);
+        $this->assertSame('Dosen / Umum', $types['Dosen']);
+        $this->assertSame('International', $types['Asing']);
     }
 
     public function test_accepted_abstracts_download_as_one_word_file_ordered_by_sub_theme(): void

@@ -18,7 +18,7 @@ use RuntimeException;
 class SubmissionListExport
 {
     public const HEADINGS = [
-        'No', 'Kode', 'Nama', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status',
+        'No', 'Kode', 'Nama', 'Jenis kepesertaan', 'Semua penulis', 'Judul Paper', 'Afiliasi', 'Sub-tema', 'Status',
     ];
 
     public function create(Builder $submissions): string
@@ -30,7 +30,7 @@ class SubmissionListExport
         }
 
         $options = new Options;
-        foreach ([6, 16, 28, 48, 60, 36, 48, 18] as $index => $width) {
+        foreach ([6, 16, 28, 20, 48, 60, 36, 48, 18] as $index => $width) {
             $options->setColumnWidth($width, $index + 1);
         }
 
@@ -50,6 +50,8 @@ class SubmissionListExport
                         ++$number,
                         (string) $submission->submission_number,
                         (string) $submission->author?->name,
+                        // Kategori tarif pengirim: Mahasiswa S1, Dosen / Umum, atau International.
+                        (string) $submission->author?->registrantCategoryLabel(),
                         $authors
                             ->map(fn ($author) => $author->name.($author->affiliation ? ' ('.$author->affiliation.')' : ''))
                             ->implode('; '),

@@ -44,7 +44,7 @@ class ParticipantContactExportTest extends TestCase
 
         $rows = $this->download();
 
-        $this->assertSame(['No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Kategori', 'Status pembayaran'], $rows[0]);
+        $this->assertSame(['No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan', 'Status pembayaran'], $rows[0]);
         $byName = collect(array_slice($rows, 1))->keyBy(fn (array $row) => $row[1]);
 
         $this->assertSame('Universitas Hasanuddin', $byName['Rina Saputri'][2]);
