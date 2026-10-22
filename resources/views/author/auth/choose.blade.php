@@ -37,8 +37,32 @@
                 </p>
             </div>
 
+            @if(session('error'))
+                <p role="alert" class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">{{ session('error') }}</p>
+            @endif
+
             <div class="grid gap-4">
                 @foreach($roles as $role => $meta)
+                    @php
+                        $open = \App\Http\Controllers\Author\AuthController::isRoleOpen($role);
+                        $closedAt = $open ? null : \App\Http\Controllers\Author\AuthController::roleClosedAt($role);
+                    @endphp
+                    {{-- Jalur yang tenggatnya lewat tetap ditampilkan, supaya pengunjung
+                         tahu jalurnya ditutup dan bukan hilang. --}}
+                    @if(! $open)
+                        <div aria-disabled="true" class="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50 p-5">
+                            <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-200 text-slate-500">
+                                <x-ui-icon :name="$meta['icon']" class="h-6 w-6" />
+                            </span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-base font-bold text-slate-500">{{ $meta['title'] }}</span>
+                                <span class="mt-0.5 block text-sm font-medium text-red-700">
+                                    {{ $isId ? 'Pendaftaran ditutup' : 'Registration closed' }}@if($closedAt) · {{ $closedAt->translatedFormat('d M Y') }}@endif
+                                </span>
+                            </span>
+                        </div>
+                        @continue
+                    @endif
                     <a href="{{ route('author.register.terms', ['role' => $role]) }}"
                        class="group flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 transition hover:border-[var(--brand)] hover:bg-[var(--brand)]/5">
                         <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">

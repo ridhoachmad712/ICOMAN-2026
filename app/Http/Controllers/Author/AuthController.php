@@ -6,6 +6,8 @@ use App\Filament\Author\Resources\Papers\PaperResource;
 use App\Http\Controllers\Controller;
 use App\Models\Author;
 use App\Models\CoHost;
+use App\Services\ConferenceDeadlines;
+use Carbon\CarbonInterface;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +22,43 @@ class AuthController extends Controller
     /** Langkah 1: pilih peran (Presenter / Peserta Seminar). Kategori dipilih di form. */
     /** Peran yang bisa mendaftar sendiri lewat website. */
     public const ROLES = ['presenter', 'non_presenter', 'cohost'];
+
+    /**
+     * Tenggat yang menutup pendaftaran tiap jalur, dari Tanggal Penting.
+     * Presenter tidak berguna mendaftar setelah abstrak ditutup; peserta dan
+     * co-host tidak bisa lagi membayar setelah tenggat pembayaran. Tanpa
+     * tanggal yang diisi panitia, jalurnya tetap terbuka.
+     */
+    public const CLOSING_DEADLINE = [
+        'presenter' => 'abstract',
+        'non_presenter' => 'payment',
+        'cohost' => 'payment',
+    ];
+
+    public static function isRoleOpen(string $role): bool
+    {
+        return app(ConferenceDeadlines::class)->isOpen(self::CLOSING_DEADLINE[$role] ?? 'payment');
+    }
+
+    public static function roleClosedAt(string $role): ?CarbonInterface
+    {
+        return app(ConferenceDeadlines::class)->date(self::CLOSING_DEADLINE[$role] ?? 'payment');
+    }
+
+    /** Kembali ke halaman pilih jalur dengan pesan bahwa jalur ini sudah ditutup. */
+    private function closedRedirect(string $role): RedirectResponse
+    {
+        $isId = app()->getLocale() === 'id';
+        $label = match ($role) {
+            'presenter' => 'presenter',
+            'cohost' => $isId ? 'institusi co-host' : 'co-host institution',
+            default => $isId ? 'peserta seminar' : 'seminar attendee',
+        };
+
+        return redirect()->route('author.register')->with('error', $isId
+            ? 'Pendaftaran sebagai '.$label.' sudah ditutup.'
+            : 'Registration as a '.$label.' has closed.');
+    }
 
     public function showChoose(Request $request): View|RedirectResponse
     {
@@ -39,6 +78,10 @@ class AuthController extends Controller
             return redirect()->route('author.register');
         }
 
+        if (! self::isRoleOpen($role)) {
+            return $this->closedRedirect($role);
+        }
+
         return view('author.auth.terms', compact('role'));
     }
 
@@ -48,6 +91,10 @@ class AuthController extends Controller
         $data = $request->validate([
             'role' => ['required', 'in:'.implode(',', self::ROLES)],
         ]);
+
+        if (! self::isRoleOpen($data['role'])) {
+            return $this->closedRedirect($data['role']);
+        }
 
         $request->session()->put('author_terms_ok', $data['role']);
 
@@ -61,6 +108,10 @@ class AuthController extends Controller
 
         if (! in_array($role, self::ROLES, true)) {
             return redirect()->route('author.register');
+        }
+
+        if (! self::isRoleOpen($role)) {
+            return $this->closedRedirect($role);
         }
 
         // Syarat & Ketentuan wajib disetujui lebih dulu.
@@ -81,6 +132,10 @@ class AuthController extends Controller
      */
     public function registerCoHost(Request $request): RedirectResponse
     {
+        if (! self::isRoleOpen('cohost')) {
+            return $this->closedRedirect('cohost');
+        }
+
         $data = $request->validate([
             'institution_name' => ['required', 'string', 'max:255'],
             'institution_type' => ['required', Rule::in(array_keys(CoHost::TYPES))],
@@ -165,6 +220,12 @@ class AuthController extends Controller
             'registrant_category' => ['required', 'in:student_s1,general,international'],
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
+
+        // Dijaga lagi di sini: formulir bisa saja dibuka sebelum tenggat lalu
+        // dikirim sesudahnya.
+        if (! self::isRoleOpen($data['participation_type'])) {
+            return $this->closedRedirect($data['participation_type']);
+        }
 
         // Syarat & Ketentuan wajib disetujui (dicatat di sesi pada langkah T&C).
         if ($request->session()->get('author_terms_ok') !== $data['participation_type']) {
