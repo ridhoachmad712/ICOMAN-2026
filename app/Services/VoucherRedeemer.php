@@ -59,6 +59,17 @@ class VoucherRedeemer
             }
             $payable = max(0, $base + $addon - $discount);
 
+            // Voucher boleh dipakai sebelum jurnal dipilih (potongannya ikut
+            // dihitung ulang saat pilihan berubah), kecuali bila voucher itu
+            // langsung melunasi invoice: setelah lunas, langkah memilih jurnal
+            // tidak pernah muncul lagi bagi paper yang ditawari SINTA 3.
+            if ($payable === 0 && $locked->submission?->awaitsJournalChoice()) {
+                $this->fail(
+                    'Pilih jenis jurnal (Reguler atau SINTA 3) terlebih dahulu sebelum memakai voucher ini.',
+                    'Choose the journal type (Regular or SINTA 3) before applying this voucher.',
+                );
+            }
+
             $price['discount_amount'] = $discount;
             $price['voucher_code'] = $voucher->code;
             $price['voucher_host'] = $voucher->host_name;

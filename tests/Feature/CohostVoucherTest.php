@@ -74,6 +74,8 @@ class CohostVoucherTest extends TestCase
             'edition_id' => $this->edition->id, 'author_id' => $author->id,
             'title' => 'Judul', 'abstract' => 'Isi.', 'status' => 'accepted',
             'loa_issued_at' => now(), 'sinta3_offered' => true, 'journal_target' => $journalTarget,
+            // Di portal, kotak voucher baru muncul setelah langkah memilih jurnal.
+            'journal_target_chosen_at' => now(),
         ]);
 
         $quote = $this->fee->quote();

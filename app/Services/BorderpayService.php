@@ -63,6 +63,15 @@ class BorderpayService
             abort_unless($registration->isPayable(), 403);
             abort_unless($registration->priceDetails()['currency'] === 'IDR', 422);
 
+            // Paper yang ditawari SINTA 3 wajib memilih jurnal dulu: pilihan
+            // itulah yang menentukan total tagihan. Halaman invoice sudah
+            // menyembunyikan tombol bayar, tapi aturannya dijaga di sini juga.
+            if ($registration->submission?->awaitsJournalChoice()) {
+                throw ValidationException::withMessages(['payment' => app()->getLocale() === 'id'
+                    ? 'Pilih jenis jurnal (Reguler atau SINTA 3) terlebih dahulu sebelum membayar.'
+                    : 'Choose the journal type (Regular or SINTA 3) before paying.']);
+            }
+
             // Pilihan cara membayar diperbarui di bawah kunci yang sama dengan
             // ordernya. Selama belum ada yang dibayar author boleh berganti
             // pikiran; sesudah itu allowsInstallments() menutup pintunya.

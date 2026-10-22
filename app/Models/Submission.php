@@ -169,6 +169,38 @@ class Submission extends Model implements HasMedia
         return self::JOURNAL_TARGETS[$this->journal_target] ?? self::JOURNAL_TARGETS['regular'];
     }
 
+    /**
+     * Author wajib memilih jurnal hanya bila paper ditawari SINTA 3. Paper
+     * yang tidak ditawari tidak pernah melihat pilihan itu: jurnalnya
+     * otomatis Reguler, meskipun journal_target_chosen_at kosong.
+     */
+    public function awaitsJournalChoice(): bool
+    {
+        return $this->sinta3_offered && ! $this->journalTargetIsChosen();
+    }
+
+    /** Jurnal yang berlaku, atau null selama author masih wajib memilih. */
+    public function effectiveJournalTarget(): ?string
+    {
+        if ($this->journalTargetIsChosen()) {
+            return array_key_exists((string) $this->journal_target, self::JOURNAL_TARGETS) ? $this->journal_target : 'regular';
+        }
+
+        return $this->sinta3_offered ? null : 'regular';
+    }
+
+    /** Pasangan query dari effectiveJournalTarget(), untuk filter tabel. */
+    public function scopeWithEffectiveJournal(Builder $query, string $target): Builder
+    {
+        return match ($target) {
+            'sinta3' => $query->whereNotNull('journal_target_chosen_at')->where('journal_target', 'sinta3'),
+            'unchosen' => $query->where('sinta3_offered', true)->whereNull('journal_target_chosen_at'),
+            default => $query->where(fn (Builder $inner) => $inner
+                ->where(fn (Builder $chosen) => $chosen->whereNotNull('journal_target_chosen_at')->where('journal_target', '!=', 'sinta3'))
+                ->orWhere(fn (Builder $automatic) => $automatic->whereNull('journal_target_chosen_at')->where('sinta3_offered', false))),
+        };
+    }
+
     public function paperTemplateUrl(): ?string
     {
         return siteSettings()->paperTemplateUrlFor($this->journal_target);

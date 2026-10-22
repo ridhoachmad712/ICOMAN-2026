@@ -48,6 +48,8 @@ class AdminVoucherTest extends TestCase
             'edition_id' => $this->edition->id, 'author_id' => $author->id,
             'title' => 'Voucher Paper', 'abstract' => 'Abstract', 'status' => 'accepted',
             'sinta3_offered' => true, 'journal_target' => $sinta ? 'sinta3' : 'regular',
+            // Di portal, kotak voucher baru muncul setelah langkah memilih jurnal.
+            'journal_target_chosen_at' => now(),
         ]) : null;
         $quote = $fee->quote();
         $quote['journal_target'] = $sinta ? 'sinta3' : 'regular';

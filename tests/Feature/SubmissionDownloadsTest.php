@@ -175,6 +175,8 @@ class SubmissionDownloadsTest extends TestCase
         $regular = $this->withFullPaper($this->paper('accepted', $topic, 'Budi', 'UNM', 'Paper reguler'));
         $regular->forceFill(['journal_target' => 'regular', 'journal_target_chosen_at' => now()])->save();
         $unchosen = $this->withFullPaper($this->paper('accepted', $topic, 'Citra', 'UI', 'Paper belum memilih'));
+        // Hanya paper yang ditawari SINTA 3 yang wajib memilih; tanpa tawaran itu Reguler.
+        $unchosen->forceFill(['sinta3_offered' => true])->save();
 
         Livewire::test(ListSubmissions::class)
             ->set('activeTab', 'full_paper')

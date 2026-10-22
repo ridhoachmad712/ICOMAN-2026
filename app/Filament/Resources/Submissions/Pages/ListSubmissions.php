@@ -16,8 +16,8 @@ class ListSubmissions extends ListRecords
     public function table(Table $table): Table
     {
         return parent::table($table)
-            // `media` dimuat sekaligus untuk kolom Full paper (satu query, bukan satu per baris).
-            ->modifyQueryUsing(fn ($query) => $query->ofCurrentEdition()->with('media'));
+            // Dimuat sekaligus untuk kolom Full paper dan Jenis jurnal (satu query, bukan satu per baris).
+            ->modifyQueryUsing(fn ($query) => $query->ofCurrentEdition()->with(['media', 'registrations']));
     }
 
     protected function getHeaderActions(): array
