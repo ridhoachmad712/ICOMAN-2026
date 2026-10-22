@@ -483,10 +483,14 @@ class Submission extends Model implements HasMedia
 
     public function registerMediaCollections(): void
     {
+        // Full paper wajib Word .docx (keputusan panitia, Oktober 2026). Berkas
+        // .docx adalah arsip zip; sebagian server mendeteksinya sebagai
+        // application/zip, jadi tipe itu ikut diterima. Ekstensinya tetap
+        // dijaga .docx oleh validasi di SubmissionController::submitFullPaper().
+        // Berkas PDF/DOC yang terlanjur diunggah sebelumnya tidak terpengaruh.
         $mimes = [
-            'application/pdf',
-            'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/zip',
         ];
 
         $this->addMediaCollection('camera_ready')->useDisk('papers')->acceptsMimeTypes($mimes);

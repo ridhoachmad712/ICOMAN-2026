@@ -141,7 +141,16 @@
 
                     <div class="pt-5">
                         <h3 class="text-sm font-semibold text-gray-950">{{ $id ? '2. Unggah naskah final' : '2. Upload the final manuscript' }}</h3>
-                        <p class="mt-1 text-sm text-gray-600">{{ $id ? 'Gunakan template di atas. Format PDF, DOC, atau DOCX; maksimal 20 MB.' : 'Use the template above. PDF, DOC, or DOCX; maximum 20 MB.' }}</p>
+                        <p class="mt-1 text-sm text-gray-600">{{ $id ? 'Gunakan template di atas; maksimal 20 MB.' : 'Use the template above; maximum 20 MB.' }}</p>
+                        {{-- Panitia menyunting naskah untuk penerbitan, jadi full paper
+                             wajib dalam format Word yang bisa disunting. --}}
+                        <div class="mt-3 flex items-start gap-2 rounded-lg border border-warning-200 bg-warning-50 px-4 py-3 text-sm text-warning-800">
+                            <x-filament::icon icon="heroicon-o-exclamation-triangle" class="mt-0.5 h-5 w-5 shrink-0 text-warning-600" />
+                            <span>
+                                <strong>{{ $id ? 'Full paper wajib berupa file Word (.docx).' : 'The full paper must be a Word file (.docx).' }}</strong>
+                                {{ $id ? 'File PDF atau .doc tidak dapat diunggah.' : 'PDF or .doc files cannot be uploaded.' }}
+                            </span>
+                        </div>
 
                         @if($record->hasFullPaper())
                             <div class="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-success-200 bg-success-50 px-4 py-3 text-sm">
@@ -162,7 +171,7 @@
                             <form method="POST" action="{{ route('author.submissions.full-paper', $record) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
                                 @csrf
                                 <label for="full-paper-{{ $record->id }}" class="block text-sm font-medium text-gray-900">{{ $record->hasFullPaper() ? ($id ? 'Pilih file pengganti' : 'Choose a replacement file') : ($id ? 'Pilih file naskah final' : 'Choose your final manuscript file') }}</label>
-                                <input id="full-paper-{{ $record->id }}" type="file" name="full_paper" required accept=".pdf,.doc,.docx"
+                                <input id="full-paper-{{ $record->id }}" type="file" name="full_paper" required accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                                        class="block w-full max-w-xl rounded-lg border border-gray-300 bg-white text-sm text-gray-700 file:mr-4 file:border-0 file:border-r file:border-gray-300 file:bg-gray-50 file:px-4 file:py-2.5 file:text-sm file:font-medium file:text-gray-900 hover:file:bg-gray-100" />
                                 @error('full_paper')<p class="text-sm text-danger-600">{{ $message }}</p>@enderror
                                 <div>

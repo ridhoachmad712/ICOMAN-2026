@@ -405,13 +405,15 @@ class AuthorPortalFlowTest extends TestCase
         $submission = $this->submission($edition, $author, 'accepted');
         $submission->forceFill(['loa_issued_at' => now()])->save();
 
-        // Minimal PDF agar lolos deteksi mime MediaLibrary.
+        // Full paper wajib .docx; berkas Word sungguhan dibuat dari generator abstrak.
+        $docxPath = app(\App\Services\AbstractWordDocument::class)->create($submission);
+        $docx = fn () => UploadedFile::fake()->createWithContent('paper.docx', file_get_contents($docxPath));
         $pdf = fn () => UploadedFile::fake()->createWithContent('paper.pdf', "%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF");
 
         // Belum ada registrasi lunas → belum boleh kirim full paper.
         $this->assertFalse($submission->canSubmitFullPaper());
         $this->actingAs($author, 'author')
-            ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $pdf()])
+            ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $docx()])
             ->assertForbidden();
 
         // Setelah registrasi lunas → boleh.
@@ -428,12 +430,22 @@ class AuthorPortalFlowTest extends TestCase
         ]);
 
         $this->assertTrue($submission->refresh()->canSubmitFullPaper());
+
+        // PDF ditolak: full paper wajib Word .docx.
         $this->actingAs($author, 'author')
             ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $pdf()])
-            ->assertRedirect();
+            ->assertSessionHasErrors('full_paper');
+        $this->assertFalse($submission->refresh()->hasFullPaper());
+
+        $this->actingAs($author, 'author')
+            ->post(route('author.submissions.full-paper', $submission), ['full_paper' => $docx()])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
 
         $this->assertTrue($submission->refresh()->hasFullPaper());
+        $this->assertSame('docx', pathinfo($submission->fullPaperMedia()->file_name, PATHINFO_EXTENSION));
         $this->assertNotNull($submission->full_paper_submitted_at);
+        @unlink($docxPath);
     }
 
     public function test_payment_page_shows_the_sinta3_option_and_additional_fee_when_offered(): void

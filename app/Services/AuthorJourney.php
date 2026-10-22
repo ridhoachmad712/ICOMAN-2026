@@ -80,8 +80,8 @@ class AuthorJourney
                 if (! $accepted->hasFullPaper()) {
                     return $this->paperAction(
                         $accepted, 'full_paper', 'Unggah naskah final', 'Upload the final manuscript',
-                        'Abstract sudah diterima dan pembayaran lunas. Unggah naskah final sebagai berkas terpisah sesuai template panitia.',
-                        'Your abstract is accepted and payment is complete. Upload the separate final manuscript using the committee template.',
+                        'Abstract sudah diterima dan pembayaran lunas. Unggah naskah final dalam format Word (.docx) sesuai template panitia.',
+                        'Your abstract is accepted and payment is complete. Upload the final manuscript as a Word file (.docx) using the committee template.',
                         'Buka paper', 'Open paper', 90, 'author'
                     );
                 }

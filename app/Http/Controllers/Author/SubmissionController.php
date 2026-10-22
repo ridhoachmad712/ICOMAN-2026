@@ -65,8 +65,16 @@ class SubmissionController extends Controller
             ? 'Full paper hanya dapat dikirim setelah LOA terbit dan pembayaran registrasi terverifikasi.'
             : 'The full paper can only be submitted after the LOA is issued and the registration payment is verified.');
 
+        $isId = app()->getLocale() === 'id';
         $request->validate([
-            'full_paper' => ['required', 'file', 'mimes:pdf,doc,docx', 'max:20480'],
+            'full_paper' => [
+                'required', 'file', 'extensions:docx',
+                'mimetypes:application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/zip',
+                'max:20480',
+            ],
+        ], [
+            'full_paper.extensions' => $isId ? 'Full paper wajib berupa file Word .docx.' : 'The full paper must be a Word .docx file.',
+            'full_paper.mimetypes' => $isId ? 'Full paper wajib berupa file Word .docx.' : 'The full paper must be a Word .docx file.',
         ]);
 
         app(ConferenceDeadlines::class)->assertOpen('full_paper', $submission->edition_id, 'full_paper');

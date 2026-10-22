@@ -35,7 +35,9 @@ class FullPaperDownloadTest extends TestCase
             'edition_id' => $edition->id, 'author_id' => $author->id, 'title' => 'Paper',
             'abstract' => 'Abstract', 'keywords' => ['k'], 'status' => 'accepted',
         ]);
-        $this->submission->addMedia(UploadedFile::fake()->createWithContent('Naskah Final – Revisi.pdf', "%PDF-1.4\nfull paper"))
+        // Full paper wajib .docx; berkas Word sungguhan dibuat dari generator abstrak.
+        $docx = app(\App\Services\AbstractWordDocument::class)->create($this->submission);
+        $this->submission->addMedia(UploadedFile::fake()->createWithContent('Naskah Final – Revisi.docx', file_get_contents($docx)))
             ->toMediaCollection('camera_ready');
     }
 
@@ -48,7 +50,8 @@ class FullPaperDownloadTest extends TestCase
                 ->assertDownload();
 
             $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-            $this->assertStringContainsString('full paper', file_get_contents($response->baseResponse->getFile()->getPathname()));
+            // Berkas .docx adalah arsip zip: diawali tanda "PK".
+            $this->assertStringStartsWith('PK', file_get_contents($response->baseResponse->getFile()->getPathname()));
         }
     }
 

@@ -91,7 +91,7 @@ return [
     'guide_review_and_acceptance' => 'Review and acceptance',
     'guide_save_your_draft_and_check' => 'Save your draft and check the PDF preview before submitting. The abstract is locked during review. If revisions are requested, read the feedback, edit, and resubmit. Once the committee accepts the abstract, the LOA is issued automatically and can be downloaded from the paper details.',
     'guide_the_full_paper_deadline_is' => 'The full paper deadline is displayed above. If it says “To be announced”, the final date has not been set. Previous uploaded versions are retained privately when you submit a replacement.',
-    'guide_upload_the_full_paper_after' => 'Upload the full paper after payment is verified. Accepted formats are PDF, DOC, and DOCX, up to 20 MB. Use the manuscript template below as a starting structure: title, authors and affiliations, abstract, introduction, methods, results and discussion, conclusion, and references. Additional requirements for a target journal follow committee or journal editor announcements.',
+    'guide_upload_the_full_paper_after' => 'Upload the full paper after payment is verified. The full paper must be a Word file (.docx), up to 20 MB; PDF or .doc files are not accepted. Use the manuscript template below as a starting structure: title, authors and affiliations, abstract, introduction, methods, results and discussion, conclusion, and references. Additional requirements for a target journal follow committee or journal editor announcements.',
     'guide_write_an_english_abstract_of' => 'Write an English abstract of 200–250 words covering the objective, methods, results, and conclusion. Provide a title, topic, and 1–5 keywords. List all authors in order and select exactly one corresponding author. Each account may submit one paper per edition.',
     'home_attend_seminar' => 'Attend Seminar',
     'home_date' => 'Date',
@@ -145,7 +145,7 @@ return [
     'public_abstract_deadline' => 'Abstract deadline',
     'public_template_pending' => 'The manuscript template has not been published yet. Please contact the committee before preparing the final layout.',
     'public_template_by_target' => 'The final manuscript template is provided in your author portal after your journal target is selected. Only the template matching your chosen journal is shown.',
-    'public_full_paper_instructions' => 'Upload the full paper after payment is verified. Accepted formats are PDF, DOC, and DOCX, up to 20 MB. Include the title, authors and affiliations, abstract, introduction, methods, results and discussion, conclusion, and references. Use the committee template when available; additional journal requirements follow announcements from the committee or journal editor.',
+    'public_full_paper_instructions' => 'Upload the full paper after payment is verified. The full paper must be a Word file (.docx), up to 20 MB; PDF or .doc files are not accepted. Include the title, authors and affiliations, abstract, introduction, methods, results and discussion, conclusion, and references. Use the committee template when available; additional journal requirements follow announcements from the committee or journal editor.',
     'public_date_passed' => 'Date passed',
     'public_date_upcoming' => 'Upcoming',
 ];

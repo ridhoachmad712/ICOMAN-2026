@@ -109,9 +109,30 @@ class SubmissionsTable
                         ? ($record->full_paper_submitted_at ?? $record->fullPaperMedia()?->created_at)?->format('d M Y')
                         : null)
                     ->toggleable(),
+                // Jurnal tujuan yang dipilih author di halaman pembayaran. Sebelum
+                // dipilih nilainya bawaan "reguler", jadi ditampilkan "Belum dipilih"
+                // agar tidak dikira pilihan author.
+                TextColumn::make('journal_target')
+                    ->label('Jenis jurnal')
+                    ->state(fn (Submission $record): string => $record->journalTargetIsChosen()
+                        ? $record->journalTargetLabel()
+                        : 'Belum dipilih')
+                    ->badge()
+                    ->color(fn (Submission $record): string => match (true) {
+                        ! $record->journalTargetIsChosen() => 'gray',
+                        $record->journal_target === 'sinta3' => 'warning',
+                        default => 'info',
+                    })
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')->options(self::STATUS_OPTIONS),
+                SelectFilter::make('journal_target')
+                    ->label('Jenis jurnal')
+                    ->options(Submission::JOURNAL_TARGETS)
+                    ->query(fn (Builder $query, array $data) => filled($data['value'] ?? null)
+                        ? $query->whereNotNull('journal_target_chosen_at')->where('journal_target', $data['value'])
+                        : $query),
                 TernaryFilter::make('full_paper')
                     ->label('Full paper')
                     ->placeholder('Semua')

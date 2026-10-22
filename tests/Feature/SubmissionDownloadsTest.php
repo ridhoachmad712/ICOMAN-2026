@@ -166,6 +166,26 @@ class SubmissionDownloadsTest extends TestCase
             ->assertCanNotSeeTableRecords([$missing->author]);
     }
 
+    public function test_the_full_paper_tab_shows_and_filters_the_chosen_journal(): void
+    {
+        Storage::fake('papers');
+        $topic = $this->topic(1, 'Sub-tema 1');
+        $sinta = $this->withFullPaper($this->paper('accepted', $topic, 'Rina', 'Unhas', 'Paper SINTA'));
+        $sinta->forceFill(['journal_target' => 'sinta3', 'journal_target_chosen_at' => now()])->save();
+        $regular = $this->withFullPaper($this->paper('accepted', $topic, 'Budi', 'UNM', 'Paper reguler'));
+        $regular->forceFill(['journal_target' => 'regular', 'journal_target_chosen_at' => now()])->save();
+        $unchosen = $this->withFullPaper($this->paper('accepted', $topic, 'Citra', 'UI', 'Paper belum memilih'));
+
+        Livewire::test(ListSubmissions::class)
+            ->set('activeTab', 'full_paper')
+            ->assertTableColumnStateSet('journal_target', 'Jurnal SINTA 3', $sinta)
+            ->assertTableColumnStateSet('journal_target', 'Jurnal Reguler', $regular)
+            ->assertTableColumnStateSet('journal_target', 'Belum dipilih', $unchosen)
+            ->filterTable('journal_target', 'sinta3')
+            ->assertCanSeeTableRecords([$sinta])
+            ->assertCanNotSeeTableRecords([$regular, $unchosen]);
+    }
+
     public function test_full_papers_download_as_one_zip_named_by_code_and_title(): void
     {
         Storage::fake('papers');
@@ -185,8 +205,8 @@ class SubmissionDownloadsTest extends TestCase
         unlink($path);
 
         // Titik dua tidak sah di nama berkas Windows, jadi diganti spasi.
-        $this->assertSame([$paper->submission_number.' - Dampak AI  Studi Kasus.pdf'], $names);
-        $this->assertSame('%PDF-1.4 full paper', $content);
+        $this->assertSame([$paper->submission_number.' - Dampak AI  Studi Kasus.docx'], $names);
+        $this->assertStringStartsWith('PK', $content);
     }
 
     public function test_no_full_paper_means_no_zip_and_a_warning(): void
@@ -208,12 +228,13 @@ class SubmissionDownloadsTest extends TestCase
         $this->get(SubmissionResource::getUrl('edit', ['record' => $paper]))
             ->assertOk()
             ->assertSee(route('admin.submissions.full-paper.download', $paper), false)
-            ->assertSee('naskah-final.pdf');
+            ->assertSee('naskah-final.docx');
     }
 
     private function withFullPaper(Submission $submission): Submission
     {
-        $submission->addMedia(UploadedFile::fake()->createWithContent('naskah-final.pdf', '%PDF-1.4 full paper'))
+        $docx = app(\App\Services\AbstractWordDocument::class)->create($submission);
+        $submission->addMedia(UploadedFile::fake()->createWithContent('naskah-final.docx', file_get_contents($docx)))
             ->toMediaCollection('camera_ready');
         $submission->forceFill(['full_paper_submitted_at' => now()])->save();
 

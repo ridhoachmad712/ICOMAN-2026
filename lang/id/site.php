@@ -91,7 +91,7 @@ return [
     'guide_review_and_acceptance' => 'Review dan penerimaan',
     'guide_save_your_draft_and_check' => 'Simpan draft dan periksa preview PDF sebelum mengirim. Abstrak dikunci selama review. Jika diminta revisi, baca komentar reviewer, perbaiki, lalu kirim ulang. Setelah panitia menerima abstrak, LOA terbit otomatis dan dapat diunduh dari detail paper.',
     'guide_the_full_paper_deadline_is' => 'Deadline full paper ditampilkan di atas. Jika masih “akan diumumkan”, tanggal final belum ditetapkan. Versi unggahan sebelumnya disimpan secara privat ketika Anda mengirim pengganti.',
-    'guide_upload_the_full_paper_after' => 'Unggah full paper setelah pembayaran terverifikasi. Format yang diterima: PDF, DOC, atau DOCX, maksimum 20 MB. Gunakan template naskah di bawah sebagai struktur awal: judul, penulis dan afiliasi, abstrak, pendahuluan, metode, hasil dan pembahasan, kesimpulan, serta referensi. Ketentuan tambahan jurnal tujuan mengikuti pengumuman panitia atau editor jurnal.',
+    'guide_upload_the_full_paper_after' => 'Unggah full paper setelah pembayaran terverifikasi. Full paper wajib berupa file Word (.docx), maksimum 20 MB; file PDF atau .doc tidak diterima. Gunakan template naskah di bawah sebagai struktur awal: judul, penulis dan afiliasi, abstrak, pendahuluan, metode, hasil dan pembahasan, kesimpulan, serta referensi. Ketentuan tambahan jurnal tujuan mengikuti pengumuman panitia atau editor jurnal.',
     'guide_write_an_english_abstract_of' => 'Tulis abstrak dalam bahasa Inggris, 200–250 kata, yang merangkum tujuan, metode, hasil, dan kesimpulan. Isi judul, topik, serta 1–5 keywords. Cantumkan semua penulis sesuai urutan dan pilih tepat satu corresponding author. Satu akun dapat mengirim satu paper per edisi.',
     'home_attend_seminar' => 'Ikuti Seminar',
     'home_date' => 'Tanggal',
@@ -145,7 +145,7 @@ return [
     'public_abstract_deadline' => 'Batas pengiriman abstrak',
     'public_template_pending' => 'Template naskah belum diterbitkan. Silakan hubungi panitia sebelum menyiapkan tata letak akhir naskah.',
     'public_template_by_target' => 'Template naskah final tersedia di portal author setelah target jurnal dipilih. Hanya template yang sesuai dengan pilihan jurnal Anda yang ditampilkan.',
-    'public_full_paper_instructions' => 'Unggah full paper setelah pembayaran terverifikasi. Format yang diterima: PDF, DOC, atau DOCX, maksimum 20 MB. Sertakan judul, penulis dan afiliasi, abstrak, pendahuluan, metode, hasil dan pembahasan, kesimpulan, serta referensi. Gunakan template panitia ketika tersedia; ketentuan tambahan jurnal mengikuti pengumuman panitia atau editor jurnal.',
+    'public_full_paper_instructions' => 'Unggah full paper setelah pembayaran terverifikasi. Full paper wajib berupa file Word (.docx), maksimum 20 MB; file PDF atau .doc tidak diterima. Sertakan judul, penulis dan afiliasi, abstrak, pendahuluan, metode, hasil dan pembahasan, kesimpulan, serta referensi. Gunakan template panitia ketika tersedia; ketentuan tambahan jurnal mengikuti pengumuman panitia atau editor jurnal.',
     'public_date_passed' => 'Tanggal telah lewat',
     'public_date_upcoming' => 'Mendatang',
 ];
