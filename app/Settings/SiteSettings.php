@@ -38,6 +38,18 @@ class SiteSettings extends Settings
 
     public ?string $zoom_note;
 
+    /**
+     * Template sertifikat. Latar dan tanda tangan berupa path gambar di disk
+     * publik; tanpa latar, sertifikat memakai desain bawaan berwarna merek.
+     */
+    public ?string $certificate_background;
+
+    public ?string $certificate_signatory_name;
+
+    public ?string $certificate_signatory_title;
+
+    public ?string $certificate_signature;
+
     public ?string $social_instagram;
 
     public ?string $social_twitter;

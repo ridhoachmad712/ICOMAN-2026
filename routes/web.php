@@ -3,6 +3,7 @@
 use App\Http\Controllers\Author\AuthController;
 use App\Http\Controllers\Author\RegistrationController;
 use App\Http\Controllers\Author\SubmissionController;
+use App\Http\Controllers\CertificateController;
 use App\Http\Controllers\LocaleController;
 use App\Http\Controllers\NewsController;
 use App\Http\Controllers\Payment\BorderpayController;
@@ -44,6 +45,12 @@ Route::middleware('setlocale')->group(function () {
 
     Route::get('/lang/{locale}', [LocaleController::class, 'switch'])->name('locale.switch');
 
+    // Tujuan QR di sertifikat. Dibatasi lajunya agar kode tidak bisa ditebak beruntun.
+    Route::get('/sertifikat/verifikasi/{token}', [CertificateController::class, 'verify'])
+        ->middleware('throttle:30,1')
+        ->where('token', '[A-Za-z0-9]{20,64}')
+        ->name('certificates.verify');
+
     /*
     |--------------------------------------------------------------------------
     | Portal Author (guard `author`, terpisah dari admin Filament)
@@ -83,6 +90,8 @@ Route::middleware('setlocale')->group(function () {
             Route::post('registration/{registration}/pay', [RegistrationController::class, 'payGateway'])->middleware('throttle:6,1')->name('registration.pay');
             Route::post('registration/{registration}/cancel-payment', [RegistrationController::class, 'cancelUnpaidCheckout'])->middleware('throttle:6,1')->name('registration.cancel-payment');
             Route::post('registration/{registration}/sync', [RegistrationController::class, 'synchronize'])->middleware('throttle:6,1')->name('registration.sync');
+
+            Route::get('certificates/{certificate}', [CertificateController::class, 'download'])->name('certificates.download');
         });
     });
 });
@@ -95,6 +104,8 @@ Route::middleware(['auth'])->get(
 Route::middleware('auth')->get('admin/submissions/{submission}/abstract.docx', [SubmissionController::class, 'downloadAbstractWordForAdmin'])->name('admin.submissions.abstract-word');
 
 Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaperForAdmin'])->name('admin.submissions.full-paper.download');
+
+Route::middleware('auth')->get('admin/certificates/{certificate}/pdf', [CertificateController::class, 'downloadForAdmin'])->name('admin.certificates.pdf');
 
 Route::middleware('auth')->get('admin/registrations/{registration}/payment-proof', [RegistrationController::class, 'paymentProofForAdmin'])->name('admin.registrations.payment-proof');
 

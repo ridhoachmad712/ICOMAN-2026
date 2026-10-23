@@ -3,6 +3,7 @@
     'metaDescription' => null,
     'ogImage' => null,
     'canonical' => null,
+    'noindex' => false,
 ])
 
 @php
@@ -30,6 +31,7 @@
     <title>{{ $pageTitle }}</title>
     <meta name="description" content="{{ \Illuminate\Support\Str::limit(strip_tags($description), 160, '') }}">
     <link rel="canonical" href="{{ $canonicalUrl }}">
+    @if($noindex)<meta name="robots" content="noindex, nofollow">@endif
     <link rel="alternate" hreflang="en" href="{{ url()->current() }}?lang=en">
     <link rel="alternate" hreflang="id" href="{{ url()->current() }}?lang=id">
     @if($faviconUrl)<link rel="icon" href="{{ $faviconUrl }}">@endif

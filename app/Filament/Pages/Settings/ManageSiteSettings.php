@@ -125,6 +125,24 @@ class ManageSiteSettings extends SettingsPage
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Sertifikat')
+                    ->description('Dipakai saat sertifikat dibuat. Tanpa gambar latar, sertifikat memakai desain bawaan berwarna merek. Perubahan berlaku pada setiap unduhan berikutnya, termasuk sertifikat yang sudah terbit.')
+                    ->columns(2)
+                    ->schema([
+                        FileUpload::make('certificate_background')
+                            ->label('Gambar latar (A4 landscape)')
+                            ->helperText('Disarankan 3508 × 2480 px (A4 landscape, 300 dpi), JPG/PNG. Biarkan area tengah kosong untuk nama dan isi.')
+                            ->image()->disk('public')->directory('certificates')->visibility('public')
+                            ->columnSpanFull(),
+                        TextInput::make('certificate_signatory_name')->label('Nama penandatangan')->maxLength(150),
+                        TextInput::make('certificate_signatory_title')->label('Jabatan penandatangan')->maxLength(150)
+                            ->placeholder('Mis. Ketua Panitia ICOMAN 2026'),
+                        FileUpload::make('certificate_signature')
+                            ->label('Gambar tanda tangan')
+                            ->helperText('PNG berlatar transparan.')
+                            ->image()->disk('public')->directory('certificates')->visibility('public'),
+                    ]),
+
                 Section::make('Media Sosial')
                     ->columns(3)
                     ->schema([

@@ -63,6 +63,12 @@ class Author extends Authenticatable implements FilamentUser
         return $this->hasMany(Registration::class);
     }
 
+    /** Sertifikat yang diunduh lewat akun ini (termasuk milik co-author paper). */
+    public function certificates(): HasMany
+    {
+        return $this->hasMany(Certificate::class);
+    }
+
     public function coHost(): HasOne
     {
         return $this->hasOne(CoHost::class);
