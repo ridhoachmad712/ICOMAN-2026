@@ -107,6 +107,24 @@ class ManageSiteSettings extends SettingsPage
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Zoom Konferensi')
+                    ->description('Tampil di dashboard portal hanya bagi peserta seminar yang sudah lunas, dan presenter yang sudah lunas serta sudah mengumpulkan full paper. Kosongkan link untuk menyembunyikan.')
+                    ->columns(2)
+                    ->schema([
+                        TextInput::make('zoom_url')
+                            ->label('Link Zoom')
+                            ->url()
+                            ->placeholder('https://us02web.zoom.us/j/...')
+                            ->columnSpanFull(),
+                        TextInput::make('zoom_meeting_id')->label('Meeting ID')->maxLength(50),
+                        TextInput::make('zoom_passcode')->label('Passcode')->maxLength(50),
+                        Textarea::make('zoom_note')
+                            ->label('Catatan untuk peserta')
+                            ->placeholder('Mis. Ruang dibuka 08.30 WITA. Gunakan nama sesuai akun portal.')
+                            ->rows(3)
+                            ->columnSpanFull(),
+                    ]),
+
                 Section::make('Media Sosial')
                     ->columns(3)
                     ->schema([

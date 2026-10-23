@@ -47,6 +47,8 @@
             </x-filament::button>
         </header>
 
+        @include('filament.author.components.zoom-access')
+
         @if($author->hasSeminarAccess())
             @include('filament.author.components.whatsapp-group')
         @endif

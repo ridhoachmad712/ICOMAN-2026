@@ -112,6 +112,29 @@ class Author extends Authenticatable implements FilamentUser
             ->exists());
     }
 
+    /**
+     * Berhak menerima akses Zoom konferensi: peserta seminar yang lunas, atau
+     * presenter yang lunas dan sudah mengumpulkan full paper pada edisi ini.
+     * Co-host adalah institusi, bukan peserta, jadi tidak termasuk.
+     */
+    public function canJoinConference(?Edition $edition = null): bool
+    {
+        $edition ??= currentEdition();
+
+        if (! $edition || $this->isCoHost() || ! $this->hasSeminarAccess($edition)) {
+            return false;
+        }
+
+        if ($this->isParticipant()) {
+            return true;
+        }
+
+        return $this->submissions()
+            ->where('edition_id', $edition->id)
+            ->withFullPaper()
+            ->exists();
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $panel->getId() === 'author';

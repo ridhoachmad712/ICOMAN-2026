@@ -25,6 +25,19 @@ class SiteSettings extends Settings
     /** Undangan grup WhatsApp peserta; hanya ditampilkan kepada yang sudah lunas. */
     public ?string $whatsapp_group_url;
 
+    /**
+     * Akses Zoom konferensi. Hanya tampil di dashboard peserta yang berhak:
+     * peserta seminar yang lunas, dan presenter yang lunas serta sudah
+     * mengumpulkan full paper (lihat Author::canJoinConference()).
+     */
+    public ?string $zoom_url;
+
+    public ?string $zoom_meeting_id;
+
+    public ?string $zoom_passcode;
+
+    public ?string $zoom_note;
+
     public ?string $social_instagram;
 
     public ?string $social_twitter;
