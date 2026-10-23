@@ -2,15 +2,22 @@
 
 namespace App\Filament\Pages\Settings;
 
+use App\Services\CertificatePdf;
 use App\Settings\SiteSettings;
 use BackedEnum;
+use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Pages\SettingsPage;
+use Filament\Schemas\Components\Fieldset;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Tabs;
+use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use UnitEnum;
@@ -33,6 +40,27 @@ class ManageSiteSettings extends SettingsPage
     public static function canAccess(): bool
     {
         return auth()->user()?->isSuperadmin() ?? false;
+    }
+
+    /** Pratinjau memakai pengaturan yang sudah disimpan, dengan data contoh. */
+    protected function getHeaderActions(): array
+    {
+        return [
+            ActionGroup::make([
+                Action::make('previewPresentationCertificate')
+                    ->label('Sertifikat presenter')
+                    ->url(route('admin.certificates.preview', 'presentation'))
+                    ->openUrlInNewTab(),
+                Action::make('previewParticipationCertificate')
+                    ->label('Sertifikat peserta seminar')
+                    ->url(route('admin.certificates.preview', 'participation'))
+                    ->openUrlInNewTab(),
+            ])
+                ->label('Pratinjau sertifikat')
+                ->icon('heroicon-o-eye')
+                ->color('gray')
+                ->button(),
+        ];
     }
 
     public function form(Schema $schema): Schema
@@ -126,21 +154,30 @@ class ManageSiteSettings extends SettingsPage
                     ]),
 
                 Section::make('Sertifikat')
-                    ->description('Dipakai saat sertifikat dibuat. Tanpa gambar latar, sertifikat memakai desain bawaan berwarna merek. Perubahan berlaku pada setiap unduhan berikutnya, termasuk sertifikat yang sudah terbit.')
+                    ->description('Dibaca setiap kali sertifikat diunduh, jadi perubahan juga berlaku bagi sertifikat yang sudah terbit (nama, afiliasi, dan judul tetap seperti saat terbit). Simpan dulu, lalu gunakan tombol Pratinjau sertifikat di kanan atas.')
                     ->columns(2)
                     ->schema([
-                        FileUpload::make('certificate_background')
-                            ->label('Gambar latar (A4 landscape)')
-                            ->helperText('Disarankan 3508 × 2480 px (A4 landscape, 300 dpi), JPG/PNG. Biarkan area tengah kosong untuk nama dan isi.')
-                            ->image()->disk('public')->directory('certificates')->visibility('public')
+                        Toggle::make('certificate_custom_layout')
+                            ->label('Template custom: desain latar sudah memuat judul, teks, logo, dan tanda tangan')
+                            ->helperText('Bila aktif, sistem hanya mencetak nama, afiliasi, judul paper, nomor, dan QR code pada posisi di bawah. Bila tidak, sistem mencetak susunan bawaan di atas gambar latar (atau di atas bingkai bawaan bila latar kosong).')
+                            ->live()
                             ->columnSpanFull(),
-                        TextInput::make('certificate_signatory_name')->label('Nama penandatangan')->maxLength(150),
+                        TextInput::make('certificate_signatory_name')->label('Nama penandatangan')->maxLength(150)
+                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
                         TextInput::make('certificate_signatory_title')->label('Jabatan penandatangan')->maxLength(150)
-                            ->placeholder('Mis. Ketua Panitia ICOMAN 2026'),
+                            ->placeholder('Mis. Ketua Panitia ICOMAN 2026')
+                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
                         FileUpload::make('certificate_signature')
                             ->label('Gambar tanda tangan')
                             ->helperText('PNG berlatar transparan.')
-                            ->image()->disk('public')->directory('certificates')->visibility('public'),
+                            ->image()->disk('public')->directory('certificates')->visibility('public')
+                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
+                        Tabs::make('certificate_templates')
+                            ->columnSpanFull()
+                            ->tabs([
+                                static::certificateTemplateTab('presentation', 'Presenter'),
+                                static::certificateTemplateTab('participation', 'Peserta seminar'),
+                            ]),
                     ]),
 
                 Section::make('Media Sosial')
@@ -199,5 +236,51 @@ class ManageSiteSettings extends SettingsPage
                             ->dehydrated(fn (?string $state): bool => filled($state)),
                     ]),
             ]);
+    }
+
+    /** Satu tab template: gambar latar dan (di mode custom) posisi tiap elemen dinamis. */
+    private static function certificateTemplateTab(string $type, string $label): Tab
+    {
+        $isPresentation = $type === 'presentation';
+        $fields = [
+            FileUpload::make('certificate_background_'.$type)
+                ->label('Gambar latar '.$label.' (A4 landscape)')
+                ->helperText($isPresentation
+                    ? 'Disarankan 3508 × 2480 px (300 dpi), JPG/PNG.'
+                    : 'Disarankan 3508 × 2480 px (300 dpi), JPG/PNG. Bila kosong, memakai latar presenter.')
+                ->image()->disk('public')->directory('certificates')->visibility('public')
+                ->columnSpanFull(),
+        ];
+
+        foreach (CertificatePdf::ELEMENTS as $element => $elementLabel) {
+            if ($element === 'paper_title' && ! $isPresentation) {
+                continue;
+            }
+
+            $defaults = CertificatePdf::DEFAULT_LAYOUT[$element];
+            $key = 'certificate_layout.'.$type.'.'.$element.'.';
+            $inputs = [
+                TextInput::make($key.'top')->label('Dari atas (mm)')->numeric()->minValue(0)->maxValue(210)->placeholder((string) $defaults['top']),
+                TextInput::make($key.'left')->label('Dari kiri (mm)')->numeric()->minValue(0)->maxValue(297)->placeholder((string) $defaults['left']),
+            ];
+
+            if ($element === 'qr') {
+                $inputs[] = TextInput::make($key.'size')->label('Ukuran (mm)')->numeric()->minValue(10)->maxValue(80)->placeholder((string) $defaults['size']);
+            } else {
+                $inputs[] = TextInput::make($key.'width')->label('Lebar kotak (mm)')->numeric()->minValue(10)->maxValue(297)->placeholder((string) $defaults['width']);
+                $inputs[] = TextInput::make($key.'size')->label('Ukuran huruf (pt)')->numeric()->minValue(6)->maxValue(72)->placeholder((string) $defaults['size']);
+                $inputs[] = Select::make($key.'align')->label('Perataan')
+                    ->options(['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'])
+                    ->placeholder('Tengah');
+                $inputs[] = ColorPicker::make($key.'color')->label('Warna')->placeholder($defaults['color']);
+            }
+
+            $fields[] = Fieldset::make($elementLabel)
+                ->columns(['default' => 2, 'lg' => $element === 'qr' ? 3 : 6])
+                ->schema($inputs)
+                ->visible(fn ($get) => (bool) $get('certificate_custom_layout'));
+        }
+
+        return Tab::make($label)->schema($fields);
     }
 }

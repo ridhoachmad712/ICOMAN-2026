@@ -53,6 +53,26 @@
     </style>
 </head>
 <body>
+@if($custom ?? false)
+    {{-- Template custom: judul, teks, logo, dan tanda tangan sudah ada di desain
+         latar. Yang dicetak hanya data dinamis, di posisi dari Pengaturan. --}}
+    <img class="bg" src="{{ $background }}" alt="">
+    @php
+        $box = fn (array $p): string => 'position: absolute; top: '.(float) $p['top'].'mm; left: '.(float) $p['left'].'mm; width: '.(float) ($p['width'] ?? 100).'mm;'
+            .' text-align: '.(in_array($p['align'] ?? 'center', ['left', 'center', 'right'], true) ? $p['align'] : 'center').';'
+            .' font-size: '.(float) ($p['size'] ?? 12).'pt; line-height: 1.25;'
+            .' color: '.(preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($p['color'] ?? '')) ? $p['color'] : '#1f2d3d').';';
+    @endphp
+    <div style="{{ $box($layout['name']) }} font-family: DejaVu Serif, Georgia, serif; font-weight: bold;">{{ $certificate->recipient_name }}</div>
+    @if(filled($certificate->recipient_affiliation))
+        <div style="{{ $box($layout['affiliation']) }}">{{ $certificate->recipient_affiliation }}</div>
+    @endif
+    @if($certificate->type === 'presentation' && filled($certificate->paper_title))
+        <div style="{{ $box($layout['paper_title']) }} font-family: DejaVu Serif, Georgia, serif; font-style: italic;">“{{ $certificate->paper_title }}”</div>
+    @endif
+    <div style="{{ $box($layout['number']) }}">No. {{ $certificate->number }}</div>
+    <img src="{{ $qr }}" alt="QR" style="position: absolute; top: {{ (float) $layout['qr']['top'] }}mm; left: {{ (float) $layout['qr']['left'] }}mm; width: {{ (float) $layout['qr']['size'] }}mm; height: {{ (float) $layout['qr']['size'] }}mm;">
+@else
     @if($background)
         <img class="bg" src="{{ $background }}" alt="">
     @else
@@ -117,5 +137,6 @@
             </tr>
         </table>
     </div>
+@endif
 </body>
 </html>

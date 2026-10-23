@@ -30,6 +30,15 @@ class CertificateController extends Controller
         return $pdf->download($certificate);
     }
 
+    /** Pratinjau template dengan data contoh, dari pengaturan yang sudah disimpan. */
+    public function preview(string $type, CertificatePdf $pdf): Response
+    {
+        abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);
+        abort_unless(array_key_exists($type, Certificate::TYPES), 404);
+
+        return $pdf->preview($type);
+    }
+
     public function downloadForAdmin(Certificate $certificate, CertificatePdf $pdf): Response
     {
         abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);

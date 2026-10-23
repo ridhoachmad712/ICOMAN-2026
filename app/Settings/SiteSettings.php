@@ -41,8 +41,23 @@ class SiteSettings extends Settings
     /**
      * Template sertifikat. Latar dan tanda tangan berupa path gambar di disk
      * publik; tanpa latar, sertifikat memakai desain bawaan berwarna merek.
+     * Latar peserta yang kosong memakai latar presenter.
      */
-    public ?string $certificate_background;
+    public ?string $certificate_background_presentation;
+
+    public ?string $certificate_background_participation;
+
+    /**
+     * Mode template custom: desain latar sudah memuat judul, teks pengantar,
+     * dan tanda tangan, jadi yang dicetak hanya data dinamis (nama, afiliasi,
+     * judul paper, nomor, QR) di posisi certificate_layout.
+     */
+    public bool $certificate_custom_layout;
+
+    // Posisi elemen per jenis sertifikat lalu per elemen; bentuknya mengikuti
+    // CertificatePdf::DEFAULT_LAYOUT. Sengaja bukan docblock @var: spatie
+    // settings membaca docblock dan tidak mengenal tipe bersarang.
+    public ?array $certificate_layout;
 
     public ?string $certificate_signatory_name;
 

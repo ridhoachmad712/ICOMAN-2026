@@ -183,6 +183,89 @@ class CertificateTest extends TestCase
             ->assertHeader('content-type', 'application/pdf');
     }
 
+    public function test_custom_template_prints_only_dynamic_data_at_the_saved_positions(): void
+    {
+        $settings = app(\App\Settings\SiteSettings::class);
+        $settings->certificate_custom_layout = true;
+        $settings->certificate_layout = ['presentation' => ['name' => ['top' => 101, 'size' => 30, 'align' => 'left']]];
+        $settings->save();
+
+        $pdf = app(CertificatePdf::class);
+        $layout = $pdf->layout('presentation');
+        $this->assertSame(101, $layout['name']['top']);
+        $this->assertSame('left', $layout['name']['align']);
+        // Yang tidak diatur memakai posisi bawaan.
+        $this->assertSame(CertificatePdf::DEFAULT_LAYOUT['qr'], $layout['qr']);
+        $this->assertSame(CertificatePdf::DEFAULT_LAYOUT['name'], $pdf->layout('participation')['name']);
+
+        $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
+        app(CertificateIssuer::class)->issuePending($this->edition);
+        $certificate = Certificate::sole();
+
+        $html = view('pdf.certificate', [
+            'certificate' => $certificate, 'settings' => siteSettings(), 'qr' => $pdf->qrDataUri($certificate),
+            'background' => 'data:image/png;base64,AAAA', 'signature' => null, 'logo' => null,
+            'custom' => true, 'layout' => $layout,
+        ])->render();
+
+        $this->assertStringContainsString('Rina Saputri', $html);
+        $this->assertStringContainsString('top: 101mm', $html);
+        $this->assertStringContainsString($certificate->paper_title, $html);
+        $this->assertStringContainsString($certificate->number, $html);
+        // Judul dan teks pengantar ada di desain latar, bukan dicetak sistem.
+        $this->assertStringNotContainsString('CERTIFICATE', $html);
+        $this->assertStringNotContainsString('This is to certify that', $html);
+    }
+
+    public function test_the_settings_form_saves_the_custom_layout_per_certificate_type(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('superadmin', 'web');
+        $admin = User::create(['name' => 'Super', 'email' => 'super-cert@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('superadmin');
+        $this->actingAs($admin, 'web');
+
+        Livewire::test(\App\Filament\Pages\Settings\ManageSiteSettings::class)
+            ->assertOk()
+            ->fillForm([
+                'certificate_custom_layout' => true,
+                'certificate_layout.presentation.name.top' => 120,
+                'certificate_layout.participation.qr.size' => 30,
+            ])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $settings = app(\App\Settings\SiteSettings::class)->refresh();
+        $this->assertTrue($settings->certificate_custom_layout);
+        $this->assertEquals(120, app(CertificatePdf::class)->layout('presentation')['name']['top']);
+        $this->assertEquals(30, app(CertificatePdf::class)->layout('participation')['qr']['size']);
+        // Jenis lain tetap memakai posisi bawaannya.
+        $this->assertEquals(CertificatePdf::DEFAULT_LAYOUT['name']['top'], app(CertificatePdf::class)->layout('participation')['name']['top']);
+    }
+
+    public function test_committee_can_preview_both_templates(): void
+    {
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'admin-preview@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+
+        foreach (['presentation', 'participation'] as $type) {
+            $this->actingAs($admin, 'web')
+                ->get(route('admin.certificates.preview', $type))
+                ->assertOk()
+                ->assertHeader('content-type', 'application/pdf');
+        }
+
+        Role::findOrCreate('reviewer', 'web');
+        $reviewer = User::create(['name' => 'Reviewer', 'email' => 'reviewer-preview@example.test', 'password' => 'secret-password']);
+        $reviewer->assignRole('reviewer');
+        $this->actingAs($reviewer, 'web')
+            ->get(route('admin.certificates.preview', 'presentation'))
+            ->assertForbidden();
+
+        $this->assertSame(0, Certificate::count(), 'Pratinjau tidak boleh menerbitkan sertifikat.');
+    }
+
     /** @param  list<array{0: string, 1: string}>  $writers */
     private function presenter(bool $paid, bool $fullPaper, array $writers): Submission
     {
