@@ -22,7 +22,7 @@ class ParticipantContactExport
 {
     public const HEADINGS = [
         'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan',
-        'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
+        'Kode paper', 'Judul paper', 'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
     ];
 
     private const PATHS = [
@@ -43,7 +43,7 @@ class ParticipantContactExport
         }
 
         $options = new Options;
-        foreach ([6, 32, 40, 34, 22, 18, 18, 16, 24, 18, 14, 16, 18] as $index => $width) {
+        foreach ([6, 32, 40, 34, 22, 18, 18, 16, 18, 60, 24, 18, 14, 16, 18] as $index => $width) {
             $options->setColumnWidth($width, $index + 1);
         }
 
@@ -74,6 +74,9 @@ class ParticipantContactExport
                         (string) countryName($author->country),
                         self::PATHS[$author->participation_type] ?? '',
                         $author->registrantCategoryLabel(),
+                        // Paper edisi aktif yang sama dengan kolom Paper di tabel; kosong untuk peserta seminar.
+                        (string) $snapshot['paper']?->submission_number,
+                        (string) $snapshot['paper']?->title,
                         $snapshot['label'],
                         AuthorProgress::paymentLabel($registration),
                         $registration ? '#'.str_pad((string) $registration->id, 5, '0', STR_PAD_LEFT) : '',

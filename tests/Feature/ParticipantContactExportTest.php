@@ -42,13 +42,18 @@ class ParticipantContactExportTest extends TestCase
         $invoice = $this->registration($paid, 'paid');
         $waiting = $this->author('Citra Lestari', 'participant', '081200000000', 'UI');
         $this->registration($waiting, 'pending_verification');
-        $this->author('Budi Santoso', 'presenter', '+6285511122233', 'Universitas Negeri Makassar');
+        $presenter = $this->author('Budi Santoso', 'presenter', '+6285511122233', 'Universitas Negeri Makassar');
+        $paper = \App\Models\Submission::create([
+            'edition_id' => $this->edition->id, 'author_id' => $presenter->id,
+            'title' => 'Dampak AI pada Ketahanan UMKM', 'abstract' => 'Abstract', 'keywords' => ['k'],
+            'status' => 'extended_abstract_under_review',
+        ]);
 
         $rows = $this->download();
 
         $this->assertSame([
             'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan',
-            'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
+            'Kode paper', 'Judul paper', 'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
         ], $rows[0]);
         $byName = collect(array_slice($rows, 1))->keyBy(fn (array $row) => $row[1]);
 
@@ -57,16 +62,20 @@ class ParticipantContactExportTest extends TestCase
         // Nomor HP tetap teks: angka 0 di depan tidak hilang.
         $this->assertSame('081234567890', $byName['Rina Saputri'][4]);
         // Status pembayaran sama dengan kolom Pembayaran di tabel Progres Peserta.
-        $this->assertSame('Siap hadir', $byName['Rina Saputri'][8]);
-        $this->assertSame('Lunas', $byName['Rina Saputri'][9]);
-        $this->assertSame('#'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT), $byName['Rina Saputri'][10]);
-        $this->assertEquals(50000, $byName['Rina Saputri'][11]);
-        $this->assertNotSame('', $byName['Rina Saputri'][12]);
-        $this->assertSame('Verifikasi', $byName['Citra Lestari'][9]);
-        $this->assertSame('', $byName['Citra Lestari'][12]);
+        $this->assertSame('Siap hadir', $byName['Rina Saputri'][10]);
+        $this->assertSame('Lunas', $byName['Rina Saputri'][11]);
+        $this->assertSame('#'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT), $byName['Rina Saputri'][12]);
+        $this->assertEquals(50000, $byName['Rina Saputri'][13]);
+        $this->assertNotSame('', $byName['Rina Saputri'][14]);
+        $this->assertSame('Verifikasi', $byName['Citra Lestari'][11]);
+        $this->assertSame('', $byName['Citra Lestari'][14]);
         $this->assertSame('+6285511122233', $byName['Budi Santoso'][4]);
-        $this->assertSame('Belum ada invoice', $byName['Budi Santoso'][9]);
-        $this->assertSame('', $byName['Budi Santoso'][10]);
+        $this->assertSame('Belum ada invoice', $byName['Budi Santoso'][11]);
+        // Kode dan judul paper presenter; kosong untuk peserta seminar.
+        $this->assertSame($paper->submission_number, $byName['Budi Santoso'][8]);
+        $this->assertSame('Dampak AI pada Ketahanan UMKM', $byName['Budi Santoso'][9]);
+        $this->assertSame('', $byName['Rina Saputri'][9]);
+        $this->assertSame('', $byName['Budi Santoso'][12]);
     }
 
     public function test_the_download_follows_the_active_tab(): void
