@@ -10,6 +10,22 @@ use App\Models\Submission;
 /** Ringkasan read-only untuk memantau semua akun pada edisi aktif di admin. */
 class AuthorProgress
 {
+    /**
+     * Label status pembayaran dari invoice yang dipilih snapshot(). Dipakai
+     * bersama oleh kolom Pembayaran di Progres Peserta dan Excel data peserta,
+     * supaya keduanya tidak pernah berbeda.
+     */
+    public static function paymentLabel(?Registration $registration): string
+    {
+        return match ($registration?->status) {
+            'paid' => 'Lunas',
+            'pending_verification' => 'Verifikasi',
+            'failed' => 'Gagal',
+            'pending' => 'Belum lunas',
+            default => 'Belum ada invoice',
+        };
+    }
+
     /** @return array{label: string, detail: string, color: string, percent: int, paper: ?Submission, registration: ?Registration} */
     public function snapshot(Author $author, ?Edition $edition = null): array
     {

@@ -213,13 +213,7 @@ class AuthorsTable
 
     private static function paymentLabel(?Registration $registration): string
     {
-        return match ($registration?->status) {
-            'paid' => 'Lunas',
-            'pending_verification' => 'Verifikasi',
-            'failed' => 'Gagal',
-            'pending' => 'Belum lunas',
-            default => 'Belum ada invoice',
-        };
+        return AuthorProgress::paymentLabel($registration);
     }
 
     private static function paymentColor(?Registration $registration): string

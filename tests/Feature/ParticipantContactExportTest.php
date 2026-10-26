@@ -39,21 +39,34 @@ class ParticipantContactExportTest extends TestCase
     public function test_the_download_contains_the_core_contact_data(): void
     {
         $paid = $this->author('Rina Saputri', 'participant', '081234567890', 'Universitas Hasanuddin');
-        $this->registration($paid, 'paid');
+        $invoice = $this->registration($paid, 'paid');
+        $waiting = $this->author('Citra Lestari', 'participant', '081200000000', 'UI');
+        $this->registration($waiting, 'pending_verification');
         $this->author('Budi Santoso', 'presenter', '+6285511122233', 'Universitas Negeri Makassar');
 
         $rows = $this->download();
 
-        $this->assertSame(['No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan', 'Status pembayaran'], $rows[0]);
+        $this->assertSame([
+            'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan',
+            'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
+        ], $rows[0]);
         $byName = collect(array_slice($rows, 1))->keyBy(fn (array $row) => $row[1]);
 
         $this->assertSame('Universitas Hasanuddin', $byName['Rina Saputri'][2]);
         $this->assertSame($paid->email, $byName['Rina Saputri'][3]);
         // Nomor HP tetap teks: angka 0 di depan tidak hilang.
         $this->assertSame('081234567890', $byName['Rina Saputri'][4]);
-        $this->assertSame('Lunas', $byName['Rina Saputri'][8]);
+        // Status pembayaran sama dengan kolom Pembayaran di tabel Progres Peserta.
+        $this->assertSame('Siap hadir', $byName['Rina Saputri'][8]);
+        $this->assertSame('Lunas', $byName['Rina Saputri'][9]);
+        $this->assertSame('#'.str_pad((string) $invoice->id, 5, '0', STR_PAD_LEFT), $byName['Rina Saputri'][10]);
+        $this->assertEquals(50000, $byName['Rina Saputri'][11]);
+        $this->assertNotSame('', $byName['Rina Saputri'][12]);
+        $this->assertSame('Verifikasi', $byName['Citra Lestari'][9]);
+        $this->assertSame('', $byName['Citra Lestari'][12]);
         $this->assertSame('+6285511122233', $byName['Budi Santoso'][4]);
-        $this->assertSame('Belum ada invoice', $byName['Budi Santoso'][8]);
+        $this->assertSame('Belum ada invoice', $byName['Budi Santoso'][9]);
+        $this->assertSame('', $byName['Budi Santoso'][10]);
     }
 
     public function test_the_download_follows_the_active_tab(): void

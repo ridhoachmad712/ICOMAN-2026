@@ -21,7 +21,8 @@ use RuntimeException;
 class ParticipantContactExport
 {
     public const HEADINGS = [
-        'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan', 'Status pembayaran',
+        'No', 'Nama', 'Afiliasi', 'Email', 'No. HP / WhatsApp', 'Negara', 'Jalur', 'Jenis kepesertaan',
+        'Progres saat ini', 'Status pembayaran', 'No. invoice', 'Total tagihan', 'Tanggal lunas',
     ];
 
     private const PATHS = [
@@ -34,6 +35,7 @@ class ParticipantContactExport
     public function create(Builder $authors): string
     {
         $editionId = currentEdition()?->id;
+        $progress = app(AuthorProgress::class);
         $path = tempnam(sys_get_temp_dir(), 'peserta-');
 
         if ($path === false) {
@@ -41,7 +43,7 @@ class ParticipantContactExport
         }
 
         $options = new Options;
-        foreach ([6, 32, 40, 34, 22, 18, 18, 16, 22] as $index => $width) {
+        foreach ([6, 32, 40, 34, 22, 18, 18, 16, 24, 18, 14, 16, 18] as $index => $width) {
             $options->setColumnWidth($width, $index + 1);
         }
 
@@ -51,11 +53,17 @@ class ParticipantContactExport
 
         $number = 0;
         $authors->clone()
-            ->with(['registrations' => fn ($query) => $query
-                ->when($editionId, fn ($query) => $query->where('edition_id', $editionId))])
-            ->chunk(200, function ($rows) use ($writer, &$number): void {
+            ->with([
+                'registrations' => fn ($query) => $query->when($editionId, fn ($query) => $query->where('edition_id', $editionId)),
+                'submissions' => fn ($query) => $query->when($editionId, fn ($query) => $query->where('edition_id', $editionId)),
+            ])
+            ->chunk(200, function ($rows) use ($writer, $progress, &$number): void {
                 foreach ($rows as $author) {
                     /** @var Author $author */
+                    // Invoice dan tahap yang sama dengan yang tampil di tabel Progres Peserta.
+                    $snapshot = $progress->snapshot($author);
+                    $registration = $snapshot['registration'];
+
                     $writer->addRow(Row::fromValues([
                         ++$number,
                         (string) $author->name,
@@ -66,7 +74,12 @@ class ParticipantContactExport
                         (string) countryName($author->country),
                         self::PATHS[$author->participation_type] ?? '',
                         $author->registrantCategoryLabel(),
-                        $this->paymentStatus($author),
+                        $snapshot['label'],
+                        AuthorProgress::paymentLabel($registration),
+                        $registration ? '#'.str_pad((string) $registration->id, 5, '0', STR_PAD_LEFT) : '',
+                        // Angka, bukan teks, supaya bisa dijumlah di Excel.
+                        $registration ? (float) $registration->amount : '',
+                        (string) $registration?->paid_at?->format('d M Y H:i'),
                     ]));
                 }
             });
@@ -79,17 +92,5 @@ class ParticipantContactExport
     public function fileName(): string
     {
         return 'data-peserta-'.now()->format('Ymd-His').'.xlsx';
-    }
-
-    private function paymentStatus(Author $author): string
-    {
-        $statuses = $author->registrations->pluck('status');
-
-        return match (true) {
-            $statuses->contains('paid') => 'Lunas',
-            $statuses->contains('pending_verification') => 'Menunggu verifikasi',
-            $statuses->isNotEmpty() => 'Belum lunas',
-            default => 'Belum ada invoice',
-        };
     }
 }
