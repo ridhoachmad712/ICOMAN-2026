@@ -17,7 +17,7 @@ class ListCertificates extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Presenter: satu sertifikat per penulis paper, bila invoice lunas dan full paper sudah masuk. Peserta seminar: bila invoice lunas. Semuanya diunduh peserta dari dashboard portal.';
+        return 'Presenter: satu sertifikat per penulis paper, bila invoice lunas, full paper sudah masuk, dan moderator mencatatnya hadir (atau diwakili) di room presentasi. Peserta seminar: bila invoice lunas. Semuanya diunduh peserta dari dashboard portal.';
     }
 
     public function table(Table $table): Table

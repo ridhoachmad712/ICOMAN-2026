@@ -3,17 +3,21 @@
 namespace Tests\Feature;
 
 use App\Filament\Author\Pages\AuthorDashboard;
+use App\Filament\Pages\Settings\ManageSiteSettings;
 use App\Filament\Resources\Certificates\Pages\ListCertificates;
 use App\Models\Author;
 use App\Models\Certificate;
 use App\Models\Edition;
+use App\Models\PresentationRoom;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
+use App\Models\RoomPresentation;
 use App\Models\Submission;
 use App\Models\User;
 use App\Services\AbstractWordDocument;
 use App\Services\CertificateIssuer;
 use App\Services\CertificatePdf;
+use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
@@ -24,7 +28,8 @@ use Tests\TestCase;
 
 /**
  * Sertifikat otomatis sesuai rancangan panitia: presenter satu per penulis
- * (lunas + full paper), peserta seminar bila lunas, tanpa syarat kehadiran,
+ * (lunas + full paper + tercatat hadir di room presentasi), peserta seminar
+ * bila lunas,
  * diterbitkan lewat tombol admin, dan diverifikasi lewat QR.
  */
 class CertificateTest extends TestCase
@@ -48,6 +53,8 @@ class CertificateTest extends TestCase
         $paper = $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas'], ['Andi Wijaya', 'UNM']]);
         $this->presenter(paid: true, fullPaper: false, writers: [['Tanpa Full Paper', 'UI']]);
         $this->presenter(paid: false, fullPaper: true, writers: [['Belum Bayar', 'ITB']]);
+        $this->presenter(paid: true, fullPaper: true, writers: [['Tidak Hadir', 'UGM']], attendance: 'absent');
+        $this->presenter(paid: true, fullPaper: true, writers: [['Belum Diabsen', 'IPB']], attendance: null);
         $attendee = $this->attendee(paid: true, name: 'Citra Lestari');
         $this->attendee(paid: false, name: 'Peserta Belum Bayar');
 
@@ -185,7 +192,7 @@ class CertificateTest extends TestCase
 
     public function test_custom_template_prints_only_dynamic_data_at_the_saved_positions(): void
     {
-        $settings = app(\App\Settings\SiteSettings::class);
+        $settings = app(SiteSettings::class);
         $settings->certificate_custom_layout = true;
         $settings->certificate_layout = ['presentation' => ['name' => ['top' => 101, 'size' => 30, 'align' => 'left']]];
         $settings->save();
@@ -225,7 +232,7 @@ class CertificateTest extends TestCase
         $admin->assignRole('superadmin');
         $this->actingAs($admin, 'web');
 
-        Livewire::test(\App\Filament\Pages\Settings\ManageSiteSettings::class)
+        Livewire::test(ManageSiteSettings::class)
             ->assertOk()
             ->fillForm([
                 'certificate_custom_layout' => true,
@@ -235,7 +242,7 @@ class CertificateTest extends TestCase
             ->call('save')
             ->assertHasNoFormErrors();
 
-        $settings = app(\App\Settings\SiteSettings::class)->refresh();
+        $settings = app(SiteSettings::class)->refresh();
         $this->assertTrue($settings->certificate_custom_layout);
         $this->assertEquals(120, app(CertificatePdf::class)->layout('presentation')['name']['top']);
         $this->assertEquals(30, app(CertificatePdf::class)->layout('participation')['qr']['size']);
@@ -267,7 +274,7 @@ class CertificateTest extends TestCase
     }
 
     /** @param  list<array{0: string, 1: string}>  $writers */
-    private function presenter(bool $paid, bool $fullPaper, array $writers): Submission
+    private function presenter(bool $paid, bool $fullPaper, array $writers, ?string $attendance = 'present'): Submission
     {
         $author = $this->account('presenter', $writers[0][0], $paid);
         $submission = Submission::create([
@@ -287,6 +294,13 @@ class CertificateTest extends TestCase
             $submission->addMedia(UploadedFile::fake()->createWithContent('naskah.docx', file_get_contents($docx)))
                 ->toMediaCollection('camera_ready');
         }
+
+        // Kehadiran dicatat moderator di room presentasi (syarat sertifikat presenter).
+        $room = PresentationRoom::firstOrCreate(['edition_id' => $this->edition->id, 'name' => 'Room 1']);
+        RoomPresentation::create([
+            'presentation_room_id' => $room->id, 'submission_id' => $submission->id,
+            'attendance' => $attendance, 'presenter_name' => $attendance ? $writers[0][0] : null,
+        ]);
 
         return $submission->refresh();
     }

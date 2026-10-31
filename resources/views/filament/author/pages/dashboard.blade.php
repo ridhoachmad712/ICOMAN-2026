@@ -51,6 +51,8 @@
 
         @include('filament.author.components.zoom-access')
 
+        @include('filament.author.components.presentation-room')
+
         @if($author->hasSeminarAccess())
             @include('filament.author.components.whatsapp-group')
         @endif

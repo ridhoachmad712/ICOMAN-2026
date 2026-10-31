@@ -26,6 +26,8 @@ class UsersTable
                         'superadmin' => 'danger',
                         'content_admin' => 'warning',
                         'reviewer' => 'info',
+                        'admin_room' => 'primary',
+                        'moderator_room' => 'success',
                         default => 'gray',
                     }),
                 TextColumn::make('app_authentication_secret')

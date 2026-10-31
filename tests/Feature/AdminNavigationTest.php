@@ -14,11 +14,11 @@ use Filament\Widgets\AccountWidget;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
-/** Menu admin diringkas jadi 4: Dashboard, Website, Submission, Pengaturan. */
+/** Menu admin: Dashboard, Website, Submission, Conference, Pengaturan. */
 class AdminNavigationTest extends TestCase
 {
-    /** Bar navigasi hanya berisi Dashboard + tiga grup ini. */
-    private const GROUPS = ['Website', 'Submission', 'Pengaturan'];
+    /** Bar navigasi hanya berisi Dashboard + grup-grup ini. */
+    private const GROUPS = ['Website', 'Submission', 'Conference', 'Pengaturan'];
 
     public function test_admin_navigation_has_exactly_three_groups_beside_dashboard(): void
     {
@@ -58,7 +58,7 @@ class AdminNavigationTest extends TestCase
             }
         }
 
-        $this->assertSame([], $stray, "Menu di luar 5 kelompok:\n".implode("\n", $stray));
+        $this->assertSame([], $stray, "Menu di luar kelompok yang ditetapkan:\n".implode("\n", $stray));
     }
 
     public function test_the_dashboard_account_card_is_gone(): void

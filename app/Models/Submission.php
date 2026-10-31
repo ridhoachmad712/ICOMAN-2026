@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -481,6 +482,22 @@ class Submission extends Model implements HasMedia
         return $query->whereDoesntHave('media', fn (Builder $media) => $media->where('collection_name', 'camera_ready'));
     }
 
+    /**
+     * Paper yang berhak tampil di room presentasi: accepted, full paper sudah
+     * masuk, dan invoice pengirimnya lunas — syarat yang sama dengan akses
+     * Zoom presenter (Author::canJoinConference()).
+     */
+    public function scopeReadyToPresent(Builder $query, Edition $edition): Builder
+    {
+        return $query
+            ->where('edition_id', $edition->id)
+            ->where('status', 'accepted')
+            ->withFullPaper()
+            ->whereHas('author.registrations', fn (Builder $registration) => $registration
+                ->where('edition_id', $edition->id)
+                ->where('status', 'paid'));
+    }
+
     public function scopeOfCurrentEdition(Builder $query): Builder
     {
         $edition = currentEdition();
@@ -556,5 +573,10 @@ class Submission extends Model implements HasMedia
     public function registrations(): HasMany
     {
         return $this->hasMany(Registration::class);
+    }
+
+    public function roomPresentation(): HasOne
+    {
+        return $this->hasOne(RoomPresentation::class);
     }
 }

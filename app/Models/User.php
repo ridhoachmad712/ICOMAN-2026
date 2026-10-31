@@ -41,7 +41,7 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     /** Kontrol akses ke panel admin Filament (guard web). */
     public function canAccessPanel(Panel $panel): bool
     {
-        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin', 'bendahara']);
+        return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'reviewer', 'content_admin', 'bendahara', 'admin_room', 'moderator_room']);
     }
 
     /**
@@ -53,6 +53,8 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
         'admin_registrasi' => ['label' => 'Admin Registrasi', 'color' => 'info'],
         'bendahara' => ['label' => 'Bendahara', 'color' => 'primary'],
         'content_admin' => ['label' => 'Admin Konten', 'color' => 'warning'],
+        'admin_room' => ['label' => 'Admin Room', 'color' => 'info'],
+        'moderator_room' => ['label' => 'Moderator Room', 'color' => 'success'],
         'reviewer' => ['label' => 'Reviewer', 'color' => 'success'],
     ];
 
@@ -101,6 +103,21 @@ class User extends Authenticatable implements FilamentUser, HasAppAuthentication
     public function handlesMoney(): bool
     {
         return $this->hasAnyRole(['superadmin', 'admin_registrasi', 'bendahara']);
+    }
+
+    /**
+     * Mengatur room presentasi: membuat room, membagi presenter, menunjuk
+     * moderator, melihat rekap nilai, dan menetapkan pemenang.
+     */
+    public function managesRooms(): bool
+    {
+        return $this->hasAnyRole(['superadmin', 'admin_room']);
+    }
+
+    /** Memandu room: absensi dan penilaian presenter di room yang ditugaskan. */
+    public function isRoomModerator(): bool
+    {
+        return $this->hasRole('moderator_room');
     }
 
     public function isReviewer(): bool

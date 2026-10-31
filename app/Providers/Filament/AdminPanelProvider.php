@@ -53,11 +53,13 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::USER_MENU_BEFORE,
                 fn () => view('filament.admin.role-badge'),
             )
-            // Hanya tiga kelompok + Dashboard yang berdiri sendiri, sehingga bar
-            // navigasi berisi empat menu: Dashboard, Website, Submission, Pengaturan.
+            // Kelompok menu + Dashboard yang berdiri sendiri: Dashboard, Website,
+            // Submission, Conference (room presentasi hari H), Pengaturan. Tiap
+            // akun hanya melihat kelompok yang berisi menu untuk perannya.
             ->navigationGroups([
                 'Website',
                 'Submission',
+                'Conference',
                 'Pengaturan',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

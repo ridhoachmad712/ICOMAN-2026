@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Author;
 use App\Models\Certificate;
 use App\Models\Edition;
+use App\Models\RoomPresentation;
 use App\Models\Submission;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,11 +17,13 @@ use Illuminate\Support\Str;
  * Menerbitkan sertifikat sesuai rancangan yang disepakati panitia:
  *
  * - Certificate of Presentation: SATU PER PENULIS paper (termasuk co-author),
- *   bila invoice presenter lunas dan full paper sudah masuk. Semuanya
- *   diunduh lewat akun pengirim paper.
- * - Certificate of Participation: satu per peserta seminar yang lunas.
+ *   bila invoice presenter lunas, full paper sudah masuk, dan moderator
+ *   mencatat paper itu dipresentasikan (hadir atau diwakili co-author) di
+ *   room-nya. Semuanya diunduh lewat akun pengirim paper.
+ * - Certificate of Participation: satu per peserta seminar yang lunas;
+ *   kehadiran peserta seminar tidak diabsen, jadi bukan syarat.
  *
- * Kehadiran tidak dijadikan syarat. Penerbitan dijalankan panitia (tombol
+ * Penerbitan dijalankan panitia (tombol
  * "Terbitkan"), dan dapat diulang: yang sudah punya sertifikat, termasuk yang
  * sudah dicabut, tidak diterbitkan lagi.
  */
@@ -117,6 +120,7 @@ class CertificateIssuer
             ->where('status', 'accepted')
             ->withFullPaper()
             ->whereHas('author', fn (Builder $author) => $this->paidIn($author, $edition))
+            ->whereHas('roomPresentation', fn (Builder $presentation) => $presentation->whereIn('attendance', RoomPresentation::ATTENDED))
             ->with(['author', 'authors'])
             ->orderBy('submission_number')
             ->get()
