@@ -111,7 +111,7 @@ class AdminVoucherTest extends TestCase
             ->fillForm([
                 'host_name' => 'Beasiswa Paper', 'code' => 'gratis-paper',
                 'type' => 'free_paper', 'edition_id' => $this->edition->id,
-                'quota' => 5, 'is_active' => true,
+                'covers_sinta3' => true, 'quota' => 5, 'is_active' => true,
             ])
             ->call('create')
             ->assertHasNoFormErrors();
@@ -121,6 +121,7 @@ class AdminVoucherTest extends TestCase
         $this->assertSame('presenter', $voucher->audience);
         $this->assertSame('all', $voucher->registrant_category);
         $this->assertSame(5, $voucher->quota);
+        $this->assertTrue($voucher->covers_sinta3);
     }
 
     public function test_discount_voucher_only_applies_to_its_selected_participant_category(): void
@@ -244,6 +245,70 @@ class AdminVoucherTest extends TestCase
 
         $this->assertSame('600000.00', $registration->refresh()->amount);
         $this->assertSame('100000.00', $registration->discount_amount);
+    }
+
+    public function test_free_paper_covering_sinta3_waives_the_whole_sinta3_invoice(): void
+    {
+        $voucher = $this->voucher(['type' => 'free_paper', 'audience' => 'presenter', 'discount_kind' => null, 'discount_value' => null, 'covers_sinta3' => true]);
+        $registration = $this->invoice('free-sinta@example.test', 'presenter', true);
+
+        app(VoucherRedeemer::class)->redeem($registration, 'PROMO-2026');
+
+        $registration->refresh();
+        $this->assertSame('0.00', $registration->amount);
+        $this->assertSame('700000.00', $registration->discount_amount);
+        $this->assertSame('paid', $registration->status);
+        $this->assertSame('waived', $registration->payment_method);
+        $this->assertSame('700000.00', (string) $voucher->redemptions()->sole()->discount_amount);
+    }
+
+    public function test_percentage_discount_covering_sinta3_counts_the_addon(): void
+    {
+        $this->voucher(['discount_kind' => 'percent', 'discount_value' => 50, 'covers_sinta3' => true]);
+        $registration = $this->invoice('percent-sinta@example.test', 'presenter', true);
+
+        app(VoucherRedeemer::class)->redeem($registration, 'PROMO-2026');
+
+        // 50% dari 400.000 + 300.000.
+        $this->assertSame('350000.00', $registration->refresh()->amount);
+        $this->assertSame('350000.00', $registration->discount_amount);
+    }
+
+    public function test_covering_discount_follows_the_journal_choice(): void
+    {
+        $voucher = $this->voucher(['discount_kind' => 'percent', 'discount_value' => 50, 'covers_sinta3' => true]);
+        $registration = $this->invoice('switch-sinta@example.test');
+
+        app(VoucherRedeemer::class)->redeem($registration, 'PROMO-2026');
+        $this->assertSame('200000.00', $registration->refresh()->amount);
+
+        $this->actingAs($registration->author, 'author')
+            ->patch(route('author.registration.journal', $registration), ['journal_target' => 'sinta3'])
+            ->assertRedirect();
+
+        // Setelah memilih SINTA 3: 50% dari 400.000 + 300.000.
+        $registration->refresh();
+        $this->assertSame('350000.00', $registration->amount);
+        $this->assertSame('350000.00', $registration->discount_amount);
+        $this->assertSame(350000, (int) $voucher->redemptions()->sole()->discount_amount);
+        $this->assertSame(350000, (int) $registration->priceDetails()['discount_amount']);
+    }
+
+    public function test_journal_change_settles_an_invoice_fully_covered_by_the_voucher(): void
+    {
+        $this->voucher(['type' => 'free_paper', 'audience' => 'presenter', 'discount_kind' => null, 'discount_value' => null]);
+        $registration = $this->invoice('free-regular-switch@example.test', 'presenter', true);
+        app(VoucherRedeemer::class)->redeem($registration, 'PROMO-2026');
+        $this->assertSame('300000.00', $registration->refresh()->amount);
+
+        $this->actingAs($registration->author, 'author')
+            ->patch(route('author.registration.journal', $registration), ['journal_target' => 'regular'])
+            ->assertRedirect();
+
+        $registration->refresh();
+        $this->assertSame('0.00', $registration->amount);
+        $this->assertSame('paid', $registration->status);
+        $this->assertSame('waived', $registration->payment_method);
     }
 
     public function test_free_paper_cannot_be_used_for_a_seminar_only_registration(): void

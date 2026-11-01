@@ -22,6 +22,7 @@ class Voucher extends Model
         'registrant_category',
         'discount_kind',
         'discount_value',
+        'covers_sinta3',
         'quota',
         'is_active',
         'expires_at',
@@ -32,6 +33,7 @@ class Voucher extends Model
         return [
             'quota' => 'integer',
             'discount_value' => 'decimal:2',
+            'covers_sinta3' => 'boolean',
             'is_active' => 'boolean',
             'expires_at' => 'datetime',
         ];
@@ -90,11 +92,18 @@ class Voucher extends Model
         return $this->is_active && ! $this->isExpired() && $this->remainingSlots() > 0;
     }
 
-    /** Potongan hanya berlaku pada tarif registrasi dasar, bukan add-on jurnal. */
-    public function discountFor(int $baseAmount): int
+    /**
+     * Potongan untuk sebuah invoice. Biasanya hanya memotong biaya registrasi
+     * dasar; voucher bertanda covers_sinta3 juga memotong tambahan Jurnal
+     * SINTA 3 (persentase dihitung dari keduanya, nominal dibatasi keduanya,
+     * paper gratis membebaskan keduanya). Voucher co-host selalu dasar saja.
+     */
+    public function discountFor(int $baseAmount, int $addonAmount = 0): int
     {
+        $applicable = $this->coversSinta3() ? $baseAmount + max(0, $addonAmount) : $baseAmount;
+
         if (in_array($this->type, ['cohost', 'free_paper'], true)) {
-            return $baseAmount;
+            return $applicable;
         }
 
         if ($this->type !== 'discount') {
@@ -103,9 +112,14 @@ class Voucher extends Model
 
         $value = (float) $this->discount_value;
         $amount = $this->discount_kind === 'percent'
-            ? (int) round($baseAmount * $value / 100)
+            ? (int) round($applicable * $value / 100)
             : (int) round($value);
 
-        return min($baseAmount, max(0, $amount));
+        return min($applicable, max(0, $amount));
+    }
+
+    public function coversSinta3(): bool
+    {
+        return $this->covers_sinta3 && $this->type !== 'cohost';
     }
 }

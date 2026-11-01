@@ -54,10 +54,13 @@ class VouchersTable
                 TextColumn::make('benefit')
                     ->label('Manfaat')
                     ->state(fn (Voucher $record): string => $record->type !== 'discount'
-                        ? 'Biaya dasar gratis'
+                        ? ($record->coversSinta3() ? 'Biaya dasar + SINTA 3 gratis' : 'Biaya dasar gratis')
                         : ($record->discount_kind === 'percent'
                             ? rtrim(rtrim((string) $record->discount_value, '0'), '.').' %'
-                            : 'IDR '.number_format((float) $record->discount_value, 0, ',', '.'))),
+                            : 'IDR '.number_format((float) $record->discount_value, 0, ',', '.')))
+                    ->description(fn (Voucher $record): ?string => $record->type === 'discount'
+                        ? ($record->coversSinta3() ? 'Termasuk biaya SINTA 3' : 'Biaya dasar saja')
+                        : null),
                 TextColumn::make('quota')
                     ->label('Terpakai')
                     // Sisa kuota adalah angka yang paling sering dicari panitia.

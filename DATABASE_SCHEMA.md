@@ -339,6 +339,7 @@ Kode voucher co-host: satu kode per institusi mitra, dipakai berkali-kali sampai
 | edition_id | fk → editions (voucher hanya berlaku pada satu edisi) |
 | code | string(40) unique (selalu disimpan huruf besar) |
 | host_name | string (nama institusi co-host, tampil di invoice author) |
+| covers_sinta3 | boolean default false — voucher diskon/paper gratis juga memotong tambahan Jurnal SINTA 3; voucher co-host selalu biaya dasar saja |
 | quota | smallint unsigned default 4 (jumlah paper gratis) |
 | is_active | boolean default true |
 | expires_at | timestamp nullable |

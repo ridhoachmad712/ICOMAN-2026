@@ -249,7 +249,7 @@
                             <p id="voucher-help-{{ $record->id }}" class="mt-3 text-xs leading-relaxed text-gray-600 dark:text-gray-400">
                                 {{ $id ? 'Voucher memotong biaya registrasi dasar.' : 'Vouchers apply to the base registration fee.' }}
                                 @if($sinta3Offered)
-                                    {{ $id ? 'Tambahan Jurnal SINTA 3 tetap dibayar.' : 'A SINTA 3 journal add-on remains payable.' }}
+                                    {{ $id ? 'Sebagian voucher juga mencakup tambahan Jurnal SINTA 3; potongannya menyesuaikan bila pilihan jurnal Anda berubah.' : 'Some vouchers also cover the SINTA 3 journal add-on; the discount adjusts if you change your journal choice.' }}
                                 @endif
                             </p>
                         </form>

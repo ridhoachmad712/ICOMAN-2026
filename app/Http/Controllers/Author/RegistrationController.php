@@ -79,10 +79,22 @@ class RegistrationController extends Controller
                 'journal_target' => $data['journal_target'],
                 'journal_target_chosen_at' => now(),
             ]);
-            $locked->update([
-                'amount' => max(0, $price['base_amount'] + $price['addon_amount'] - (int) ($price['discount_amount'] ?? 0)),
+            $discount = app(VoucherRedeemer::class)->rediscount($locked, $price);
+            $payable = max(0, $price['base_amount'] + $price['addon_amount'] - $discount);
+
+            $locked->forceFill([
+                'discount_amount' => $discount,
+                'amount' => $payable,
                 'pricing_snapshot' => $price,
             ]);
+
+            // Voucher yang menanggung seluruh tagihan, termasuk SINTA 3, langsung
+            // melunasi invoice seperti saat voucher ditukarkan.
+            if ($payable === 0 && $locked->voucher_id !== null) {
+                $locked->forceFill(['payment_method' => 'waived', 'status' => 'paid', 'paid_at' => now()]);
+            }
+
+            $locked->save();
         });
 
         // Sengaja BUKAN back(): pemilihnya dibuka lewat ?step=journal, dan back()

@@ -51,7 +51,7 @@ class VoucherForm
                         ->live()
                         ->disabled(fn (?Voucher $record): bool => $record?->type === 'cohost' || ($record?->usedSlots() ?? 0) > 0)
                         ->dehydrated(fn (?Voucher $record): bool => $record === null || ($record->type !== 'cohost' && $record->usedSlots() === 0))
-                        ->helperText('Paper gratis membebaskan biaya registrasi dasar presenter.'),
+                        ->helperText('Paper gratis membebaskan biaya registrasi dasar presenter, dan biaya SINTA 3 bila opsi di bawah diaktifkan.'),
 
                     Select::make('audience')
                         ->label('Berlaku untuk')
@@ -87,9 +87,23 @@ class VoucherForm
                         ->minValue(0.01)
                         ->maxValue(fn (Get $get): ?int => $get('discount_kind') === 'percent' ? 100 : null)
                         ->prefix(fn (Get $get): string => $get('discount_kind') === 'percent' ? '%' : 'IDR')
-                        ->helperText('Diskon hanya memotong biaya registrasi dasar, maksimal sebesar biaya tersebut. Add-on jurnal tetap ditagih.')
+                        ->helperText(fn (Get $get): string => $get('covers_sinta3')
+                            ? 'Diskon memotong biaya registrasi dasar ditambah biaya Jurnal SINTA 3 (bila dipilih), maksimal sebesar totalnya.'
+                            : 'Diskon hanya memotong biaya registrasi dasar, maksimal sebesar biaya tersebut. Biaya Jurnal SINTA 3 tetap ditagih.')
                         ->required(fn (Get $get): bool => $get('type') === 'discount')
                         ->visible(fn (Get $get): bool => $get('type') === 'discount'),
+
+                    Toggle::make('covers_sinta3')
+                        ->label('Berlaku juga untuk biaya Jurnal SINTA 3')
+                        ->helperText(fn (Get $get): string => $get('type') === 'free_paper'
+                            ? 'Aktif: presenter yang memilih SINTA 3 juga dibebaskan dari biaya tambahannya, jadi seluruh tagihan gratis. Mati: biaya SINTA 3 tetap ditagih.'
+                            : 'Aktif: persentase dihitung dari biaya dasar + SINTA 3, dan potongan nominal boleh melebihi biaya dasar. Mati: hanya biaya dasar yang dipotong.')
+                        ->default(false)
+                        ->live()
+                        ->inline(false)
+                        ->visible(fn (Get $get): bool => in_array($get('type'), ['discount', 'free_paper'], true))
+                        ->disabled(fn (?Voucher $record): bool => ($record?->usedSlots() ?? 0) > 0)
+                        ->dehydrated(fn (?Voucher $record): bool => ($record?->usedSlots() ?? 0) === 0),
 
                     Select::make('edition_id')
                         ->label('Edisi')

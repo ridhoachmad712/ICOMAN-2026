@@ -11,8 +11,8 @@ use Illuminate\Validation\ValidationException;
 /**
  * Penukaran voucher registrasi pada invoice yang belum dibayar.
  *
- * Diskon berlaku pada biaya registrasi dasar; add-on Jurnal SINTA 3 tetap
- * ditagih. Bila sisa tagihan menjadi nol, registrasi langsung ditandai lunas
+ * Diskon berlaku pada biaya registrasi dasar; add-on Jurnal SINTA 3 ikut
+ * dipotong hanya bila voucher-nya bertanda covers_sinta3. Bila sisa tagihan menjadi nol, registrasi langsung ditandai lunas
  * dengan metode `waived` — bukan `gateway` — supaya laporan keuangan tidak
  * mencatat transaksi BorderPay Rp 0 yang tidak pernah terjadi.
  */
@@ -53,7 +53,7 @@ class VoucherRedeemer
 
             $base = (int) ($price['base_amount'] ?? 0);
             $addon = (int) ($price['addon_amount'] ?? 0);
-            $discount = $voucher->discountFor($base);
+            $discount = $voucher->discountFor($base, $addon);
             if ($discount < 1) {
                 $this->fail('Nilai diskon voucher tidak valid.', 'This voucher has an invalid discount value.');
             }
@@ -102,6 +102,32 @@ class VoucherRedeemer
 
             return $voucher;
         });
+    }
+
+    /**
+     * Menghitung ulang potongan setelah pilihan jurnal mengubah add-on.
+     * Dipanggil di dalam transaksi yang sudah mengunci invoice. Voucher yang
+     * hanya memotong biaya dasar menghasilkan potongan yang sama; voucher
+     * covers_sinta3 ikut menanggung add-on yang baru.
+     *
+     * @param  array<string, mixed>  $price  rincian harga yang sudah memuat add-on baru
+     */
+    public function rediscount(Registration $locked, array &$price): int
+    {
+        $voucher = $locked->voucher_id ? Voucher::find($locked->voucher_id) : null;
+
+        if (! $voucher) {
+            return (int) ($price['discount_amount'] ?? 0);
+        }
+
+        $discount = $voucher->discountFor((int) ($price['base_amount'] ?? 0), (int) ($price['addon_amount'] ?? 0));
+        $price['discount_amount'] = $discount;
+
+        VoucherRedemption::where('registration_id', $locked->id)
+            ->where('voucher_id', $voucher->id)
+            ->update(['discount_amount' => $discount]);
+
+        return $discount;
     }
 
     /**
