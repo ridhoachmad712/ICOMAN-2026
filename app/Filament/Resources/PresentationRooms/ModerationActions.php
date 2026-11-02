@@ -7,8 +7,8 @@ use App\Services\RoomManager;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\ToggleButtons;
+use Filament\Infolists\Components\TextEntry;
 use Filament\Notifications\Notification;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
@@ -59,15 +59,17 @@ class ModerationActions
 
     public static function score(): Action
     {
-        $inputs = fn (array $criteria, string $group): array => collect($criteria)
-            ->map(fn (string $label, string $key) => TextInput::make($group.'.'.$key)
-                ->label($label)
-                ->numeric()
-                ->integer()
-                ->minValue(0)
-                ->maxValue(100)
-                ->suffix('/ 100')
-                ->required())
+        $levels = collect(range(RoomPresentation::SCORE_MIN, RoomPresentation::SCORE_MAX))
+            ->mapWithKeys(fn (int $score) => [$score => (string) $score])
+            ->all();
+
+        $inputs = collect(RoomPresentation::PRESENTER_CRITERIA)
+            ->map(fn (array $criterion, string $key) => ToggleButtons::make('scores.'.$key)
+                ->label($criterion['label'].' (bobot '.$criterion['weight'].'%)')
+                ->options($levels)
+                ->inline()
+                ->required()
+                ->live())
             ->values()
             ->all();
 
@@ -75,23 +77,25 @@ class ModerationActions
             ->label('Nilai')
             ->icon('heroicon-o-star')
             ->color(fn (RoomPresentation $record): string => $record->isScored() ? 'gray' : 'warning')
-            ->modalHeading(fn (RoomPresentation $record): string => 'Penilaian '.$record->submission?->submission_number)
+            ->modalHeading(fn (RoomPresentation $record): string => 'Penilaian presenter '.$record->submission?->submission_number)
             ->modalDescription(fn (RoomPresentation $record): string => $record->submission?->title.' · Presenter: '.($record->presenter_name ?: '—'))
-            ->modalWidth('3xl')
+            ->modalWidth('2xl')
             ->fillForm(fn (RoomPresentation $record): array => [
-                'paper' => $record->paper_scores ?? [],
-                'presenter' => $record->presenter_scores ?? [],
+                'scores' => $record->presenter_scores ?? [],
                 'notes' => $record->moderator_notes,
             ])
             ->schema([
-                Section::make('Paper')
-                    ->description('Acuan Best Paper. Skala 0–100 per kriteria; nilai paper = rata-ratanya.')
-                    ->columns(2)
-                    ->schema($inputs(RoomPresentation::PAPER_CRITERIA, 'paper')),
-                Section::make('Presenter')
-                    ->description('Acuan Best Presenter. Skala 0–100 per kriteria; nilai presenter = rata-ratanya.')
-                    ->columns(2)
-                    ->schema($inputs(RoomPresentation::PRESENTER_CRITERIA, 'presenter')),
+                Section::make('Rubrik presenter')
+                    ->description('Beri skor 1–5 untuk setiap kriteria berdasarkan performa presenter (1 = sangat kurang, 5 = sangat baik). Nilai tertimbang = skor × bobot ÷ 5; totalnya 0–100.')
+                    ->schema([
+                        ...$inputs,
+                        TextEntry::make('total')
+                            ->label('Total nilai presenter')
+                            ->state(fn (Get $get): string => number_format(
+                                RoomPresentation::presenterTotal(array_map('intval', array_filter((array) $get('scores')))), 2, ',', '.',
+                            ).' / 100')
+                            ->weight('bold'),
+                    ]),
                 Textarea::make('notes')
                     ->label('Catatan moderator')
                     ->helperText('Hanya terlihat oleh panitia.')
@@ -100,7 +104,7 @@ class ModerationActions
             ->visible(fn (RoomPresentation $record): bool => $record->attended() && self::mayModerate($record))
             ->action(function (array $data, RoomPresentation $record, Action $action): void {
                 self::attempt($action, fn () => app(RoomManager::class)
-                    ->score($record, $data['paper'] ?? [], $data['presenter'] ?? [], $data['notes'] ?? null, auth()->user()));
+                    ->score($record, $data['scores'] ?? [], $data['notes'] ?? null, auth()->user()));
 
                 Notification::make()->title('Nilai tersimpan')->success()->send();
             });

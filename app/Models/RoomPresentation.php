@@ -20,20 +20,22 @@ class RoomPresentation extends Model
     /** Kehadiran yang dihitung "tampil": syarat dinilai dan syarat sertifikat. */
     public const ATTENDED = ['present', 'represented'];
 
-    /** Kriteria nilai, masing-masing 0–100; nilai akhir = rata-ratanya. */
-    public const PAPER_CRITERIA = [
-        'novelty' => 'Kebaruan dan orisinalitas',
-        'methodology' => 'Ketepatan metodologi',
-        'contribution' => 'Kontribusi dan relevansi',
-        'findings' => 'Kualitas temuan dan kesimpulan',
+    /**
+     * Rubrik penilaian presenter oleh moderator: skor 1–5 per kriteria dengan
+     * bobot (persen). Nilai tertimbang = skor x bobot / 5, sehingga totalnya
+     * 0–100. Paper dinilai terpisah (lihat paper_score), bukan oleh moderator.
+     */
+    public const PRESENTER_CRITERIA = [
+        'mastery' => ['label' => 'Penguasaan materi', 'weight' => 25],
+        'structure' => ['label' => 'Sistematika dan kejelasan presentasi', 'weight' => 20],
+        'communication' => ['label' => 'Kemampuan komunikasi dan penyampaian', 'weight' => 20],
+        'slides' => ['label' => 'Kualitas materi dan slide presentasi', 'weight' => 15],
+        'qa' => ['label' => 'Kemampuan menjawab pertanyaan (Q&A)', 'weight' => 20],
     ];
 
-    public const PRESENTER_CRITERIA = [
-        'delivery' => 'Penyampaian dan kejelasan',
-        'slides' => 'Kualitas materi/slide',
-        'time' => 'Ketepatan waktu',
-        'qa' => 'Penguasaan tanya jawab',
-    ];
+    public const SCORE_MIN = 1;
+
+    public const SCORE_MAX = 5;
 
     public const AWARD_CATEGORIES = [
         'best_paper' => 'Best Paper',
@@ -97,11 +99,37 @@ class RoomPresentation extends Model
         return $this->scored_at !== null;
     }
 
-    /** Rata-rata nilai kriteria yang terisi, dibulatkan dua desimal. */
-    public static function average(array $scores): ?float
+    /** Nilai tertimbang satu kriteria: skor x bobot / 5. */
+    public static function weighted(string $criterion, int $score): float
     {
-        $values = array_filter($scores, fn ($value) => $value !== null && $value !== '');
+        return round($score * self::PRESENTER_CRITERIA[$criterion]['weight'] / self::SCORE_MAX, 2);
+    }
 
-        return $values === [] ? null : round(array_sum(array_map('floatval', $values)) / count($values), 2);
+    /**
+     * Total nilai presenter 0–100 dari skor 1–5 per kriteria.
+     *
+     * @param  array<string, int>  $scores
+     */
+    public static function presenterTotal(array $scores): float
+    {
+        $total = 0.0;
+        foreach (self::PRESENTER_CRITERIA as $key => $criterion) {
+            $total += self::weighted($key, (int) ($scores[$key] ?? 0));
+        }
+
+        return round($total, 2);
+    }
+
+    /**
+     * Rata-rata nilai reviewer (1–100) saat review abstrak; acuan tambahan
+     * untuk Best Paper di samping nilai paper yang diisi terpisah.
+     */
+    public function reviewerAverage(): ?float
+    {
+        $scores = $this->submission?->reviewAssignments
+            ->map(fn ($assignment) => $assignment->review?->score)
+            ->filter(fn ($score) => $score !== null);
+
+        return $scores && $scores->isNotEmpty() ? round($scores->avg(), 2) : null;
     }
 }

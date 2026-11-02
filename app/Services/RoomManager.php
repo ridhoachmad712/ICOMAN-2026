@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
  * - presenter yang dibagi hanya paper yang berhak tampil (readyToPresent);
  * - moderator hanya menyentuh room yang ditugaskan kepadanya, dan hanya
  *   sebelum penilaian room itu dikirim (dikunci);
- * - nilai hanya untuk presenter yang hadir;
+ * - moderator hanya menilai presenter yang hadir (rubrik 1–5 berbobot);
+ * - nilai paper diisi terpisah oleh admin room, bukan oleh moderator;
  * - pemenang ditetapkan admin_room: juara 1–3 per kategori untuk seluruh
  *   konferensi. Nilai moderator hanya acuan.
  */
@@ -131,10 +132,9 @@ class RoomManager
             'attendance_marked_at' => now(),
             'attendance_marked_by' => $user->id,
         ] + ($attended ? [] : [
-            // Yang tidak hadir tidak dinilai dan tidak bisa menang.
-            'paper_scores' => null,
+            // Yang tidak hadir tidak dinilai moderator dan tidak bisa menang.
+            // Nilai paper dari penilaian terpisah dibiarkan.
             'presenter_scores' => null,
-            'paper_score' => null,
             'presenter_score' => null,
             'scored_at' => null,
             'scored_by' => null,
@@ -144,10 +144,12 @@ class RoomManager
     }
 
     /**
-     * @param  array<string, int|float|string|null>  $paperScores
-     * @param  array<string, int|float|string|null>  $presenterScores
+     * Penilaian presenter oleh moderator dengan rubrik RoomPresentation::
+     * PRESENTER_CRITERIA (skor 1–5, ditimbang bobot, total 0–100).
+     *
+     * @param  array<string, int|string|null>  $scores
      */
-    public function score(RoomPresentation $presentation, array $paperScores, array $presenterScores, ?string $notes, User $user): void
+    public function score(RoomPresentation $presentation, array $scores, ?string $notes, User $user): void
     {
         $this->guardModeration($presentation, $user);
 
@@ -155,18 +157,34 @@ class RoomManager
             throw ValidationException::withMessages(['score' => 'Tandai presenter hadir lebih dulu sebelum menilai.']);
         }
 
-        $paper = $this->clean($paperScores, RoomPresentation::PAPER_CRITERIA);
-        $presenter = $this->clean($presenterScores, RoomPresentation::PRESENTER_CRITERIA);
+        $clean = $this->clean($scores);
 
         $presentation->update([
-            'paper_scores' => $paper,
-            'presenter_scores' => $presenter,
-            'paper_score' => RoomPresentation::average($paper),
-            'presenter_score' => RoomPresentation::average($presenter),
+            'presenter_scores' => $clean,
+            'presenter_score' => RoomPresentation::presenterTotal($clean),
             'moderator_notes' => $notes,
             'scored_at' => now(),
             'scored_by' => $user->id,
         ]);
+    }
+
+    /**
+     * Nilai paper (0–100) dari penilaian terpisah, diisi admin room. Kosong
+     * berarti belum dinilai.
+     */
+    public function setPaperScore(RoomPresentation $presentation, int|float|string|null $score): void
+    {
+        if ($score === null || $score === '') {
+            $presentation->update(['paper_score' => null]);
+
+            return;
+        }
+
+        if (! is_numeric($score) || $score < 0 || $score > 100) {
+            throw ValidationException::withMessages(['paper_score' => 'Nilai paper harus angka 0–100.']);
+        }
+
+        $presentation->update(['paper_score' => round((float) $score, 2)]);
     }
 
     /** Moderator selesai: semua presenter harus sudah diabsen, yang hadir sudah dinilai. */
@@ -251,20 +269,20 @@ class RoomManager
 
     /**
      * @param  array<string, mixed>  $scores
-     * @param  array<string, string>  $criteria
      * @return array<string, int>
      */
-    private function clean(array $scores, array $criteria): array
+    private function clean(array $scores): array
     {
         $clean = [];
-        foreach (array_keys($criteria) as $key) {
+        foreach (array_keys(RoomPresentation::PRESENTER_CRITERIA) as $key) {
             $value = $scores[$key] ?? null;
 
-            if ($value === null || $value === '' || ! is_numeric($value) || $value < 0 || $value > 100) {
-                throw ValidationException::withMessages(['score' => 'Semua kriteria wajib diisi dengan angka 0–100.']);
+            if (! is_numeric($value) || (int) $value != $value
+                || $value < RoomPresentation::SCORE_MIN || $value > RoomPresentation::SCORE_MAX) {
+                throw ValidationException::withMessages(['score' => 'Semua kriteria wajib diberi skor 1–5.']);
             }
 
-            $clean[$key] = (int) round((float) $value);
+            $clean[$key] = (int) $value;
         }
 
         return $clean;

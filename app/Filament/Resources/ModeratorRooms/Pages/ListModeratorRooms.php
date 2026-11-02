@@ -23,7 +23,7 @@ class ListModeratorRooms extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Absen setiap presenter, lalu beri nilai 0–100 untuk yang hadir. Setelah semua lengkap, klik "Kirim penilaian". Nilai menjadi acuan; pemenang ditetapkan admin room.';
+        return 'Absen setiap presenter, lalu nilai yang hadir dengan rubrik presenter (skor 1–5 per kriteria). Paper dinilai terpisah, bukan oleh moderator. Setelah semua lengkap, klik "Kirim penilaian". Nilai menjadi acuan; pemenang ditetapkan admin room.';
     }
 
     protected function getHeaderActions(): array

@@ -19,7 +19,7 @@ class ListPresentationResults extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Nilai moderator (rata-rata kriteria, skala 0–100) hanya acuan. Admin room menetapkan '
+        return 'Nilai presenter dari moderator (rubrik 1–5 berbobot, total 0–100) dan nilai paper dari penilaian terpisah hanya acuan. Admin room menetapkan '
             .RoomPresentation::WINNERS.' juara Best Paper dan '.RoomPresentation::WINNERS.' juara Best Presenter dari seluruh room.';
     }
 

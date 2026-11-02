@@ -132,12 +132,8 @@ class PresentationsRelationManager extends RelationManager
                 })
                 ->default('—')
                 ->description(fn (RoomPresentation $record): ?string => $record->attended() ? $record->presenter_name : null),
-            TextColumn::make('paper_score')
-                ->label('Nilai paper')
-                ->numeric(decimalPlaces: 2)
-                ->placeholder('—'),
             TextColumn::make('presenter_score')
-                ->label('Nilai presenter')
+                ->label('Nilai presenter (0–100)')
                 ->numeric(decimalPlaces: 2)
                 ->placeholder('—'),
         ];

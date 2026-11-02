@@ -130,15 +130,18 @@ class PresentationRoomTest extends TestCase
             $this->assertSame(403, $exception->getStatusCode());
         }
 
-        $this->expectValidation(fn () => $manager->score($first, $this->scores(80), $this->scores(90), null, $moderator));
+        $this->expectValidation(fn () => $manager->score($first, $this->scores(4), null, $moderator));
 
         $manager->markAttendance($first, 'present', 'Rina', $moderator);
-        $manager->score($first->refresh(), ['novelty' => 80, 'methodology' => 90, 'contribution' => 70, 'findings' => 60], $this->scores(95), 'Bagus', $moderator);
+        // Rubrik: skor x bobot / 5 → 25 + 16 + 16 + 9 + 20.
+        $manager->score($first->refresh(), ['mastery' => 5, 'structure' => 4, 'communication' => 4, 'slides' => 3, 'qa' => 5], 'Bagus', $moderator);
         $first->refresh();
-        $this->assertSame('75.00', (string) $first->paper_score);
-        $this->assertSame('95.00', (string) $first->presenter_score);
+        $this->assertSame('86.00', (string) $first->presenter_score);
+        $this->assertSame(['mastery' => 5, 'structure' => 4, 'communication' => 4, 'slides' => 3, 'qa' => 5], $first->presenter_scores);
+        $this->assertNull($first->paper_score, 'Moderator tidak menilai paper.');
 
-        $this->expectValidation(fn () => $manager->score($first, ['novelty' => 101] + $this->scores(50), $this->scores(50), null, $moderator));
+        $this->expectValidation(fn () => $manager->score($first, ['mastery' => 6] + $this->scores(3), null, $moderator));
+        $this->expectValidation(fn () => $manager->score($first, ['qa' => 0] + $this->scores(3), null, $moderator));
 
         // Satu presenter belum diabsen: belum boleh dikirim.
         $this->expectValidation(fn () => $manager->submitScores($room, $moderator));
@@ -151,7 +154,7 @@ class PresentationRoomTest extends TestCase
 
         $manager->reopen($room);
         $manager->markAttendance($first->refresh(), 'absent', null, $moderator);
-        $this->assertNull($first->refresh()->paper_score, 'Yang tidak hadir tidak menyimpan nilai.');
+        $this->assertNull($first->refresh()->presenter_score, 'Yang tidak hadir tidak menyimpan nilai presenter.');
     }
 
     public function test_winners_are_three_per_category_across_all_rooms_and_must_have_attended(): void
@@ -192,8 +195,7 @@ class PresentationRoomTest extends TestCase
             ->callAction(TestAction::make('attendance')->table($mine), ['attendance' => 'present', 'presenter_name' => $mine->submission->authors->first()->name])
             ->assertHasNoFormErrors()
             ->callAction(TestAction::make('score')->table($mine), [
-                'paper' => $this->scores(80),
-                'presenter' => $this->scores(70),
+                'scores' => $this->scores(5),
                 'notes' => 'Jelas',
             ])
             ->assertHasNoFormErrors()
@@ -202,7 +204,7 @@ class PresentationRoomTest extends TestCase
 
         $mine->refresh();
         $this->assertSame('present', $mine->attendance);
-        $this->assertSame('80.00', (string) $mine->paper_score);
+        $this->assertSame('100.00', (string) $mine->presenter_score);
         $this->assertTrue($mine->room->isLocked());
     }
 
@@ -220,10 +222,11 @@ class PresentationRoomTest extends TestCase
         app(RoomManager::class)->markAttendance($presentation, 'present', 'Rina', auth()->user());
 
         Livewire::test(ListPresentationResults::class)
-            ->callAction(TestAction::make('award')->table($presentation), ['best_paper' => 2, 'best_presenter' => null])
-            ->assertNotified('Pemenang tersimpan');
+            ->callAction(TestAction::make('award')->table($presentation), ['paper_score' => 91.5, 'best_paper' => 2, 'best_presenter' => null])
+            ->assertNotified('Tersimpan');
 
         $this->assertSame(2, $presentation->refresh()->best_paper_rank);
+        $this->assertSame('91.50', (string) $presentation->paper_score);
         $this->assertNull($presentation->best_presenter_rank);
     }
 
@@ -249,7 +252,8 @@ class PresentationRoomTest extends TestCase
         $admin = $this->user('admin_room');
         $presentation = app(RoomManager::class)->assign($this->room('Room 1'), $this->paper());
         app(RoomManager::class)->markAttendance($presentation, 'present', 'Rina', $admin);
-        app(RoomManager::class)->score($presentation->refresh(), $this->scores(88), $this->scores(77), null, $admin);
+        app(RoomManager::class)->score($presentation->refresh(), $this->scores(4), null, $admin);
+        app(RoomManager::class)->setPaperScore($presentation->refresh(), 88);
         app(RoomManager::class)->setRank($presentation->refresh(), 'best_paper', 1);
 
         $export = app(PresentationResultExport::class);
@@ -269,9 +273,9 @@ class PresentationRoomTest extends TestCase
         $this->assertSame(PresentationResultExport::headings(), $rows[0]);
         $row = array_combine($rows[0], $rows[1]);
         $this->assertSame('Hadir', $row['Kehadiran']);
-        $this->assertEquals(88, $row['Kebaruan dan orisinalitas']);
-        $this->assertEquals(88, $row['Nilai paper']);
-        $this->assertEquals(77, $row['Nilai presenter']);
+        $this->assertEquals(4, $row['Penguasaan materi (skor 1–5, bobot 25%)']);
+        $this->assertEquals(80, $row['Nilai presenter (0–100)']);
+        $this->assertEquals(88, $row['Nilai paper (0–100)']);
         $this->assertSame('Juara 1', $row['Best Paper']);
     }
 
@@ -330,7 +334,7 @@ class PresentationRoomTest extends TestCase
     /** @return array<string, int> */
     private function scores(int $value): array
     {
-        return array_fill_keys(array_keys(RoomPresentation::PAPER_CRITERIA + RoomPresentation::PRESENTER_CRITERIA), $value);
+        return array_fill_keys(array_keys(RoomPresentation::PRESENTER_CRITERIA), $value);
     }
 
     private function expectValidation(callable $callback): void
