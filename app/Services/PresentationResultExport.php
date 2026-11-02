@@ -24,7 +24,6 @@ class PresentationResultExport
                 array_values(RoomPresentation::PRESENTER_CRITERIA),
             ),
             'Nilai presenter (0–100)',
-            'Nilai paper (0–100)', 'Rata-rata reviewer',
             'Best Paper', 'Best Presenter', 'Catatan moderator',
         ];
     }
@@ -47,7 +46,7 @@ class PresentationResultExport
         $writer->addRow(Row::fromValues(self::headings(), (new Style)->setFontBold()));
 
         $number = 0;
-        foreach ($presentations->clone()->with(['submission.authors', 'submission.author', 'submission.reviewAssignments.review', 'room.moderator'])->get() as $item) {
+        foreach ($presentations->clone()->with(['submission.authors', 'submission.author', 'room.moderator'])->get() as $item) {
             /** @var RoomPresentation $item */
             $score = fn (?array $scores, string $key) => isset($scores[$key]) ? (int) $scores[$key] : '';
 
@@ -63,8 +62,6 @@ class PresentationResultExport
                 (string) $item->presenter_name,
                 ...array_map(fn (string $key) => $score($item->presenter_scores, $key), array_keys(RoomPresentation::PRESENTER_CRITERIA)),
                 $item->presenter_score !== null ? (float) $item->presenter_score : '',
-                $item->paper_score !== null ? (float) $item->paper_score : '',
-                $item->reviewerAverage() ?? '',
                 $item->best_paper_rank ? 'Juara '.$item->best_paper_rank : '',
                 $item->best_presenter_rank ? 'Juara '.$item->best_presenter_rank : '',
                 (string) $item->moderator_notes,

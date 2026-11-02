@@ -19,7 +19,7 @@ class ListPresentationResults extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Nilai presenter dari moderator (rubrik 1–5 berbobot, total 0–100) dan nilai paper dari penilaian terpisah hanya acuan. Admin room menetapkan '
+        return 'Nilai presenter dari moderator (rubrik 1–5 berbobot, total 0–100) hanya acuan. Admin room menetapkan '
             .RoomPresentation::WINNERS.' juara Best Paper dan '.RoomPresentation::WINNERS.' juara Best Presenter dari seluruh room.';
     }
 
@@ -32,9 +32,6 @@ class ListPresentationResults extends ListRecords
                 ->modifyQueryUsing(fn (Builder $query) => $query
                     ->orderBy(fn ($room) => $room->select('order')->from('presentation_rooms')->whereColumn('presentation_rooms.id', 'room_presentations.presentation_room_id'))
                     ->orderBy('order')),
-            'best_paper' => Tab::make('Peringkat Best Paper')
-                ->icon('heroicon-o-document-text')
-                ->modifyQueryUsing(fn (Builder $query) => $attended($query)->orderByDesc('paper_score')),
             'best_presenter' => Tab::make('Peringkat Best Presenter')
                 ->icon('heroicon-o-microphone')
                 ->modifyQueryUsing(fn (Builder $query) => $attended($query)->orderByDesc('presenter_score')),

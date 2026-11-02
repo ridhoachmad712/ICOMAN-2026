@@ -97,7 +97,7 @@ class PresentationsRelationManager extends RelationManager
                         ->label('Keluarkan')
                         ->visible(fn (): bool => ! $this->room()->isLocked())
                         ->modalHeading('Keluarkan dari room?')
-                        ->modalDescription('Absensi dan nilai paper ini ikut terhapus. Papernya kembali ke daftar belum dapat room.'),
+                        ->modalDescription('Absensi dan nilai presenter untuk paper ini ikut terhapus. Papernya kembali ke daftar belum dapat room.'),
                 ])->visible(fn (): bool => ! $this->room()->isLocked()),
             ])
             ->emptyStateHeading('Belum ada presenter')

@@ -138,7 +138,6 @@ class PresentationRoomTest extends TestCase
         $first->refresh();
         $this->assertSame('86.00', (string) $first->presenter_score);
         $this->assertSame(['mastery' => 5, 'structure' => 4, 'communication' => 4, 'slides' => 3, 'qa' => 5], $first->presenter_scores);
-        $this->assertNull($first->paper_score, 'Moderator tidak menilai paper.');
 
         $this->expectValidation(fn () => $manager->score($first, ['mastery' => 6] + $this->scores(3), null, $moderator));
         $this->expectValidation(fn () => $manager->score($first, ['qa' => 0] + $this->scores(3), null, $moderator));
@@ -222,11 +221,10 @@ class PresentationRoomTest extends TestCase
         app(RoomManager::class)->markAttendance($presentation, 'present', 'Rina', auth()->user());
 
         Livewire::test(ListPresentationResults::class)
-            ->callAction(TestAction::make('award')->table($presentation), ['paper_score' => 91.5, 'best_paper' => 2, 'best_presenter' => null])
-            ->assertNotified('Tersimpan');
+            ->callAction(TestAction::make('award')->table($presentation), ['best_paper' => 2, 'best_presenter' => null])
+            ->assertNotified('Pemenang tersimpan');
 
         $this->assertSame(2, $presentation->refresh()->best_paper_rank);
-        $this->assertSame('91.50', (string) $presentation->paper_score);
         $this->assertNull($presentation->best_presenter_rank);
     }
 
@@ -253,7 +251,6 @@ class PresentationRoomTest extends TestCase
         $presentation = app(RoomManager::class)->assign($this->room('Room 1'), $this->paper());
         app(RoomManager::class)->markAttendance($presentation, 'present', 'Rina', $admin);
         app(RoomManager::class)->score($presentation->refresh(), $this->scores(4), null, $admin);
-        app(RoomManager::class)->setPaperScore($presentation->refresh(), 88);
         app(RoomManager::class)->setRank($presentation->refresh(), 'best_paper', 1);
 
         $export = app(PresentationResultExport::class);
@@ -275,7 +272,7 @@ class PresentationRoomTest extends TestCase
         $this->assertSame('Hadir', $row['Kehadiran']);
         $this->assertEquals(4, $row['Penguasaan materi (skor 1–5, bobot 25%)']);
         $this->assertEquals(80, $row['Nilai presenter (0–100)']);
-        $this->assertEquals(88, $row['Nilai paper (0–100)']);
+        $this->assertArrayNotHasKey('Nilai paper (0–100)', $row);
         $this->assertSame('Juara 1', $row['Best Paper']);
     }
 

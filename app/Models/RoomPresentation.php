@@ -23,7 +23,7 @@ class RoomPresentation extends Model
     /**
      * Rubrik penilaian presenter oleh moderator: skor 1–5 per kriteria dengan
      * bobot (persen). Nilai tertimbang = skor x bobot / 5, sehingga totalnya
-     * 0–100. Paper dinilai terpisah (lihat paper_score), bukan oleh moderator.
+     * 0–100. Paper tidak dinilai moderator.
      */
     public const PRESENTER_CRITERIA = [
         'mastery' => ['label' => 'Penguasaan materi', 'weight' => 25],
@@ -118,18 +118,5 @@ class RoomPresentation extends Model
         }
 
         return round($total, 2);
-    }
-
-    /**
-     * Rata-rata nilai reviewer (1–100) saat review abstrak; acuan tambahan
-     * untuk Best Paper di samping nilai paper yang diisi terpisah.
-     */
-    public function reviewerAverage(): ?float
-    {
-        $scores = $this->submission?->reviewAssignments
-            ->map(fn ($assignment) => $assignment->review?->score)
-            ->filter(fn ($score) => $score !== null);
-
-        return $scores && $scores->isNotEmpty() ? round($scores->avg(), 2) : null;
     }
 }

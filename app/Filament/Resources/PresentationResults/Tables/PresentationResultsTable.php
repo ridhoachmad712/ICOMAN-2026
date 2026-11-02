@@ -9,7 +9,6 @@ use App\Services\PresentationResultExport;
 use App\Services\RoomManager;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Contracts\HasTable;
@@ -32,7 +31,7 @@ class PresentationResultsTable
             ->sortable();
 
         return $table
-            ->modifyQueryUsing(fn (Builder $query) => $query->with(['submission.authors', 'submission.author', 'submission.reviewAssignments.review', 'room']))
+            ->modifyQueryUsing(fn (Builder $query) => $query->with(['submission.authors', 'submission.author', 'room']))
             ->columns([
                 TextColumn::make('room.name')
                     ->label('Room')
@@ -59,15 +58,6 @@ class PresentationResultsTable
                         default => 'gray',
                     })
                     ->default('—'),
-                TextColumn::make('paper_score')
-                    ->label('Nilai paper')
-                    ->tooltip('Dari penilaian paper terpisah, diisi admin room lewat tombol Nilai paper & pemenang.')
-                    ->numeric(decimalPlaces: 2)
-                    ->placeholder('Belum dinilai')
-                    ->description(fn (RoomPresentation $record): ?string => ($average = $record->reviewerAverage()) !== null
-                        ? 'Reviewer: '.number_format($average, 2, ',', '.')
-                        : null)
-                    ->sortable(),
                 TextColumn::make('presenter_score')
                     ->label('Nilai presenter')
                     ->tooltip('Dari moderator: rubrik 5 kriteria, skor 1–5 berbobot, total 0–100.')
@@ -97,53 +87,39 @@ class PresentationResultsTable
             ])
             ->recordActions([
                 Action::make('award')
-                    ->label('Nilai paper & pemenang')
+                    ->label('Tetapkan pemenang')
                     ->icon('heroicon-o-trophy')
                     ->color('warning')
-                    ->modalHeading(fn (RoomPresentation $record): string => 'Nilai paper & pemenang: '.$record->submission?->submission_number)
+                    ->visible(fn (RoomPresentation $record): bool => $record->attended())
+                    ->modalHeading(fn (RoomPresentation $record): string => 'Pemenang: '.$record->submission?->submission_number)
                     ->modalDescription(fn (RoomPresentation $record): string => sprintf(
-                        'Nilai presenter dari moderator %s · rata-rata reviewer %s. Peringkat yang sudah dipegang paper lain akan dipindahkan ke paper ini.',
+                        'Nilai presenter dari moderator %s. Peringkat yang sudah dipegang paper lain akan dipindahkan ke paper ini.',
                         $record->presenter_score ?? '—',
-                        $record->reviewerAverage() ?? '—',
                     ))
                     ->modalWidth('lg')
                     ->fillForm(fn (RoomPresentation $record): array => [
-                        'paper_score' => $record->paper_score,
                         'best_paper' => $record->best_paper_rank,
                         'best_presenter' => $record->best_presenter_rank,
                     ])
                     ->schema([
-                        TextInput::make('paper_score')
-                            ->label('Nilai paper (0–100)')
-                            ->helperText('Hasil penilaian paper yang dilakukan terpisah dari moderator. Kosongkan bila belum dinilai.')
-                            ->numeric()
-                            ->minValue(0)
-                            ->maxValue(100),
                         Select::make('best_paper')
                             ->label('Best Paper')
                             ->options($ranks)
-                            ->placeholder('Bukan pemenang')
-                            ->disabled(fn (RoomPresentation $record): bool => ! $record->attended()),
+                            ->placeholder('Bukan pemenang'),
                         Select::make('best_presenter')
                             ->label('Best Presenter')
                             ->options($ranks)
-                            ->placeholder('Bukan pemenang')
-                            ->disabled(fn (RoomPresentation $record): bool => ! $record->attended())
-                            ->helperText(fn (RoomPresentation $record): ?string => $record->attended() ? null : 'Pemenang hanya dari presenter yang hadir.'),
+                            ->placeholder('Bukan pemenang'),
                     ])
                     ->action(function (array $data, RoomPresentation $record, Action $action): void {
                         $manager = app(RoomManager::class);
 
                         ModerationActions::attempt($action, function () use ($manager, $record, $data): void {
-                            $manager->setPaperScore($record, $data['paper_score'] ?? null);
-
-                            if ($record->attended()) {
-                                $manager->setRank($record->refresh(), 'best_paper', filled($data['best_paper'] ?? null) ? (int) $data['best_paper'] : null);
-                                $manager->setRank($record->refresh(), 'best_presenter', filled($data['best_presenter'] ?? null) ? (int) $data['best_presenter'] : null);
-                            }
+                            $manager->setRank($record, 'best_paper', filled($data['best_paper'] ?? null) ? (int) $data['best_paper'] : null);
+                            $manager->setRank($record->refresh(), 'best_presenter', filled($data['best_presenter'] ?? null) ? (int) $data['best_presenter'] : null);
                         });
 
-                        Notification::make()->title('Tersimpan')->success()->send();
+                        Notification::make()->title('Pemenang tersimpan')->success()->send();
                     }),
             ])
             ->headerActions([

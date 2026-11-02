@@ -19,7 +19,6 @@ use Illuminate\Validation\ValidationException;
  * - moderator hanya menyentuh room yang ditugaskan kepadanya, dan hanya
  *   sebelum penilaian room itu dikirim (dikunci);
  * - moderator hanya menilai presenter yang hadir (rubrik 1–5 berbobot);
- * - nilai paper diisi terpisah oleh admin room, bukan oleh moderator;
  * - pemenang ditetapkan admin_room: juara 1–3 per kategori untuk seluruh
  *   konferensi. Nilai moderator hanya acuan.
  */
@@ -133,7 +132,6 @@ class RoomManager
             'attendance_marked_by' => $user->id,
         ] + ($attended ? [] : [
             // Yang tidak hadir tidak dinilai moderator dan tidak bisa menang.
-            // Nilai paper dari penilaian terpisah dibiarkan.
             'presenter_scores' => null,
             'presenter_score' => null,
             'scored_at' => null,
@@ -166,25 +164,6 @@ class RoomManager
             'scored_at' => now(),
             'scored_by' => $user->id,
         ]);
-    }
-
-    /**
-     * Nilai paper (0–100) dari penilaian terpisah, diisi admin room. Kosong
-     * berarti belum dinilai.
-     */
-    public function setPaperScore(RoomPresentation $presentation, int|float|string|null $score): void
-    {
-        if ($score === null || $score === '') {
-            $presentation->update(['paper_score' => null]);
-
-            return;
-        }
-
-        if (! is_numeric($score) || $score < 0 || $score > 100) {
-            throw ValidationException::withMessages(['paper_score' => 'Nilai paper harus angka 0–100.']);
-        }
-
-        $presentation->update(['paper_score' => round((float) $score, 2)]);
     }
 
     /** Moderator selesai: semua presenter harus sudah diabsen, yang hadir sudah dinilai. */
