@@ -135,6 +135,19 @@ class ManageSiteSettings extends SettingsPage
                             ->columnSpanFull(),
                     ]),
 
+                Section::make('Pendaftaran Portal')
+                    ->description('Saat ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
+                    ->schema([
+                        Toggle::make('registration_closed')
+                            ->label('Tutup seluruh pendaftaran')
+                            ->helperText('Berlaku untuk presenter, peserta seminar, dan co-host sekaligus, tanpa menunggu tenggat di Tanggal Penting.'),
+                        Textarea::make('registration_closed_note')
+                            ->label('Catatan tambahan (opsional)')
+                            ->placeholder('Mis. Untuk pertanyaan, hubungi panitia melalui email.')
+                            ->helperText('Tampil di bawah pemberitahuan penutupan, apa adanya untuk kedua bahasa.')
+                            ->rows(3),
+                    ]),
+
                 Section::make('Zoom Konferensi')
                     ->description('Tampil di dashboard portal hanya bagi peserta seminar yang sudah lunas, dan presenter yang sudah lunas serta sudah mengumpulkan full paper. Kosongkan link untuk menyembunyikan.')
                     ->columns(2)

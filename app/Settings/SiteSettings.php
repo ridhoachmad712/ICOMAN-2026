@@ -26,6 +26,15 @@ class SiteSettings extends Settings
     public ?string $whatsapp_group_url;
 
     /**
+     * Menutup seluruh pendaftaran akun baru di portal, apa pun tenggatnya.
+     * Halaman pendaftaran lalu hanya menampilkan pemberitahuan penutupan,
+     * ditambah catatan opsional dari panitia. Login akun lama tetap jalan.
+     */
+    public bool $registration_closed;
+
+    public ?string $registration_closed_note;
+
+    /**
      * Akses Zoom konferensi. Hanya tampil di dashboard peserta yang berhak:
      * peserta seminar yang lunas, dan presenter yang lunas serta sudah
      * mengumpulkan full paper (lihat Author::canJoinConference()).

@@ -39,8 +39,18 @@ class AuthController extends Controller
         'cohost' => ['payment'],
     ];
 
+    /** Panitia menutup seluruh pendaftaran lewat Pengaturan. */
+    public static function registrationClosed(): bool
+    {
+        return (bool) rescue(fn () => siteSettings()->registration_closed, false, false);
+    }
+
     public static function isRoleOpen(string $role): bool
     {
+        if (self::registrationClosed()) {
+            return false;
+        }
+
         $closesAt = self::roleClosedAt($role);
 
         return ! $closesAt || now()->lte($closesAt);

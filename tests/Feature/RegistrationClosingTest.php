@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\ImportantDate;
+use App\Settings\SiteSettings;
 use Tests\TestCase;
 
 /**
@@ -80,6 +81,35 @@ class RegistrationClosingTest extends TestCase
 
         // Co-host masih mengikuti tenggat pembayaran yang belum lewat.
         $this->get(route('author.register.terms', ['role' => 'cohost']))->assertOk();
+    }
+
+    public function test_the_committee_switch_closes_every_path_with_one_notice(): void
+    {
+        app(SiteSettings::class)->fill(['registration_closed' => true, 'registration_closed_note' => 'Hubungi panitia untuk informasi lebih lanjut.'])->save();
+
+        $this->get(route('author.register'))
+            ->assertOk()
+            ->assertSee('registration is closed')
+            ->assertSee('Hubungi panitia untuk informasi lebih lanjut.')
+            ->assertSee(route('filament.author.auth.login'), false)
+            ->assertDontSee(route('author.register.terms', ['role' => 'presenter']), false);
+
+        foreach (['presenter', 'non_presenter', 'cohost'] as $role) {
+            $this->get(route('author.register.terms', ['role' => $role]))->assertRedirect(route('author.register'));
+        }
+
+        $this->withSession(['author_terms_ok' => 'presenter'])
+            ->post(route('author.register'), $this->form('presenter', 'ditutup@example.test'))
+            ->assertRedirect(route('author.register'));
+        $this->assertSame(0, Author::count());
+    }
+
+    public function test_the_notice_also_appears_when_every_deadline_has_passed(): void
+    {
+        $this->deadline('abstract', now()->subWeek());
+        $this->deadline('payment', now()->subDay());
+
+        $this->get(route('author.register'))->assertOk()->assertSee('registration is closed');
     }
 
     public function test_the_choice_page_marks_closed_paths(): void

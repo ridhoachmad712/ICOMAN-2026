@@ -20,8 +20,46 @@
                     : 'Apply for your institution to co-host the conference',
             ],
         ];
+        // Ditutup panitia lewat Pengaturan, atau semua jalur sudah lewat tenggatnya:
+        // tampilkan satu layar pemberitahuan, bukan tiga kartu yang tidak bisa dipilih.
+        $allClosed = collect(array_keys($roles))->every(fn ($role) => ! \App\Http\Controllers\Author\AuthController::isRoleOpen($role));
+        $settings = siteSettings();
     @endphp
 
+    @if($allClosed)
+        <div class="mx-auto max-w-xl">
+            <div class="card p-6 text-center sm:p-10">
+                <span class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand)]/10 text-[var(--brand-ink)]">
+                    <x-ui-icon name="calendar" class="h-7 w-7" />
+                </span>
+                <span class="mt-5 block text-xs font-semibold uppercase tracking-widest text-[var(--brand-ink)]">
+                    {{ $settings->conference_name ?: 'ICOMAN 2026' }}
+                </span>
+                <h1 class="mt-2 font-display text-2xl font-bold tracking-tight text-[var(--brand-2)]">
+                    {{ $isId ? 'Mohon maaf, registrasi sudah ditutup' : 'We are sorry, registration is closed' }}
+                </h1>
+                <p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-slate-600">
+                    {{ $isId
+                        ? 'Pendaftaran akun baru untuk presenter, peserta seminar, dan co-host telah berakhir. Terima kasih atas minat Anda.'
+                        : 'New registrations for presenters, seminar attendees, and co-hosts have ended. Thank you for your interest.' }}
+                </p>
+                @if(filled($settings->registration_closed_note))
+                    <p class="mx-auto mt-4 max-w-md whitespace-pre-line rounded-xl bg-slate-50 px-4 py-3 text-sm leading-relaxed text-slate-700">{{ $settings->registration_closed_note }}</p>
+                @endif
+                @if(filled($settings->contact_email))
+                    <p class="mt-4 text-sm text-slate-500">
+                        {{ $isId ? 'Pertanyaan:' : 'Questions:' }}
+                        <a href="mailto:{{ $settings->contact_email }}" class="font-semibold text-[var(--brand-ink)] hover:underline">{{ $settings->contact_email }}</a>
+                    </p>
+                @endif
+
+                <div class="mt-7 flex flex-col items-center justify-center gap-3 border-t border-slate-100 pt-6 sm:flex-row">
+                    <a href="{{ route('filament.author.auth.login') }}" class="btn btn-primary">{{ $isId ? 'Login untuk peserta terdaftar' : 'Log in as a registered participant' }}</a>
+                    <a href="{{ url('/') }}" class="text-sm font-semibold text-slate-600 hover:text-[var(--brand-ink)]">{{ $isId ? 'Kembali ke beranda' : 'Back to home' }}</a>
+                </div>
+            </div>
+        </div>
+    @else
     <div class="mx-auto max-w-xl">
         <div class="card p-6 sm:p-8">
             {{-- Header --}}
@@ -84,4 +122,5 @@
             </p>
         </div>
     </div>
+    @endif
 </x-author-layout>
