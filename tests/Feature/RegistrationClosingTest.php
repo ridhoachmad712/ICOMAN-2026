@@ -67,6 +67,21 @@ class RegistrationClosingTest extends TestCase
         $this->assertSame(0, Author::count());
     }
 
+    public function test_attendee_registration_can_close_on_its_own_deadline(): void
+    {
+        $this->deadline('payment', now()->addWeek());
+        $this->deadline('participant_registration', now()->subHour());
+
+        $this->get(route('author.register.terms', ['role' => 'non_presenter']))->assertRedirect(route('author.register'));
+        $this->withSession(['author_terms_ok' => 'non_presenter'])
+            ->post(route('author.register'), $this->form('non_presenter', 'telat-peserta@example.test'))
+            ->assertRedirect(route('author.register'));
+        $this->assertSame(0, Author::count());
+
+        // Co-host masih mengikuti tenggat pembayaran yang belum lewat.
+        $this->get(route('author.register.terms', ['role' => 'cohost']))->assertOk();
+    }
+
     public function test_the_choice_page_marks_closed_paths(): void
     {
         $this->deadline('abstract', now()->subDay());

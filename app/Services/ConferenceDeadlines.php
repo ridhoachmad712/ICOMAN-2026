@@ -11,6 +11,7 @@ class ConferenceDeadlines
     public const KINDS = [
         'abstract' => 'Abstract submission', 'revision' => 'Abstract revision',
         'acceptance' => 'Acceptance notification', 'payment' => 'Registration payment', 'installment' => 'Installment settlement',
+        'participant_registration' => 'Seminar participant sign-up (payment still follows Registration payment)',
         'full_paper' => 'Full paper', 'conference' => 'Conference day',
     ];
 

@@ -25,24 +25,38 @@ class AuthController extends Controller
 
     /**
      * Tenggat yang menutup pendaftaran tiap jalur, dari Tanggal Penting.
-     * Presenter tidak berguna mendaftar setelah abstrak ditutup; peserta dan
-     * co-host tidak bisa lagi membayar setelah tenggat pembayaran. Tanpa
-     * tanggal yang diisi panitia, jalurnya tetap terbuka.
+     * Presenter tidak berguna mendaftar setelah abstrak ditutup; co-host tidak
+     * bisa lagi membayar setelah tenggat pembayaran. Peserta seminar punya
+     * tenggatnya sendiri, sehingga pendaftarannya bisa ditutup tanpa ikut
+     * menutup pembayaran presenter; bila belum diisi, ikut tenggat pembayaran.
+     * Tanpa tanggal yang diisi panitia, jalurnya tetap terbuka.
+     *
+     * @var array<string, list<string>> jenis tenggat, yang pertama terisi berlaku
      */
     public const CLOSING_DEADLINE = [
-        'presenter' => 'abstract',
-        'non_presenter' => 'payment',
-        'cohost' => 'payment',
+        'presenter' => ['abstract'],
+        'non_presenter' => ['participant_registration', 'payment'],
+        'cohost' => ['payment'],
     ];
 
     public static function isRoleOpen(string $role): bool
     {
-        return app(ConferenceDeadlines::class)->isOpen(self::CLOSING_DEADLINE[$role] ?? 'payment');
+        $closesAt = self::roleClosedAt($role);
+
+        return ! $closesAt || now()->lte($closesAt);
     }
 
     public static function roleClosedAt(string $role): ?CarbonInterface
     {
-        return app(ConferenceDeadlines::class)->date(self::CLOSING_DEADLINE[$role] ?? 'payment');
+        $deadlines = app(ConferenceDeadlines::class);
+
+        foreach (self::CLOSING_DEADLINE[$role] ?? ['payment'] as $kind) {
+            if ($date = $deadlines->date($kind)) {
+                return $date;
+            }
+        }
+
+        return null;
     }
 
     /** Kembali ke halaman pilih jalur dengan pesan bahwa jalur ini sudah ditutup. */
