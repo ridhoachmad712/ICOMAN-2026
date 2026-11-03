@@ -25,6 +25,11 @@ class ConferenceDeadlines
 
     public function isOpen(string $kind, ?int $editionId = null): bool
     {
+        // Panitia bisa menutup pembayaran lebih awal lewat Pengaturan.
+        if ($kind === 'payment' && rescue(fn () => siteSettings()->payment_closed, false, false)) {
+            return false;
+        }
+
         $deadline = $this->date($kind, $editionId);
 
         return ! $deadline || now()->lte($deadline);

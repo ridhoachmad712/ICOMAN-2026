@@ -14,6 +14,7 @@ use App\Models\Submission;
 use App\Models\User;
 use App\Models\Voucher;
 use App\Models\VoucherRedemption;
+use App\Services\BorderpayService;
 use App\Services\VoucherRedeemer;
 use App\Settings\SiteSettings;
 use Filament\Facades\Filament;
@@ -309,6 +310,41 @@ class AdminVoucherTest extends TestCase
         $this->assertSame('0.00', $registration->amount);
         $this->assertSame('paid', $registration->status);
         $this->assertSame('waived', $registration->payment_method);
+    }
+
+    public function test_closing_payments_hides_the_pay_options_and_blocks_vouchers_and_checkout(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('author'));
+        $this->voucher(['audience' => 'participant']);
+        $registration = $this->invoice('closed-payment@example.test', 'participant');
+        $this->actingAs($registration->author, 'author');
+
+        app(SiteSettings::class)->fill(['payment_closed' => true])->save();
+
+        Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
+            ->assertSee('Payment has closed')
+            ->assertDontSee('Have a voucher code?')
+            ->assertDontSee(route('author.registration.pay', $registration), escape: false);
+
+        $this->post(route('author.registration.voucher', $registration), ['voucher_code' => 'PROMO-2026'])
+            ->assertSessionHasErrors('voucher_code');
+        $this->assertNull($registration->refresh()->voucher_id);
+
+        $this->expectException(ValidationException::class);
+        app(BorderpayService::class)->createCheckoutRedirect($registration);
+    }
+
+    public function test_reopening_payments_restores_the_pay_options(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('author'));
+        $registration = $this->invoice('reopened-payment@example.test', 'participant');
+        $this->actingAs($registration->author, 'author');
+
+        app(SiteSettings::class)->fill(['payment_closed' => false])->save();
+
+        Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
+            ->assertDontSee('Payment has closed')
+            ->assertSee(route('author.registration.pay', $registration), escape: false);
     }
 
     public function test_free_paper_cannot_be_used_for_a_seminar_only_registration(): void

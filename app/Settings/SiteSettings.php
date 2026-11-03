@@ -35,6 +35,13 @@ class SiteSettings extends Settings
     public ?string $registration_closed_note;
 
     /**
+     * Menutup pembayaran saat itu juga, tanpa menunggu tenggat "Registration
+     * payment": checkout BorderPay, invoice baru, dan penukaran voucher
+     * ditolak. Pencatatan manual oleh bendahara di admin tetap bisa.
+     */
+    public bool $payment_closed;
+
+    /**
      * Akses Zoom konferensi. Hanya tampil di dashboard peserta yang berhak:
      * peserta seminar yang lunas, dan presenter yang lunas serta sudah
      * mengumpulkan full paper (lihat Author::canJoinConference()).

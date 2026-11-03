@@ -20,6 +20,11 @@ class VoucherRedeemer
 {
     public function redeem(Registration $registration, string $code): Voucher
     {
+        // Voucher yang melunasi invoice sama dengan pembayaran, jadi ikut ditutup.
+        if (! app(ConferenceDeadlines::class)->isOpen('payment', $registration->edition_id)) {
+            $this->fail('Pembayaran sudah ditutup, sehingga voucher tidak dapat dipakai lagi.', 'Payment has closed, so vouchers can no longer be applied.');
+        }
+
         return DB::transaction(function () use ($registration, $code): Voucher {
             $voucher = Voucher::query()
                 ->code($code)

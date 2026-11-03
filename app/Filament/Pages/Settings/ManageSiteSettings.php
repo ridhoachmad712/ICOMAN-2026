@@ -135,8 +135,8 @@ class ManageSiteSettings extends SettingsPage
                             ->columnSpanFull(),
                     ]),
 
-                Section::make('Pendaftaran Portal')
-                    ->description('Saat ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
+                Section::make('Pendaftaran & Pembayaran Portal')
+                    ->description('Saat pendaftaran ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
                     ->schema([
                         Toggle::make('registration_closed')
                             ->label('Tutup seluruh pendaftaran')
@@ -146,6 +146,9 @@ class ManageSiteSettings extends SettingsPage
                             ->placeholder('Mis. Untuk pertanyaan, hubungi panitia melalui email.')
                             ->helperText('Tampil di bawah pemberitahuan penutupan, apa adanya untuk kedua bahasa.')
                             ->rows(3),
+                        Toggle::make('payment_closed')
+                            ->label('Tutup pembayaran')
+                            ->helperText('Tombol bayar dan kotak voucher di invoice diganti pemberitahuan bahwa pembayaran sudah ditutup; invoice baru tidak bisa dibuat. Karena peserta seminar dan co-host tidak bisa membayar, pendaftaran keduanya ikut tertutup bila tidak punya tenggat sendiri. Pencatatan pembayaran manual oleh bendahara di admin tetap bisa.'),
                     ]),
 
                 Section::make('Zoom Konferensi')

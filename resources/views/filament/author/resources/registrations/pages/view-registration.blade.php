@@ -29,13 +29,17 @@
         $basePrice = (float) $price['base_amount'];
         $isSinta = $price['journal_target'] === 'sinta3';
 
+        // Ditutup oleh tenggat "Registration payment" atau saklar di Pengaturan.
+        $paymentOpen = app(\App\Services\ConferenceDeadlines::class)->isOpen('payment', $record->edition_id);
+
         $discount = (float) ($price['discount_amount'] ?? 0);
         // Voucher berlaku untuk invoice presenter atau peserta seminar.
         $canRedeemVoucher = in_array($record->registrationFee?->audience, ['presenter', 'participant'], true)
             && $record->voucher_id === null
             && ! ($price['legacy'] ?? false)
             && ! $record->hasUnresolvedPayment()
-            && $record->isPayable();
+            && $record->isPayable()
+            && $paymentOpen;
         $activeCheckout = $record->payments
             ->filter(fn ($payment) => $payment->status === 'initiated' && ! $payment->hasExpired())
             ->sortByDesc('id')
@@ -289,7 +293,14 @@
                     @endphp
 
                     <div class="mt-5 border-t border-gray-200 pt-5 dark:border-white/10">
-                        @if($canCancelCheckout)
+                        @if(! $paymentOpen && ! $canCancelCheckout)
+                            <div role="status" class="rounded-xl border border-danger-200 bg-danger-50 p-4 dark:border-danger-500/20 dark:bg-danger-500/10">
+                                <p class="text-sm font-semibold text-danger-800 dark:text-danger-300">{{ $id ? 'Pembayaran sudah ditutup' : 'Payment has closed' }}</p>
+                                <p class="mt-1 text-sm leading-relaxed text-danger-700 dark:text-danger-400">
+                                    {{ $id ? 'Invoice ini tidak dapat dibayar lagi melalui portal. Hubungi panitia bila Anda memerlukan bantuan.' : 'This invoice can no longer be paid through the portal. Please contact the committee if you need assistance.' }}
+                                </p>
+                            </div>
+                        @elseif($canCancelCheckout)
                             <p class="text-sm text-gray-600 dark:text-gray-400">
                                 {{ $id ? 'Pilihan pembayaran dan voucher terbuka kembali setelah transaksi aktif di atas dibatalkan.' : 'Payment choices and vouchers will reopen once the active checkout above is cancelled.' }}
                             </p>
