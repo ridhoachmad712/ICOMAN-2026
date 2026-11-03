@@ -184,6 +184,24 @@ class Registration extends Model implements HasMedia
         return app(ConferenceDeadlines::class)->date('installment', $this->edition_id);
     }
 
+    /**
+     * Invoice ini masih boleh dibayar lewat portal. Biasanya mengikuti
+     * tenggat "Registration payment" dan saklar Tutup pembayaran. Cicilan yang
+     * sudah berjalan tetap boleh dilunasi sampai tenggat pelunasan cicilan,
+     * meski pembayaran baru sudah ditutup — supaya peserta yang sudah
+     * membayar sebagian tidak terkunci di tengah jalan.
+     */
+    public function acceptsPayment(): bool
+    {
+        $deadlines = app(ConferenceDeadlines::class);
+
+        if ($this->isPartiallyPaid() && $deadlines->isOpen('installment', $this->edition_id)) {
+            return true;
+        }
+
+        return $deadlines->isOpen('payment', $this->edition_id);
+    }
+
     /** Menunggak: cicilan pertama lunas, sisanya lewat tenggat pelunasan. */
     public function isInstallmentOverdue(): bool
     {

@@ -16,6 +16,7 @@ use App\Services\BorderpayGateway;
 use App\Services\BorderpayService;
 use App\Settings\SiteSettings;
 use Filament\Facades\Filament;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -243,6 +244,56 @@ class InstallmentPaymentTest extends TestCase
 
         $this->assertSame(350000, $captured[0]['amount'] + $captured[1]['amount']);
         $this->assertSame((int) $registration->amount, $captured[0]['amount'] + $captured[1]['amount']);
+    }
+
+    /**
+     * Pembayaran ditutup panitia (saklar atau tenggat), tapi cicilan yang
+     * sudah berjalan tetap bisa dilunasi; invoice yang belum dibayar sama
+     * sekali tidak.
+     */
+    public function test_a_running_instalment_can_still_be_settled_after_payments_close(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $fee = $this->fee();
+        $partial = $this->registration($fee);
+        $untouched = $this->registration($fee);
+        $service = app(BorderpayService::class);
+
+        $service->createCheckoutRedirect($partial, installment: true);
+        $this->pay($partial);
+
+        app(SiteSettings::class)->fill(['payment_closed' => true])->save();
+
+        $this->assertTrue($partial->refresh()->acceptsPayment());
+        $this->assertFalse($untouched->refresh()->acceptsPayment());
+
+        $service->createCheckoutRedirect($partial);
+        $this->assertSame(150000, $captured[1]['amount']);
+
+        $this->actingAs($untouched->author, 'author')
+            ->get(RegistrationResource::getUrl('view', ['record' => $untouched], panel: 'author'))
+            ->assertSee('Payment has closed');
+
+        $this->expectException(ValidationException::class);
+        $service->createCheckoutRedirect($untouched);
+    }
+
+    public function test_a_running_instalment_closes_after_its_settlement_deadline_once_payments_are_closed(): void
+    {
+        $captured = [];
+        $this->mockGateway($captured);
+        $partial = $this->registration($this->fee());
+        app(BorderpayService::class)->createCheckoutRedirect($partial, installment: true);
+        $this->pay($partial);
+
+        app(SiteSettings::class)->fill(['payment_closed' => true])->save();
+        ImportantDate::create([
+            'edition_id' => $partial->edition_id, 'label' => ['en' => 'Instalment settlement'],
+            'kind' => 'installment', 'date' => now()->subDay(), 'closes_at' => now()->subDay(), 'order' => 1,
+        ]);
+
+        $this->assertFalse($partial->refresh()->acceptsPayment());
     }
 
     /** Membayar sekaligus tetap menagih seluruhnya. */

@@ -29,8 +29,9 @@
         $basePrice = (float) $price['base_amount'];
         $isSinta = $price['journal_target'] === 'sinta3';
 
-        // Ditutup oleh tenggat "Registration payment" atau saklar di Pengaturan.
-        $paymentOpen = app(\App\Services\ConferenceDeadlines::class)->isOpen('payment', $record->edition_id);
+        // Ditutup oleh tenggat "Registration payment" atau saklar di Pengaturan;
+        // cicilan yang sudah berjalan tetap bisa dilunasi (lihat acceptsPayment()).
+        $paymentOpen = $record->acceptsPayment();
 
         $discount = (float) ($price['discount_amount'] ?? 0);
         // Voucher berlaku untuk invoice presenter atau peserta seminar.

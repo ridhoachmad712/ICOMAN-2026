@@ -55,7 +55,9 @@ class BorderpayService
 
     public function createCheckoutRedirect(Registration $registration, bool $installment = false): string
     {
-        app(ConferenceDeadlines::class)->assertOpen('payment', $registration->edition_id);
+        if (! $registration->acceptsPayment()) {
+            app(ConferenceDeadlines::class)->assertOpen('payment', $registration->edition_id);
+        }
 
         // Order dikunci sebelum request keluar; tab kedua memakai ulang baris ini.
         [$registration, $payment, $isNew] = DB::transaction(function () use ($registration, $installment): array {
