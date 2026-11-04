@@ -185,10 +185,10 @@ class Registration extends Model implements HasMedia
     }
 
     /**
-     * Invoice ini masih boleh dibayar lewat portal. Biasanya mengikuti
-     * tenggat "Registration payment" dan saklar Tutup pembayaran. Cicilan yang
-     * sudah berjalan tetap boleh dilunasi sampai tenggat pelunasan cicilan,
-     * meski pembayaran baru sudah ditutup — supaya peserta yang sudah
+     * Invoice ini masih boleh dibayar lewat portal. Biasanya mengikuti tenggat
+     * dan saklar pembayaran jalurnya (peserta seminar punya sendiri). Cicilan
+     * yang sudah berjalan tetap boleh dilunasi sampai tenggat pelunasan
+     * cicilan, meski pembayaran baru sudah ditutup — supaya peserta yang sudah
      * membayar sebagian tidak terkunci di tengah jalan.
      */
     public function acceptsPayment(): bool
@@ -199,7 +199,13 @@ class Registration extends Model implements HasMedia
             return true;
         }
 
-        return $deadlines->isOpen('payment', $this->edition_id);
+        return $deadlines->isOpen($this->paymentKind(), $this->edition_id);
+    }
+
+    /** Jenis tenggat yang mengatur pembayaran invoice ini. */
+    public function paymentKind(): string
+    {
+        return $this->author?->paymentKind() ?? 'payment';
     }
 
     /** Menunggak: cicilan pertama lunas, sisanya lewat tenggat pelunasan. */

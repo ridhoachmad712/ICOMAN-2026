@@ -13,6 +13,9 @@ use Illuminate\Support\Collection;
 
 class AuthorJourney
 {
+    /** Jenis tenggat pembayaran yang ditampilkan untuk akun yang sedang diproses. */
+    private string $paymentKind = 'payment';
+
     public function nextAction(Author $author, Collection $submissions, Collection $registrations): array
     {
         if (! $author->participation_type) {
@@ -23,6 +26,8 @@ class AuthorJourney
                 AuthorProfile::getUrl(panel: 'author'), 'Lengkapi profil', 'Complete profile', 10
             );
         }
+
+        $this->paymentKind = $author->paymentKind();
 
         if ($author->isParticipant()) {
             return $this->participantAction($registrations);
@@ -450,12 +455,15 @@ class AuthorJourney
             'profile', 'submission', 'extended' => 'abstract',
             'revision' => 'revision',
             'review', 'verification', 'closed', 'loa_wait' => 'acceptance',
-            'registration', 'payment', 'waiting' => 'payment',
+            'registration', 'payment', 'waiting' => $this->paymentKind,
             'full_paper' => 'full_paper',
             'complete' => 'conference',
             default => null,
         };
         $deadline = $kind ? $edition->importantDates()->where('kind', $kind)->first() : null;
+        if (! $deadline && $kind === 'participant_payment') {
+            $deadline = $edition->importantDates()->where('kind', 'payment')->first();
+        }
         if ($deadline && ! $deadline->date && ! $deadline->closes_at) {
             return null;
         }

@@ -77,7 +77,7 @@ class RegistrationProvisioner
         }
 
         if (! $byCommittee) {
-            app(ConferenceDeadlines::class)->assertOpen('payment', $edition->id);
+            app(ConferenceDeadlines::class)->assertOpen($author->paymentKind(), $edition->id);
         }
 
         // Tarif mengikuti kategori (registrant_category) yang dipilih saat mendaftar.

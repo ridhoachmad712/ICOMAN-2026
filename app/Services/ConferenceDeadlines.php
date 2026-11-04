@@ -11,7 +11,8 @@ class ConferenceDeadlines
     public const KINDS = [
         'abstract' => 'Abstract submission', 'revision' => 'Abstract revision',
         'acceptance' => 'Acceptance notification', 'payment' => 'Registration payment', 'installment' => 'Installment settlement',
-        'participant_registration' => 'Seminar participant sign-up (payment still follows Registration payment)',
+        'participant_registration' => 'Seminar participant sign-up',
+        'participant_payment' => 'Seminar participant payment (if empty, follows Registration payment)',
         'full_paper' => 'Full paper', 'conference' => 'Conference day',
     ];
 
@@ -30,7 +31,16 @@ class ConferenceDeadlines
             return false;
         }
 
+        if ($kind === 'participant_payment' && rescue(fn () => siteSettings()->participant_payment_closed, false, false)) {
+            return false;
+        }
+
         $deadline = $this->date($kind, $editionId);
+
+        // Peserta seminar tanpa tenggat sendiri mengikuti tenggat pembayaran umum.
+        if (! $deadline && $kind === 'participant_payment') {
+            $deadline = $this->date('payment', $editionId);
+        }
 
         return ! $deadline || now()->lte($deadline);
     }

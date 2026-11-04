@@ -27,27 +27,35 @@ class AuthController extends Controller
      * Tenggat yang menutup pendaftaran tiap jalur, dari Tanggal Penting.
      * Presenter tidak berguna mendaftar setelah abstrak ditutup; co-host tidak
      * bisa lagi membayar setelah tenggat pembayaran. Peserta seminar punya
-     * tenggatnya sendiri, sehingga pendaftarannya bisa ditutup tanpa ikut
-     * menutup pembayaran presenter; bila belum diisi, ikut tenggat pembayaran.
+     * tenggat pendaftaran dan pembayaran sendiri, sehingga jalurnya bisa tetap
+     * dibuka atau ditutup terpisah; bila belum diisi, ikut tenggat pembayaran.
      * Tanpa tanggal yang diisi panitia, jalurnya tetap terbuka.
      *
      * @var array<string, list<string>> jenis tenggat, yang pertama terisi berlaku
      */
     public const CLOSING_DEADLINE = [
         'presenter' => ['abstract'],
-        'non_presenter' => ['participant_registration', 'payment'],
+        'non_presenter' => ['participant_registration', 'participant_payment', 'payment'],
         'cohost' => ['payment'],
     ];
 
-    /** Panitia menutup seluruh pendaftaran lewat Pengaturan. */
-    public static function registrationClosed(): bool
+    /** Panitia menutup pendaftaran jalur ini lewat Pengaturan. */
+    public static function registrationClosed(string $role): bool
     {
-        return (bool) rescue(fn () => siteSettings()->registration_closed, false, false);
+        $setting = $role === 'non_presenter' ? 'participant_registration_closed' : 'registration_closed';
+
+        return (bool) rescue(fn () => siteSettings()->{$setting}, false, false);
     }
 
     public static function isRoleOpen(string $role): bool
     {
-        if (self::registrationClosed()) {
+        if (self::registrationClosed($role)) {
+            return false;
+        }
+
+        // Peserta seminar langsung diarahkan membayar setelah mendaftar, jadi
+        // pendaftaran tidak boleh terbuka bila pembayarannya sudah ditutup.
+        if ($role === 'non_presenter' && ! app(ConferenceDeadlines::class)->isOpen('participant_payment')) {
             return false;
         }
 

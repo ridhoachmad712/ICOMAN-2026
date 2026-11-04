@@ -21,7 +21,7 @@ class VoucherRedeemer
     public function redeem(Registration $registration, string $code): Voucher
     {
         // Voucher yang melunasi invoice sama dengan pembayaran, jadi ikut ditutup.
-        if (! app(ConferenceDeadlines::class)->isOpen('payment', $registration->edition_id)) {
+        if (! app(ConferenceDeadlines::class)->isOpen($registration->paymentKind(), $registration->edition_id)) {
             $this->fail('Pembayaran sudah ditutup, sehingga voucher tidak dapat dipakai lagi.', 'Payment has closed, so vouchers can no longer be applied.');
         }
 

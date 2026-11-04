@@ -136,19 +136,25 @@ class ManageSiteSettings extends SettingsPage
                     ]),
 
                 Section::make('Pendaftaran & Pembayaran Portal')
-                    ->description('Saat pendaftaran ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
+                    ->description('Peserta seminar diatur terpisah dari presenter dan co-host. Bila semua jalur ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
                     ->schema([
                         Toggle::make('registration_closed')
-                            ->label('Tutup seluruh pendaftaran')
-                            ->helperText('Berlaku untuk presenter, peserta seminar, dan co-host sekaligus, tanpa menunggu tenggat di Tanggal Penting.'),
+                            ->label('Tutup pendaftaran presenter dan co-host')
+                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Peserta seminar tidak terpengaruh.'),
+                        Toggle::make('participant_registration_closed')
+                            ->label('Tutup pendaftaran peserta seminar')
+                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Presenter dan co-host tidak terpengaruh.'),
                         Textarea::make('registration_closed_note')
                             ->label('Catatan tambahan (opsional)')
                             ->placeholder('Mis. Untuk pertanyaan, hubungi panitia melalui email.')
-                            ->helperText('Tampil di bawah pemberitahuan penutupan, apa adanya untuk kedua bahasa.')
+                            ->helperText('Tampil di bawah pemberitahuan bila semua jalur ditutup, apa adanya untuk kedua bahasa.')
                             ->rows(3),
                         Toggle::make('payment_closed')
-                            ->label('Tutup pembayaran')
-                            ->helperText('Tombol bayar dan kotak voucher di invoice diganti pemberitahuan bahwa pembayaran sudah ditutup; invoice baru tidak bisa dibuat. Karena peserta seminar dan co-host tidak bisa membayar, pendaftaran keduanya ikut tertutup bila tidak punya tenggat sendiri. Pencatatan pembayaran manual oleh bendahara di admin tetap bisa.'),
+                            ->label('Tutup pembayaran presenter dan co-host')
+                            ->helperText('Tombol bayar dan kotak voucher di invoice diganti pemberitahuan bahwa pembayaran sudah ditutup; invoice baru tidak bisa dibuat. Peserta seminar tidak terpengaruh. Pencatatan pembayaran manual oleh bendahara di admin tetap bisa.'),
+                        Toggle::make('participant_payment_closed')
+                            ->label('Tutup pembayaran peserta seminar')
+                            ->helperText('Sama seperti di atas, khusus peserta seminar. Pendaftaran peserta seminar ikut tertutup karena mereka tidak bisa membayar. Presenter dan co-host tidak terpengaruh.'),
                     ]),
 
                 Section::make('Zoom Konferensi')

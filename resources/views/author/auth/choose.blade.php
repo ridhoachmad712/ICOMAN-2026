@@ -95,7 +95,7 @@
                             <span class="min-w-0 flex-1">
                                 <span class="block text-base font-bold text-slate-500">{{ $meta['title'] }}</span>
                                 <span class="mt-0.5 block text-sm font-medium text-red-700">
-                                    {{ $isId ? 'Pendaftaran ditutup' : 'Registration closed' }}@if($closedAt) · {{ $closedAt->translatedFormat('d M Y') }}@endif
+                                    {{ $isId ? 'Pendaftaran ditutup' : 'Registration closed' }}@if($closedAt?->isPast()) ·{{ $closedAt->translatedFormat('d M Y') }}@endif
                                 </span>
                             </span>
                         </div>

@@ -319,7 +319,7 @@ class AdminVoucherTest extends TestCase
         $registration = $this->invoice('closed-payment@example.test', 'participant');
         $this->actingAs($registration->author, 'author');
 
-        app(SiteSettings::class)->fill(['payment_closed' => true])->save();
+        app(SiteSettings::class)->fill(['participant_payment_closed' => true])->save();
 
         Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertSee('Payment has closed')
@@ -340,7 +340,7 @@ class AdminVoucherTest extends TestCase
         $registration = $this->invoice('reopened-payment@example.test', 'participant');
         $this->actingAs($registration->author, 'author');
 
-        app(SiteSettings::class)->fill(['payment_closed' => false])->save();
+        app(SiteSettings::class)->fill(['participant_payment_closed' => false])->save();
 
         Livewire::test(ViewRegistration::class, ['record' => $registration->getRouteKey()])
             ->assertDontSee('Payment has closed')

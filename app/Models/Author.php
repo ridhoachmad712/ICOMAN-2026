@@ -90,6 +90,12 @@ class Author extends Authenticatable implements FilamentUser
         return $this->participation_type === 'participant';
     }
 
+    /** Jenis tenggat yang mengatur pembayaran akun ini (lihat ConferenceDeadlines). */
+    public function paymentKind(): string
+    {
+        return $this->isParticipant() ? 'participant_payment' : 'payment';
+    }
+
     public function isStudentS1(): bool
     {
         return $this->registrant_category === 'student_s1';

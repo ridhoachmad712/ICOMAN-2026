@@ -34,12 +34,19 @@ class SiteSettings extends Settings
 
     public ?string $registration_closed_note;
 
+    /** Menutup pendaftaran peserta seminar, terpisah dari presenter dan co-host. */
+    public bool $participant_registration_closed;
+
     /**
-     * Menutup pembayaran saat itu juga, tanpa menunggu tenggat "Registration
-     * payment": checkout BorderPay, invoice baru, dan penukaran voucher
-     * ditolak. Pencatatan manual oleh bendahara di admin tetap bisa.
+     * Menutup pembayaran presenter dan co-host saat itu juga, tanpa menunggu
+     * tenggat "Registration payment": checkout BorderPay, invoice baru, dan
+     * penukaran voucher ditolak. Pencatatan manual oleh bendahara di admin
+     * tetap bisa.
      */
     public bool $payment_closed;
+
+    /** Sama seperti payment_closed, khusus peserta seminar. */
+    public bool $participant_payment_closed;
 
     /**
      * Akses Zoom konferensi. Hanya tampil di dashboard peserta yang berhak:

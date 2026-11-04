@@ -56,7 +56,7 @@ class BorderpayService
     public function createCheckoutRedirect(Registration $registration, bool $installment = false): string
     {
         if (! $registration->acceptsPayment()) {
-            app(ConferenceDeadlines::class)->assertOpen('payment', $registration->edition_id);
+            app(ConferenceDeadlines::class)->assertOpen($registration->paymentKind(), $registration->edition_id);
         }
 
         // Order dikunci sebelum request keluar; tab kedua memakai ulang baris ini.

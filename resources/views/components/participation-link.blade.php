@@ -1,7 +1,6 @@
 @props(['role' => 'presenter', 'label' => null])
 @php
-    $presenter = $role === 'presenter';
-    $open = currentEdition() && app(\App\Services\ConferenceDeadlines::class)->isOpen($presenter ? 'abstract' : 'payment');
+    $open = currentEdition() && \App\Http\Controllers\Author\AuthController::isRoleOpen($role);
     $url = $open ? route('author.register.terms', ['role' => $role]) : route('filament.author.pages.author-dashboard');
 @endphp
 <a href="{{ $url }}" {{ $attributes->class(['btn']) }}>

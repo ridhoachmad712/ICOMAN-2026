@@ -83,9 +83,47 @@ class RegistrationClosingTest extends TestCase
         $this->get(route('author.register.terms', ['role' => 'cohost']))->assertOk();
     }
 
-    public function test_the_committee_switch_closes_every_path_with_one_notice(): void
+    public function test_presenter_and_cohost_can_close_while_attendee_sign_up_stays_open(): void
     {
-        app(SiteSettings::class)->fill(['registration_closed' => true, 'registration_closed_note' => 'Hubungi panitia untuk informasi lebih lanjut.'])->save();
+        $this->deadline('payment', now()->subDay());
+        $this->deadline('participant_payment', now()->addWeek());
+        app(SiteSettings::class)->fill(['registration_closed' => true, 'payment_closed' => true])->save();
+
+        $this->get(route('author.register'))
+            ->assertOk()
+            ->assertDontSee('registration is closed')
+            ->assertSee(route('author.register.terms', ['role' => 'non_presenter']), false)
+            ->assertDontSee(route('author.register.terms', ['role' => 'presenter']), false)
+            ->assertDontSee(route('author.register.terms', ['role' => 'cohost']), false);
+
+        foreach (['presenter', 'cohost'] as $role) {
+            $this->get(route('author.register.terms', ['role' => $role]))->assertRedirect(route('author.register'));
+        }
+
+        $this->withSession(['author_terms_ok' => 'non_presenter'])
+            ->post(route('author.register'), $this->form('non_presenter', 'peserta-baru@example.test'))
+            ->assertRedirect(route('author.registration.checkout'));
+        $this->assertDatabaseHas('authors', ['email' => 'peserta-baru@example.test']);
+    }
+
+    public function test_attendee_sign_up_closes_with_its_own_switches(): void
+    {
+        foreach (['participant_registration_closed', 'participant_payment_closed'] as $switch) {
+            app(SiteSettings::class)->fill([$switch => true])->save();
+
+            $this->get(route('author.register.terms', ['role' => 'non_presenter']))->assertRedirect(route('author.register'));
+            $this->get(route('author.register.terms', ['role' => 'presenter']))->assertOk();
+
+            app(SiteSettings::class)->fill([$switch => false])->save();
+        }
+    }
+
+    public function test_the_committee_switches_close_every_path_with_one_notice(): void
+    {
+        app(SiteSettings::class)->fill([
+            'registration_closed' => true, 'participant_registration_closed' => true,
+            'registration_closed_note' => 'Hubungi panitia untuk informasi lebih lanjut.',
+        ])->save();
 
         $this->get(route('author.register'))
             ->assertOk()
