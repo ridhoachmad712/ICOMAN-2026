@@ -483,19 +483,15 @@ class Submission extends Model implements HasMedia
     }
 
     /**
-     * Paper yang berhak tampil di room presentasi: accepted, full paper sudah
-     * masuk, dan invoice pengirimnya lunas — syarat yang sama dengan akses
-     * Zoom presenter (Author::canJoinConference()).
+     * Paper yang dapat dibagi ke room presentasi: cukup berstatus accepted.
+     * Pembayaran dan full paper tidak disyaratkan di sini; keduanya tetap
+     * menjadi syarat tautan room dan sertifikat presenter.
      */
     public function scopeReadyToPresent(Builder $query, Edition $edition): Builder
     {
         return $query
             ->where('edition_id', $edition->id)
-            ->where('status', 'accepted')
-            ->withFullPaper()
-            ->whereHas('author.registrations', fn (Builder $registration) => $registration
-                ->where('edition_id', $edition->id)
-                ->where('status', 'paid'));
+            ->where('status', 'accepted');
     }
 
     public function scopeOfCurrentEdition(Builder $query): Builder

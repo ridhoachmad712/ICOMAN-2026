@@ -44,7 +44,7 @@ class PresentationsRelationManager extends RelationManager
                     ->schema([
                         Select::make('submission_ids')
                             ->label('Paper')
-                            ->helperText('Hanya paper yang berhak tampil dan belum punya room.')
+                            ->helperText('Hanya paper accepted yang belum punya room.')
                             ->multiple()
                             ->searchable()
                             ->required()

@@ -15,7 +15,7 @@ use Illuminate\Validation\ValidationException;
  * Semua perubahan pada room presentasi lewat sini, supaya aturannya sama di
  * setiap halaman:
  *
- * - presenter yang dibagi hanya paper yang berhak tampil (readyToPresent);
+ * - presenter yang dibagi hanya paper yang accepted (readyToPresent);
  * - moderator hanya menyentuh room yang ditugaskan kepadanya, dan hanya
  *   sebelum penilaian room itu dikirim (dikunci);
  * - moderator hanya menilai presenter yang hadir (rubrik 1–5 berbobot);
@@ -24,7 +24,7 @@ use Illuminate\Validation\ValidationException;
  */
 class RoomManager
 {
-    /** Paper yang berhak tampil tapi belum punya room. */
+    /** Paper accepted yang belum punya room. */
     public function unassigned(Edition $edition): Collection
     {
         return Submission::query()
@@ -87,7 +87,7 @@ class RoomManager
         $edition = $room->edition;
 
         if (! Submission::query()->readyToPresent($edition)->whereKey($submission->id)->exists()) {
-            throw ValidationException::withMessages(['submission' => 'Paper ini belum memenuhi syarat tampil (accepted, lunas, dan full paper masuk).']);
+            throw ValidationException::withMessages(['submission' => 'Hanya paper yang sudah accepted yang dapat dimasukkan ke room.']);
         }
 
         if ($submission->roomPresentation()->exists()) {

@@ -101,14 +101,19 @@ class PresentationRoomTest extends TestCase
         $financePaper = $this->paper(topic: $finance);
         $unpaid = $this->paper(topic: $marketing, paid: false);
         $noFullPaper = $this->paper(topic: $marketing, fullPaper: false);
+        $underReview = $this->paper(topic: $marketing, status: 'extended_abstract_submitted');
 
-        $this->assertSame(['assigned' => 4, 'left' => 0], app(RoomManager::class)->distribute($this->edition));
+        $this->assertSame(['assigned' => 6, 'left' => 0], app(RoomManager::class)->distribute($this->edition));
 
-        $this->assertSame([2, 1], [$roomA->presentations()->count(), $roomB->presentations()->count()]);
+        $this->assertSame([3, 2], [$roomA->presentations()->count(), $roomB->presentations()->count()]);
         $this->assertTrue($marketingPapers->every(fn (Submission $paper) => in_array($paper->roomPresentation->presentation_room_id, [$roomA->id, $roomB->id], true)));
         $this->assertSame($mixed->id, $financePaper->roomPresentation->presentation_room_id);
-        $this->assertNull($unpaid->roomPresentation()->first());
-        $this->assertNull($noFullPaper->roomPresentation()->first());
+
+        // Cukup accepted: belum lunas atau belum full paper tetap dapat room.
+        $this->assertNotNull($unpaid->roomPresentation()->first());
+        $this->assertNotNull($noFullPaper->roomPresentation()->first());
+        $this->assertNull($underReview->roomPresentation()->first());
+        $this->expectValidation(fn () => app(RoomManager::class)->assign($roomA, $underReview));
 
         // Dijalankan lagi: yang sudah punya room tidak dipindahkan.
         $this->assertSame(['assigned' => 0, 'left' => 0], app(RoomManager::class)->distribute($this->edition));
@@ -293,7 +298,7 @@ class PresentationRoomTest extends TestCase
         ]);
     }
 
-    private function paper(?Topic $topic = null, bool $paid = true, bool $fullPaper = true): Submission
+    private function paper(?Topic $topic = null, bool $paid = true, bool $fullPaper = true, string $status = 'accepted'): Submission
     {
         $author = Author::create([
             'name' => 'Penulis '.uniqid(), 'email' => fake()->unique()->safeEmail(), 'password' => 'secret-password',
@@ -313,7 +318,7 @@ class PresentationRoomTest extends TestCase
         $submission = Submission::create([
             'edition_id' => $this->edition->id, 'author_id' => $author->id, 'topic_id' => $topic?->id,
             'title' => 'Paper '.uniqid(), 'abstract' => 'Abstract', 'keywords' => ['k'],
-            'status' => 'accepted', 'loa_issued_at' => now(),
+            'status' => $status, 'loa_issued_at' => now(),
         ]);
         $submission->authors()->create([
             'name' => $author->name, 'email' => $author->email, 'affiliation' => 'UNM', 'is_corresponding' => true, 'order' => 1,

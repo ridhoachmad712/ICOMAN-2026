@@ -28,8 +28,8 @@ class ListPresentationRooms extends ListRecords
 
         $left = app(RoomManager::class)->unassigned($edition)->count();
 
-        return 'Yang dibagi hanya paper yang berhak tampil: accepted, invoice lunas, dan full paper sudah masuk. '
-            .($left > 0 ? $left.' paper belum dapat room.' : 'Semua paper yang berhak sudah dapat room.');
+        return 'Yang dibagi hanya paper yang sudah accepted. '
+            .($left > 0 ? $left.' paper belum dapat room.' : 'Semua paper accepted sudah dapat room.');
     }
 
     protected function getHeaderActions(): array
