@@ -91,6 +91,12 @@ class RegistrationsTable
                     ->requiresConfirmation()
                     ->modalDescription('Tandai invoice ini LUNAS secara manual? Gunakan hanya bila pembayaran sudah dipastikan diterima tetapi status belum berubah otomatis.')
                     ->visible(fn (Registration $record) => $record->status !== 'paid')
+                    // Total tagihan bergantung pada pilihan jurnal, dan setelah
+                    // lunas langkah memilih jurnal tidak muncul lagi.
+                    ->disabled(fn (Registration $record): bool => (bool) $record->submission?->awaitsJournalChoice())
+                    ->tooltip(fn (Registration $record): ?string => $record->submission?->awaitsJournalChoice()
+                        ? 'Presenter belum memilih jurnal (Reguler atau SINTA 3). Minta presenter memilihnya di halaman invoice portal.'
+                        : null)
                     ->action(function (Registration $record): void {
                         // Yang dicatat adalah SISA tagihan, bukan totalnya.
                         // Invoice cicilan yang sudah menerima 200.000 lalu

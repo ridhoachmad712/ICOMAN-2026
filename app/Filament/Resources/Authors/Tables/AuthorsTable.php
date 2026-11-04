@@ -9,6 +9,7 @@ use App\Models\Registration;
 use App\Models\Submission;
 use App\Services\AuthorProgress;
 use App\Services\ParticipantContactExport;
+use App\Services\RegistrationProvisioner;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -136,6 +137,37 @@ class AuthorsTable
                         : null)
                     ->visible(fn (Author $record): bool => self::progress($record)['registration'] !== null),
 
+                // Invoice biasanya lahir saat author lanjut ke pembayaran. Selama
+                // pembayaran ditutup itu tidak bisa lagi, padahal "Tandai Lunas"
+                // membutuhkan invoice untuk peserta yang transfer di luar portal.
+                Action::make('createInvoice')
+                    ->label('Buat invoice')
+                    ->icon('heroicon-o-document-plus')
+                    ->color('warning')
+                    ->visible(fn (Author $record): bool => self::canReceiveInvoice($record))
+                    ->requiresConfirmation()
+                    ->modalHeading(fn (Author $record): string => 'Buat invoice untuk '.$record->name.'?')
+                    ->modalDescription('Tarif mengikuti kategori peserta. Invoice ini belum lunas: tandai lunas di menu Registrasi setelah pembayarannya dipastikan.')
+                    ->modalSubmitActionLabel('Buat invoice')
+                    ->action(function (Author $record, Action $action): void {
+                        $registration = app(RegistrationProvisioner::class)->ensureFor($record, byCommittee: true);
+
+                        if (! $registration) {
+                            Notification::make()
+                                ->title('Invoice tidak dapat dibuat')
+                                ->body('Tarif untuk kategori peserta ini belum tersedia. Periksa menu Tarif Registrasi.')
+                                ->danger()
+                                ->send();
+
+                            $action->halt();
+                        }
+
+                        Notification::make()
+                            ->title('Invoice #'.str_pad((string) $registration->id, 5, '0', STR_PAD_LEFT).' dibuat')
+                            ->success()
+                            ->send();
+                    }),
+
                 ActionGroup::make([
                     // Portal author tidak punya reset mandiri, jadi ini satu-satunya
                     // jalan memulihkan akun yang lupa password.
@@ -209,6 +241,21 @@ class AuthorsTable
     private static function progress(Author $author): array
     {
         return app(AuthorProgress::class)->snapshot($author);
+    }
+
+    /** Belum punya invoice, dan jalurnya sudah sampai ke tahap membayar. */
+    private static function canReceiveInvoice(Author $author): bool
+    {
+        if (self::progress($author)['registration'] !== null) {
+            return false;
+        }
+
+        if ($author->isParticipant()) {
+            return true;
+        }
+
+        return $author->isPresenter() && $author->submissions
+            ->contains(fn (Submission $paper): bool => $paper->status === 'accepted' && $paper->isLoaIssued());
     }
 
     private static function paymentLabel(?Registration $registration): string

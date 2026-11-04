@@ -15,17 +15,22 @@ use Illuminate\Support\Facades\DB;
  */
 class RegistrationProvisioner
 {
-    public function ensureFor(Author $author): ?Registration
+    /**
+     * @param  bool  $byCommittee  dibuat panitia dari admin: tetap boleh saat
+     *                             pembayaran ditutup, karena pembayarannya
+     *                             dicatat manual, bukan lewat portal
+     */
+    public function ensureFor(Author $author, bool $byCommittee = false): ?Registration
     {
-        return DB::transaction(function () use ($author) {
+        return DB::transaction(function () use ($author, $byCommittee) {
             // Serialize checkout for this author, including concurrent tabs.
             $locked = Author::whereKey($author->id)->lockForUpdate()->firstOrFail();
 
-            return $this->provision($locked);
+            return $this->provision($locked, $byCommittee);
         });
     }
 
-    private function provision(Author $author): ?Registration
+    private function provision(Author $author, bool $byCommittee): ?Registration
     {
         $edition = currentEdition();
 
@@ -71,7 +76,9 @@ class RegistrationProvisioner
             return $orphan->refresh();
         }
 
-        app(ConferenceDeadlines::class)->assertOpen('payment', $edition->id);
+        if (! $byCommittee) {
+            app(ConferenceDeadlines::class)->assertOpen('payment', $edition->id);
+        }
 
         // Tarif mengikuti kategori (registrant_category) yang dipilih saat mendaftar.
         $fee = RegistrationFee::query()
