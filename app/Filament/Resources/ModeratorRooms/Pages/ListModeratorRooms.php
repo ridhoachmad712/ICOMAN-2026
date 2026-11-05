@@ -10,6 +10,9 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\EmbeddedTable;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
 use Illuminate\Database\Eloquent\Collection;
 
 class ListModeratorRooms extends ListRecords
@@ -23,19 +26,20 @@ class ListModeratorRooms extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Absen setiap presenter, lalu nilai yang hadir dengan rubrik presenter (skor 1–5 per kriteria). Setelah semua lengkap, klik "Kirim penilaian". Nilai menjadi acuan; pemenang ditetapkan admin room.';
+        return 'Absen setiap presenter, beri nilai yang hadir, lalu kirim penilaian.';
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            View::make('filament.moderator.room-summary'),
+            EmbeddedTable::make(),
+        ]);
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('openMeeting')
-                ->label('Buka tautan room')
-                ->icon('heroicon-o-video-camera')
-                ->color('gray')
-                ->url(fn (): ?string => $this->myRooms()->first()?->meeting_url, shouldOpenInNewTab: true)
-                ->visible(fn (): bool => $this->myRooms()->count() === 1 && filled($this->myRooms()->first()->meeting_url)),
-
             Action::make('submitScores')
                 ->label('Kirim penilaian')
                 ->icon('heroicon-o-paper-airplane')
@@ -44,12 +48,16 @@ class ListModeratorRooms extends ListRecords
                 ->schema(fn (): array => $this->openRooms()->count() > 1 ? [
                     Select::make('room_id')
                         ->label('Room')
-                        ->options($this->openRooms()->pluck('name', 'id')->all())
+                        ->options($this->readyRooms()->pluck('name', 'id')->all())
                         ->required(),
                 ] : [])
                 ->visible(fn (): bool => $this->openRooms()->isNotEmpty())
+                ->disabled(fn (): bool => $this->readyRooms()->isEmpty())
+                ->tooltip(fn (): ?string => $this->readyRooms()->isEmpty()
+                    ? 'Belum bisa dikirim: '.$this->openRooms()->map(fn (PresentationRoom $room): string => $room->name.': '.$room->scoringGap())->implode(' ')
+                    : null)
                 ->action(function (array $data, Action $action): void {
-                    $room = $this->openRooms()->firstWhere('id', $data['room_id'] ?? $this->openRooms()->first()->id);
+                    $room = $this->readyRooms()->firstWhere('id', $data['room_id'] ?? $this->readyRooms()->first()?->id);
                     abort_unless($room, 403);
 
                     ModerationActions::attempt($action, fn () => app(RoomManager::class)->submitScores($room, auth()->user()));
@@ -60,18 +68,14 @@ class ListModeratorRooms extends ListRecords
     }
 
     /** @return Collection<int, PresentationRoom> */
-    private function myRooms(): Collection
+    private function openRooms(): Collection
     {
-        return PresentationRoom::query()
-            ->where('edition_id', currentEdition()?->id ?? -1)
-            ->where('moderator_id', auth()->id() ?? -1)
-            ->orderBy('order')
-            ->get();
+        return ModeratorRoomResource::myRooms()->whereNull('scores_submitted_at')->values();
     }
 
     /** @return Collection<int, PresentationRoom> */
-    private function openRooms(): Collection
+    private function readyRooms(): Collection
     {
-        return $this->myRooms()->whereNull('scores_submitted_at')->values();
+        return $this->openRooms()->filter(fn (PresentationRoom $room): bool => $room->scoringProgress()['ready'])->values();
     }
 }

@@ -173,12 +173,8 @@ class RoomManager
             abort(403);
         }
 
-        $presentations = $room->presentations()->get();
-        $unmarked = $presentations->whereNull('attendance')->count();
-        $unscored = $presentations->filter(fn (RoomPresentation $item) => $item->attended() && ! $item->isScored())->count();
-
-        if ($unmarked || $unscored) {
-            throw ValidationException::withMessages(['room' => "Belum lengkap: {$unmarked} presenter belum diabsen, {$unscored} presenter hadir belum dinilai."]);
+        if ($gap = $room->load('presentations')->scoringGap()) {
+            throw ValidationException::withMessages(['room' => 'Belum lengkap: '.$gap]);
         }
 
         $room->update(['scores_submitted_at' => now()]);

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\ModeratorRooms;
 use App\Filament\Resources\ModeratorRooms\Pages\ListModeratorRooms;
 use App\Filament\Resources\PresentationRooms\ModerationActions;
 use App\Filament\Resources\PresentationRooms\RelationManagers\PresentationsRelationManager;
+use App\Models\PresentationRoom;
 use App\Models\RoomPresentation;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -12,6 +13,7 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Grouping\Group;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * "Room Saya": presenter di room yang dipandu moderator yang sedang login.
@@ -64,6 +66,16 @@ class ModeratorRoomResource extends Resource
         return false;
     }
 
+    /** @return Collection<int, PresentationRoom> */
+    public static function myRooms(): Collection
+    {
+        return PresentationRoom::query()
+            ->moderatedBy(auth()->user())
+            ->with('presentations')
+            ->orderBy('order')
+            ->get();
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->whereHas('room', fn (Builder $room) => $room
@@ -79,11 +91,9 @@ class ModeratorRoomResource extends Resource
             ->groups([
                 Group::make('room.name')
                     ->label('Room')
-                    ->getDescriptionFromRecordUsing(fn (RoomPresentation $record): string => collect([
-                        $record->room->scheduleLabel(),
-                        $record->room->meeting_note,
-                        $record->room->isLocked() ? 'Penilaian sudah dikirim (terkunci)' : null,
-                    ])->filter()->implode(' · ')),
+                    ->getDescriptionFromRecordUsing(fn (RoomPresentation $record): ?string => $record->room->isLocked()
+                        ? 'Penilaian sudah dikirim (terkunci)'
+                        : null),
             ])
             ->defaultGroup('room.name')
             ->groupingSettingsHidden()

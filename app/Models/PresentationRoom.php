@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -58,6 +59,59 @@ class PresentationRoom extends Model
     public function isLocked(): bool
     {
         return $this->scores_submitted_at !== null;
+    }
+
+    /** Room edisi aktif yang dipandu moderator ini. */
+    public function scopeModeratedBy(Builder $query, ?User $moderator): Builder
+    {
+        return $query
+            ->where('edition_id', currentEdition()?->id ?? -1)
+            ->where('moderator_id', $moderator?->id ?? -1);
+    }
+
+    /**
+     * Kemajuan penilaian: semua presenter sudah diabsen dan yang hadir sudah
+     * dinilai. Yang tidak hadir dianggap selesai karena memang tidak dinilai.
+     *
+     * @return array{total: int, unmarked: int, unscored: int, absent: int, done: int, percent: int, ready: bool}
+     */
+    public function scoringProgress(): array
+    {
+        $total = $this->presentations->count();
+        $unmarked = $this->presentations->whereNull('attendance')->count();
+        $unscored = $this->presentations
+            ->filter(fn (RoomPresentation $item): bool => $item->attended() && ! $item->isScored())
+            ->count();
+        $done = $total - $unmarked - $unscored;
+
+        return [
+            'total' => $total,
+            'unmarked' => $unmarked,
+            'unscored' => $unscored,
+            'absent' => $this->presentations->where('attendance', 'absent')->count(),
+            'done' => $done,
+            'percent' => $total > 0 ? (int) floor($done / $total * 100) : 0,
+            'ready' => $total > 0 && $done === $total,
+        ];
+    }
+
+    /** Apa yang masih kurang sebelum penilaian bisa dikirim; null bila sudah lengkap. */
+    public function scoringGap(): ?string
+    {
+        $progress = $this->scoringProgress();
+
+        if ($progress['ready']) {
+            return null;
+        }
+
+        if ($progress['total'] === 0) {
+            return 'Room ini belum punya presenter.';
+        }
+
+        return collect([
+            $progress['unmarked'] ? $progress['unmarked'].' presenter belum diabsen' : null,
+            $progress['unscored'] ? $progress['unscored'].' presenter hadir belum dinilai' : null,
+        ])->filter()->implode(', ').'.';
     }
 
     public function scheduleLabel(): ?string

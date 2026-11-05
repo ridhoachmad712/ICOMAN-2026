@@ -24,8 +24,11 @@ class ModerationActions
     public static function attendance(): Action
     {
         return Action::make('attendance')
-            ->label('Absensi')
+            ->label(fn (RoomPresentation $record): string => $record->attendance ? 'Ubah absensi' : 'Absen')
             ->icon('heroicon-o-clipboard-document-check')
+            ->button()
+            ->size('sm')
+            ->outlined(fn (RoomPresentation $record): bool => (bool) $record->attendance)
             ->color(fn (RoomPresentation $record): string => $record->attendance ? 'gray' : 'primary')
             ->modalHeading(fn (RoomPresentation $record): string => 'Absensi '.$record->submission?->submission_number)
             ->modalDescription(fn (RoomPresentation $record): ?string => $record->submission?->title)
@@ -74,9 +77,12 @@ class ModerationActions
             ->all();
 
         return Action::make('score')
-            ->label('Nilai')
+            ->label(fn (RoomPresentation $record): string => $record->isScored() ? 'Ubah nilai' : 'Beri nilai')
             ->icon('heroicon-o-star')
-            ->color(fn (RoomPresentation $record): string => $record->isScored() ? 'gray' : 'warning')
+            ->button()
+            ->size('sm')
+            ->outlined(fn (RoomPresentation $record): bool => $record->isScored())
+            ->color(fn (RoomPresentation $record): string => $record->isScored() ? 'gray' : 'primary')
             ->modalHeading(fn (RoomPresentation $record): string => 'Penilaian presenter '.$record->submission?->submission_number)
             ->modalDescription(fn (RoomPresentation $record): string => $record->submission?->title.' · Presenter: '.($record->presenter_name ?: '—'))
             ->modalWidth('2xl')

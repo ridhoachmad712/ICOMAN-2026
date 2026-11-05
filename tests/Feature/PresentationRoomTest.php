@@ -10,18 +10,21 @@ use App\Filament\Resources\PresentationResults\PresentationResultResource;
 use App\Filament\Resources\PresentationRooms\Pages\ListPresentationRooms;
 use App\Filament\Resources\PresentationRooms\PresentationRoomResource;
 use App\Filament\Resources\Submissions\SubmissionResource;
+use App\Filament\Widgets\ModeratorDashboard;
 use App\Models\Author;
 use App\Models\Edition;
 use App\Models\PresentationRoom;
 use App\Models\Registration;
 use App\Models\RegistrationFee;
 use App\Models\RoomPresentation;
+use App\Models\Schedule;
 use App\Models\Submission;
 use App\Models\Topic;
 use App\Models\User;
 use App\Services\AbstractWordDocument;
 use App\Services\PresentationResultExport;
 use App\Services\RoomManager;
+use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
@@ -210,6 +213,96 @@ class PresentationRoomTest extends TestCase
         $this->assertSame('present', $mine->attendance);
         $this->assertSame('100.00', (string) $mine->presenter_score);
         $this->assertTrue($mine->room->isLocked());
+    }
+
+    public function test_submitting_stays_disabled_until_every_presenter_is_finished(): void
+    {
+        $moderator = $this->user('moderator_room');
+        $room = $this->room('Room Saya', moderator: $moderator);
+        $manager = app(RoomManager::class);
+        $this->actingAs($moderator, 'web');
+
+        // Room kosong tidak bisa dikirim.
+        Livewire::test(ListModeratorRooms::class)->assertActionDisabled('submitScores');
+        $this->expectValidation(fn () => $manager->submitScores($room, $moderator));
+
+        $attending = $manager->assign($room, $this->paper());
+        $absent = $manager->assign($room, $this->paper());
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionDisabled('submitScores')
+            ->assertSee('2 presenter belum diabsen');
+
+        $manager->markAttendance($attending, 'present', 'Rina', $moderator);
+        $manager->markAttendance($absent, 'absent', null, $moderator);
+
+        $page = Livewire::test(ListModeratorRooms::class)
+            ->assertActionDisabled('submitScores')
+            ->assertSee('1 presenter hadir belum dinilai');
+        $page->callAction(TestAction::make('submitScores'));
+        $this->assertFalse($room->refresh()->isLocked());
+
+        $manager->score($attending->refresh(), $this->scores(4), null, $moderator);
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionEnabled('submitScores')
+            ->assertSee('Siap dikirim')
+            ->assertSee('1 presenter tidak hadir')
+            ->callAction(TestAction::make('submitScores'))
+            ->assertNotified('Penilaian Room Saya terkirim');
+
+        $this->assertTrue($room->refresh()->isLocked());
+    }
+
+    public function test_only_finished_rooms_can_be_chosen_when_a_moderator_has_several(): void
+    {
+        $moderator = $this->user('moderator_room');
+        $manager = app(RoomManager::class);
+        $finished = $this->room('Room Selesai', moderator: $moderator);
+        $pending = $this->room('Room Belum', moderator: $moderator);
+        $presenter = $manager->assign($finished, $this->paper());
+        $manager->assign($pending, $this->paper());
+        $manager->markAttendance($presenter, 'absent', null, $moderator);
+        $this->actingAs($moderator, 'web');
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionEnabled('submitScores')
+            ->callAction(TestAction::make('submitScores'), ['room_id' => $finished->id])
+            ->assertNotified('Penilaian Room Selesai terkirim');
+
+        $this->assertTrue($finished->refresh()->isLocked());
+        $this->assertFalse($pending->refresh()->isLocked());
+    }
+
+    public function test_the_moderator_dashboard_shows_the_conference_their_rooms_and_the_rubric(): void
+    {
+        $this->edition->update(['theme' => ['en' => 'Tema Uji'], 'start_date' => '2026-11-07']);
+        app(SiteSettings::class)->fill(['conference_name' => 'Konferensi Uji', 'zoom_meeting_id' => '123 456', 'zoom_passcode' => 'rahasia'])->save();
+        Schedule::create([
+            'edition_id' => $this->edition->id, 'day_date' => '2026-11-07', 'time_start' => '13:00', 'time_end' => '16:00',
+            'title' => ['en' => 'Parallel Session'], 'order' => 1,
+        ]);
+        $moderator = $this->user('moderator_room');
+        app(RoomManager::class)->assign($this->room('Room Dua', moderator: $moderator), $this->paper());
+        $this->room('Room Orang Lain', moderator: $this->user('moderator_room'));
+        $this->actingAs($moderator, 'web');
+
+        $this->get('/admin')->assertOk()
+            ->assertSee('Konferensi Uji')
+            ->assertSee('Tema Uji')
+            ->assertSee('123 456')
+            ->assertSee('Room Dua')
+            ->assertSee('0 dari 1 presenter selesai')
+            ->assertDontSee('Room Orang Lain')
+            ->assertSee(RoomPresentation::PRESENTER_CRITERIA['mastery']['label'])
+            ->assertSee('Parallel Session');
+    }
+
+    public function test_other_roles_do_not_see_the_moderator_dashboard(): void
+    {
+        $this->actingAs($this->user('admin_room'), 'web');
+
+        $this->assertFalse(ModeratorDashboard::canView());
     }
 
     public function test_admin_room_distributes_and_awards_from_the_panel(): void
