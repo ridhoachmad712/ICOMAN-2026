@@ -198,10 +198,11 @@ class PresentationRoomTest extends TestCase
         Livewire::test(ListModeratorRooms::class)
             ->assertCanSeeTableRecords([$mine])
             ->assertCanNotSeeTableRecords([$theirs])
-            ->assertActionHidden(TestAction::make('score')->table($mine))
-            ->callAction(TestAction::make('attendance')->table($mine), ['attendance' => 'present', 'presenter_name' => $mine->submission->authors->first()->name])
-            ->assertHasNoFormErrors()
-            ->callAction(TestAction::make('score')->table($mine), [
+            ->assertActionHasLabel(TestAction::make('moderate')->table($mine), 'Absen')
+            ->callAction(TestAction::make('moderate')->table($mine), [
+                'attendance' => 'present',
+                'presenter_name' => $mine->submission->authors->first()->name,
+                'scoring' => 'now',
                 'scores' => $this->scores(5),
                 'notes' => 'Jelas',
             ])
@@ -213,6 +214,78 @@ class PresentationRoomTest extends TestCase
         $this->assertSame('present', $mine->attendance);
         $this->assertSame('100.00', (string) $mine->presenter_score);
         $this->assertTrue($mine->room->isLocked());
+    }
+
+    public function test_attendance_can_be_saved_first_and_scored_later(): void
+    {
+        $moderator = $this->user('moderator_room');
+        $presentation = app(RoomManager::class)->assign($this->room('Room Saya', moderator: $moderator), $this->paper());
+        $name = $presentation->submission->authors->first()->name;
+        $this->actingAs($moderator, 'web');
+
+        Livewire::test(ListModeratorRooms::class)
+            ->callAction(TestAction::make('moderate')->table($presentation), [
+                'attendance' => 'present', 'presenter_name' => $name, 'scoring' => 'later',
+            ])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Absensi tersimpan');
+
+        $presentation->refresh();
+        $this->assertSame('present', $presentation->attendance);
+        $this->assertFalse($presentation->isScored());
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionHasLabel(TestAction::make('moderate')->table($presentation), 'Lanjut menilai')
+            ->callAction(TestAction::make('moderate')->table($presentation), [
+                'scoring' => 'now', 'scores' => $this->scores(4), 'notes' => 'Baik',
+            ])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Absensi dan nilai tersimpan');
+
+        $presentation->refresh();
+        $this->assertSame('80.00', (string) $presentation->presenter_score);
+        $this->assertSame('Baik', $presentation->moderator_notes);
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionHasLabel(TestAction::make('moderate')->table($presentation), 'Ubah');
+    }
+
+    public function test_scoring_now_requires_every_criterion(): void
+    {
+        $moderator = $this->user('moderator_room');
+        $presentation = app(RoomManager::class)->assign($this->room('Room Saya', moderator: $moderator), $this->paper());
+        $this->actingAs($moderator, 'web');
+
+        Livewire::test(ListModeratorRooms::class)
+            ->callAction(TestAction::make('moderate')->table($presentation), [
+                'attendance' => 'present',
+                'presenter_name' => $presentation->submission->authors->first()->name,
+                'scoring' => 'now',
+                'scores' => ['mastery' => 5],
+            ])
+            ->assertHasFormErrors(['scores.structure']);
+
+        $this->assertNull($presentation->refresh()->attendance, 'Tidak ada yang tersimpan bila belum lengkap.');
+    }
+
+    public function test_an_absent_presenter_skips_scoring_and_an_earlier_score_is_removed(): void
+    {
+        $moderator = $this->user('moderator_room');
+        $presentation = app(RoomManager::class)->assign($this->room('Room Saya', moderator: $moderator), $this->paper());
+        app(RoomManager::class)->markAttendance($presentation, 'present', 'Rina', $moderator);
+        app(RoomManager::class)->score($presentation->refresh(), $this->scores(5), null, $moderator);
+        $this->actingAs($moderator, 'web');
+
+        Livewire::test(ListModeratorRooms::class)
+            ->assertActionHasLabel(TestAction::make('moderate')->table($presentation), 'Ubah')
+            ->callAction(TestAction::make('moderate')->table($presentation), ['attendance' => 'absent'])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Absensi tersimpan');
+
+        $presentation->refresh();
+        $this->assertSame('absent', $presentation->attendance);
+        $this->assertNull($presentation->presenter_score);
+        $this->assertNull($presentation->presenter_name);
     }
 
     public function test_submitting_stays_disabled_until_every_presenter_is_finished(): void

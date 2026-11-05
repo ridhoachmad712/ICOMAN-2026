@@ -64,8 +64,7 @@ class PresentationsRelationManager extends RelationManager
                     }),
             ])
             ->recordActions([
-                ModerationActions::attendance(),
-                ModerationActions::score(),
+                ModerationActions::moderate(),
                 ActionGroup::make([
                     Action::make('move')
                         ->label('Pindah room')

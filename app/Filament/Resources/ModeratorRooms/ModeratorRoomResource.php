@@ -99,8 +99,7 @@ class ModeratorRoomResource extends Resource
             ->paginated(false)
             ->columns(PresentationsRelationManager::columns())
             ->recordActions([
-                ModerationActions::attendance(),
-                ModerationActions::score(),
+                ModerationActions::moderate(),
             ])
             ->emptyStateIcon('heroicon-o-presentation-chart-bar')
             ->emptyStateHeading('Belum ada room yang ditugaskan')
