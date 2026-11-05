@@ -8,6 +8,8 @@
     @endphp
 
     <div style="display:flex;flex-direction:column;gap:1.5rem;">
+        <p style="margin:0;font-size:1rem;">Moderator: <strong>{{ auth()->user()->name }}</strong></p>
+
         <x-filament::section icon="heroicon-o-academic-cap">
             <x-slot name="heading">{{ $settings->conference_name }}</x-slot>
             @if(filled($edition?->theme))

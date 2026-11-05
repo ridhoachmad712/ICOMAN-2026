@@ -25,8 +25,7 @@ class ModeratorRoomResource extends Resource
 
     protected static ?string $slug = 'room-saya';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'Conference';
-
+    // Menu langsung: moderator hanya punya satu halaman, jadi tidak perlu dropdown.
     protected static ?int $navigationSort = 2;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPresentationChartBar;

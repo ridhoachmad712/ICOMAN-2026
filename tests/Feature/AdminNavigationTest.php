@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Authors\AuthorResource;
 use App\Filament\Resources\ImportantDates\ImportantDateResource;
+use App\Filament\Resources\ModeratorRooms\ModeratorRoomResource;
 use App\Filament\Resources\RegistrationFees\RegistrationFeeResource;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Filament\Resources\Speakers\SpeakerResource;
@@ -41,6 +42,11 @@ class AdminNavigationTest extends TestCase
         $stray = [];
 
         foreach ($panel->getResources() as $resource) {
+            // Menu langsung moderator: satu-satunya halaman perannya.
+            if ($resource === ModeratorRoomResource::class) {
+                continue;
+            }
+
             $group = $resource::getNavigationGroup();
             if (! in_array($group, self::GROUPS, true)) {
                 $stray[] = class_basename($resource).' => '.var_export($group, true);

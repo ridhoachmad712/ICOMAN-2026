@@ -287,7 +287,10 @@ class PresentationRoomTest extends TestCase
         $this->room('Room Orang Lain', moderator: $this->user('moderator_room'));
         $this->actingAs($moderator, 'web');
 
+        $this->assertNull(ModeratorRoomResource::getNavigationGroup(), 'Room Saya adalah menu langsung, bukan dropdown.');
+
         $this->get('/admin')->assertOk()
+            ->assertSee('Moderator: <strong>'.$moderator->name.'</strong>', false)
             ->assertSee('Konferensi Uji')
             ->assertSee('Tema Uji')
             ->assertSee('123 456')
