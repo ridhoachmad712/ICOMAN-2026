@@ -121,6 +121,9 @@ class Author extends Authenticatable implements FilamentUser
         return (bool) ($edition && $this->registrations()
             ->where('edition_id', $edition->id)
             ->where('status', 'paid')
+            // Biaya kemitraan co-host tidak menanggung biaya presenter.
+            ->when($this->isPresenter(), fn ($query) => $query
+                ->whereDoesntHave('registrationFee', fn ($fee) => $fee->where('audience', 'cohost')))
             ->exists());
     }
 

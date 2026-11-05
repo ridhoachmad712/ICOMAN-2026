@@ -3,13 +3,16 @@
 namespace App\Filament\Resources\Registrations\Tables;
 
 use App\Models\Registration;
+use App\Services\VoucherRedeemer;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Validation\ValidationException;
 
 class RegistrationsTable
 {
@@ -81,6 +84,34 @@ class RegistrationsTable
                     ->url(fn (Registration $record) => route('admin.registrations.payment-proof', $record))
                     ->openUrlInNewTab()
                     ->visible(fn (Registration $record) => $record->hasMedia('payment_proof')),
+
+                Action::make('applyVoucher')
+                    ->label('Terapkan voucher')
+                    ->icon('heroicon-o-ticket')
+                    ->color('gray')
+                    ->visible(fn (Registration $record): bool => $record->isPayable()
+                        && $record->voucher_id === null
+                        && ! $record->isCoHostFee()
+                        && (auth()->user()?->managesSubmissions() ?? false))
+                    ->modalDescription('Syarat voucher tetap berlaku, tetapi voucher tetap bisa diterapkan saat pembayaran ditutup. Bila voucher menanggung seluruh tagihan, invoice langsung lunas tanpa mencatat uang masuk.')
+                    ->schema([
+                        TextInput::make('voucher_code')->label('Kode voucher')->required()->maxLength(64),
+                    ])
+                    ->action(function (array $data, Registration $record): void {
+                        try {
+                            app(VoucherRedeemer::class)->redeem($record, $data['voucher_code'], byCommittee: true);
+                        } catch (ValidationException $exception) {
+                            Notification::make()
+                                ->title('Voucher tidak dapat diterapkan')
+                                ->body($exception->validator->errors()->first())
+                                ->danger()
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()->title('Voucher diterapkan')->success()->send();
+                    }),
 
                 // Jaring pengaman: bila notifikasi BorderPay gagal masuk (webhook/queue
                 // bermasalah) admin tetap bisa menandai invoice yang sudah dibayar.

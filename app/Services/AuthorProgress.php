@@ -39,8 +39,11 @@ class AuthorProgress
             ->where('edition_id', $edition->id)
             ->sortByDesc('id')
             ->first();
+        $author->loadMissing('registrations.registrationFee');
         $registrations = $author->registrations
             ->where('edition_id', $edition->id)
+            // Biaya kemitraan co-host tidak menanggung biaya presenter.
+            ->when($author->isPresenter(), fn ($items) => $items->reject(fn (Registration $item): bool => $item->isCoHostFee()))
             ->sortByDesc('id');
         $registration = $registrations->firstWhere('status', 'paid')
             ?? $registrations->first(fn (Registration $item): bool => $item->status !== 'failed')

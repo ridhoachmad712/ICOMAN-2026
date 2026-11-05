@@ -202,6 +202,12 @@ class Registration extends Model implements HasMedia
         return $deadlines->isOpen($this->paymentKind(), $this->edition_id);
     }
 
+    /** Biaya kemitraan institusi: bukan pembayaran pribadi presenter atau peserta. */
+    public function isCoHostFee(): bool
+    {
+        return $this->registrationFee?->audience === 'cohost';
+    }
+
     /** Jenis tenggat yang mengatur pembayaran invoice ini. */
     public function paymentKind(): string
     {

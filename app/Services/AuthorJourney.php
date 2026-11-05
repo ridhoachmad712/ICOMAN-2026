@@ -33,7 +33,13 @@ class AuthorJourney
             return $this->participantAction($registrations);
         }
 
-        return $this->presenterAction($submissions, $registrations);
+        return $this->presenterAction($submissions, $this->withoutCoHostFee($registrations));
+    }
+
+    /** Biaya kemitraan co-host tidak menanggung biaya presenter. */
+    private function withoutCoHostFee(Collection $registrations): Collection
+    {
+        return $registrations->reject(fn (Registration $item): bool => $item->isCoHostFee());
     }
 
     private function participantAction(Collection $registrations): array
@@ -342,6 +348,7 @@ class AuthorJourney
             $submission->loadMissing('reviewAssignments.review');
         }
 
+        $registrations = $this->withoutCoHostFee($registrations);
         $paidRegistration = $registrations->firstWhere('status', 'paid');
         $pendingRegistration = $registrations->first(fn (Registration $item) => in_array($item->status, ['pending', 'pending_verification'], true));
         $loaIssued = (bool) $submission?->isLoaIssued();

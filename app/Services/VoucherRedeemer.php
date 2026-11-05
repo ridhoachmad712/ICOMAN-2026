@@ -18,10 +18,14 @@ use Illuminate\Validation\ValidationException;
  */
 class VoucherRedeemer
 {
-    public function redeem(Registration $registration, string $code): Voucher
+    /**
+     * @param  bool  $byCommittee  diterapkan panitia dari admin: tetap boleh saat
+     *                             pembayaran ditutup, semua syarat lain tetap berlaku
+     */
+    public function redeem(Registration $registration, string $code, bool $byCommittee = false): Voucher
     {
         // Voucher yang melunasi invoice sama dengan pembayaran, jadi ikut ditutup.
-        if (! app(ConferenceDeadlines::class)->isOpen($registration->paymentKind(), $registration->edition_id)) {
+        if (! $byCommittee && ! app(ConferenceDeadlines::class)->isOpen($registration->paymentKind(), $registration->edition_id)) {
             $this->fail('Pembayaran sudah ditutup, sehingga voucher tidak dapat dipakai lagi.', 'Payment has closed, so vouchers can no longer be applied.');
         }
 
