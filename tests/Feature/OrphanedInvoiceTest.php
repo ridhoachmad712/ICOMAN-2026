@@ -98,18 +98,87 @@ class OrphanedInvoiceTest extends TestCase
         $this->assertSame(1, Registration::where('author_id', $this->author->id)->count());
     }
 
-    /** Yang sudah lunas tidak boleh dipindahkan: paper baru akan langsung terhitung terbayar. */
-    public function test_a_paid_orphan_is_left_alone(): void
+    /** Pembayaran paper lama langsung berlaku saat paper penggantinya diterima. */
+    public function test_a_paid_orphan_follows_the_replacement_when_its_loa_is_issued(): void
     {
         $orphan = $this->orphan();
         $orphan->update(['status' => 'paid', 'paid_at' => now()]);
 
         $replacement = $this->acceptedPaper();
-        $fresh = app(RegistrationProvisioner::class)->ensureFor($this->author);
 
-        $this->assertNotSame($orphan->id, $fresh->id);
+        $this->assertSame($replacement->id, $orphan->fresh()->submission_id);
+        $this->assertTrue($replacement->canSubmitFullPaper());
+
+        $this->assertSame($orphan->id, app(RegistrationProvisioner::class)->ensureFor($this->author)->id);
+        $this->assertSame(1, Registration::where('author_id', $this->author->id)->count(), 'Tidak boleh ada tagihan kedua.');
+    }
+
+    public function test_the_command_relinks_a_paid_orphan_and_unblocks_the_full_paper(): void
+    {
+        [$orphan, $replacement] = $this->paidOrphanLeftBehind();
+
+        $this->artisan('icoman:relink-invoices')
+            ->expectsOutputToContain('(lunas) → '.$replacement->submission_number)
+            ->assertSuccessful();
+        $this->assertNull($orphan->fresh()->submission_id, 'Tanpa --fix hanya melaporkan.');
+        $this->assertFalse($replacement->canSubmitFullPaper());
+
+        $this->artisan('icoman:relink-invoices', ['--fix' => true])->assertSuccessful();
+
+        $this->assertSame($replacement->id, $orphan->fresh()->submission_id);
+        $this->assertTrue($replacement->canSubmitFullPaper());
+    }
+
+    /** Tagihan kedua yang telanjur terbit disebut, dan tidak dihapus otomatis. */
+    public function test_the_command_keeps_and_flags_a_second_bill_on_the_paper(): void
+    {
+        [$orphan, $replacement] = $this->paidOrphanLeftBehind();
+        $second = Registration::create([
+            'edition_id' => $this->edition->id, 'author_id' => $this->author->id,
+            'registration_fee_id' => $orphan->registration_fee_id, 'submission_id' => $replacement->id,
+            'payment_method' => 'gateway', 'amount' => 350_000, 'status' => 'pending',
+        ]);
+
+        $this->artisan('icoman:relink-invoices', ['--fix' => true])
+            ->expectsOutputToContain('kemungkinan tagihan ganda')
+            ->assertSuccessful();
+
+        $this->assertSame($replacement->id, $orphan->fresh()->submission_id);
+        $this->assertSame('pending', $second->fresh()->status);
+        $this->assertTrue($replacement->canSubmitFullPaper());
+    }
+
+    public function test_a_paid_orphan_is_not_moved_when_the_paper_is_already_paid_or_the_choice_is_ambiguous(): void
+    {
+        [$orphan, $replacement] = $this->paidOrphanLeftBehind();
+        $other = $orphan->replicate();
+        $other->save();
+
+        $this->artisan('icoman:relink-invoices', ['--fix' => true])
+            ->expectsOutputToContain('(lunas) — tidak ada satu paper')
+            ->assertSuccessful();
         $this->assertNull($orphan->fresh()->submission_id);
-        $this->assertSame($replacement->id, $fresh->submission_id);
+        $this->assertNull($other->fresh()->submission_id);
+
+        $other->update(['submission_id' => $replacement->id]);
+
+        $this->artisan('icoman:relink-invoices', ['--fix' => true])->assertSuccessful();
+        $this->assertNull($orphan->fresh()->submission_id);
+    }
+
+    /**
+     * Keadaan data lama: paper pengganti sudah diterima sebelum invoice lunasnya
+     * bisa disambungkan otomatis.
+     *
+     * @return array{Registration, Submission}
+     */
+    private function paidOrphanLeftBehind(): array
+    {
+        $orphan = $this->orphan();
+        $replacement = $this->acceptedPaper();
+        $orphan->update(['status' => 'paid', 'paid_at' => now()]);
+
+        return [$orphan->fresh(), $replacement];
     }
 
     /** Invoice peserta seminar memang tidak punya paper; jangan ikut diambil. */

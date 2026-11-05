@@ -53,6 +53,10 @@ class RegistrationProvisioner
             if (! $submission) {
                 return null;
             }
+
+            if ($adopted = $submission->adoptPaidInvoice()) {
+                return $adopted;
+            }
         }
 
         // Sudah ada registrasi aktif untuk jalur ini → pakai itu (jangan duplikat).
@@ -115,8 +119,7 @@ class RegistrationProvisioner
      * tawarannya melekat pada paper — dan membiarkannya berarti menerbitkan
      * tagihan kedua untuk orang yang sama. Maka diambil alih, bukan ditinggal.
      *
-     * Yang sudah lunas tidak pernah diambil alih: memindahkannya akan membuat
-     * paper baru langsung terhitung terbayar.
+     * Yang sudah lunas ditangani Submission::adoptPaidInvoice().
      */
     private function orphanedPresenterInvoice(Author $author, int $editionId): ?Registration
     {

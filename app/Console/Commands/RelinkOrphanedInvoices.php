@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Registration;
+use App\Models\Submission;
 use Illuminate\Console\Command;
 
 /**
@@ -14,9 +15,14 @@ use Illuminate\Console\Command;
  * pada paper, bukan pada invoice — dan diam-diam mengundang tagihan kedua untuk
  * orang yang sama.
  *
+ * Invoice lunas yang tertinggal juga membuat author tidak bisa mengunggah full
+ * paper, karena syaratnya melihat invoice milik paper. Invoice seperti itu hanya
+ * disambungkan bila akunnya punya tepat satu invoice lunas tanpa paper dan satu
+ * paper diterima yang belum lunas.
+ *
  * Pembuat invoice otomatis kini mengambil alih invoice semacam itu dengan
- * sendirinya, tapi hanya saat author melewati halaman checkout lagi. Perintah
- * ini membereskan yang sudah telanjur.
+ * sendirinya, tapi hanya saat author melewati halaman checkout lagi atau LOA
+ * terbit. Perintah ini membereskan yang sudah telanjur.
  */
 class RelinkOrphanedInvoices extends Command
 {
@@ -30,7 +36,6 @@ class RelinkOrphanedInvoices extends Command
 
         $orphans = Registration::query()
             ->whereNull('submission_id')
-            ->where('status', '!=', 'paid')
             ->whereHas('registrationFee', fn ($fee) => $fee->where('audience', 'presenter'))
             ->with('author')
             ->get();
@@ -47,7 +52,8 @@ class RelinkOrphanedInvoices extends Command
         foreach ($orphans as $orphan) {
             $label = '#'.str_pad((string) $orphan->id, 5, '0', STR_PAD_LEFT).' — '.($orphan->author?->name ?? 'tanpa author');
 
-            $paper = $orphan->author?->submissions()
+            $paid = $orphan->status === 'paid';
+            $paper = $paid ? $this->paperForPaidInvoice($orphan) : $orphan->author?->submissions()
                 ->where('edition_id', $orphan->edition_id)
                 ->where('status', 'accepted')
                 ->whereNotNull('loa_issued_at')
@@ -57,13 +63,22 @@ class RelinkOrphanedInvoices extends Command
                 ->first();
 
             if (! $paper) {
-                $this->line('  <fg=yellow>LEWAT</> '.$label.' — tidak ada paper diterima yang belum punya invoice.');
+                $this->line('  <fg=yellow>LEWAT</> '.$label.($paid
+                    ? ' (lunas) — tidak ada satu paper diterima yang belum lunas untuk invoice ini.'
+                    : ' — tidak ada paper diterima yang belum punya invoice.'));
                 $stuck++;
 
                 continue;
             }
 
-            $this->line('  <fg=green>SAMBUNG</> '.$label.' → '.$paper->submission_number);
+            $this->line('  <fg=green>SAMBUNG</> '.$label.($paid ? ' (lunas)' : '').' → '.$paper->submission_number);
+
+            if ($paid) {
+                // Tagihan kedua untuk paper itu tidak dihapus otomatis: panitia yang memutuskan.
+                foreach ($paper->registrations()->where('status', '!=', 'paid')->pluck('id') as $id) {
+                    $this->line('    <fg=yellow>PERIKSA</> invoice #'.str_pad((string) $id, 5, '0', STR_PAD_LEFT).' milik paper ini belum lunas dan kemungkinan tagihan ganda.');
+                }
+            }
 
             if ($apply) {
                 $orphan->update(['submission_id' => $paper->id]);
@@ -87,5 +102,17 @@ class RelinkOrphanedInvoices extends Command
             : $fixed.' invoice bisa disambungkan. Jalankan ulang dengan --fix untuk menerapkannya.');
 
         return self::SUCCESS;
+    }
+
+    private function paperForPaidInvoice(Registration $invoice): ?Submission
+    {
+        $paper = $invoice->author?->submissions()
+            ->where('edition_id', $invoice->edition_id)
+            ->where('status', 'accepted')
+            ->whereNotNull('loa_issued_at')
+            ->latest('submitted_at')
+            ->first();
+
+        return $paper?->paidInvoiceToAdopt()?->is($invoice) ? $paper : null;
     }
 }

@@ -310,8 +310,55 @@ class Submission extends Model implements HasMedia
             && $this->registrations()->where('status', 'paid')->exists();
     }
 
+    /**
+     * Invoice presenter lunas milik author yang kehilangan tautan papernya dan
+     * bisa dipakai paper ini. `registrations.submission_id` memakai nullOnDelete,
+     * jadi paper yang dihapus lalu dikirim ulang meninggalkan pembayarannya tanpa
+     * paper. Bila ada lebih dari satu, panitia yang memutuskan.
+     */
+    public function paidInvoiceToAdopt(): ?Registration
+    {
+        if ($this->status !== 'accepted'
+            || ! $this->isLoaIssued()
+            || $this->registrations()->where('status', 'paid')->exists()) {
+            return null;
+        }
+
+        $invoices = Registration::query()
+            ->where('author_id', $this->author_id)
+            ->where('edition_id', $this->edition_id)
+            ->whereNull('submission_id')
+            ->where('status', 'paid')
+            ->whereHas('registrationFee', fn ($fee) => $fee->where('audience', 'presenter'))
+            ->get();
+
+        return $invoices->count() === 1 ? $invoices->first() : null;
+    }
+
+    /** Menyambungkan invoice lunas di atas ke paper ini, supaya tidak ditagih dua kali. */
+    public function adoptPaidInvoice(): ?Registration
+    {
+        $invoice = $this->paidInvoiceToAdopt();
+
+        if (! $invoice) {
+            return null;
+        }
+
+        $invoice->update(['submission_id' => $this->id]);
+        $this->unsetRelation('registrations');
+
+        return $invoice;
+    }
+
     protected static function booted(): void
     {
+        // LOA terbit: pembayaran paper lama yang dihapus langsung berlaku di sini.
+        static::updated(function (Submission $submission): void {
+            if ($submission->wasChanged(['status', 'loa_issued_at'])) {
+                $submission->adoptPaidInvoice();
+            }
+        });
+
         // Menutup jalur update langsung (mis. aksi admin baru di masa depan),
         // bukan hanya tombol dan metode penawaran yang ada hari ini.
         static::saving(function (Submission $submission): void {
