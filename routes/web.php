@@ -9,6 +9,7 @@ use App\Http\Controllers\NewsController;
 use App\Http\Controllers\Payment\BorderpayController;
 use App\Http\Controllers\PublicController;
 use App\Http\Controllers\SitemapController;
+use App\Http\Controllers\SpySessionController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('sitemap');
@@ -95,6 +96,8 @@ Route::middleware('setlocale')->group(function () {
         });
     });
 });
+
+Route::middleware('auth')->post('admin/lihat-peserta/keluar', [SpySessionController::class, 'stop'])->name('spy.stop');
 
 Route::middleware(['auth'])->get(
     'admin/submissions/{submission}/extended-abstract/preview',

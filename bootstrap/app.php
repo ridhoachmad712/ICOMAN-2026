@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnforceSpyReadOnly;
 use App\Http\Middleware\SetLocale;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -17,6 +18,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'setlocale' => SetLocale::class,
         ]);
+
+        // Juga mencakup pembaruan Livewire dan rute portal di luar panel.
+        $middleware->web(append: [EnforceSpyReadOnly::class]);
 
         // Guest yang menyentuh route ber-guard `author` diarahkan ke login portal author.
         // (Panel Filament punya redirect sendiri, tidak terpengaruh ini.)

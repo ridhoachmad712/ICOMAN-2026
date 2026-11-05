@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Authors\Tables;
 
+use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Resources\Registrations\RegistrationResource;
 use App\Filament\Resources\Submissions\SubmissionResource;
 use App\Models\Author;
@@ -10,6 +11,7 @@ use App\Models\Submission;
 use App\Services\AuthorProgress;
 use App\Services\ParticipantContactExport;
 use App\Services\RegistrationProvisioner;
+use App\Services\SpySession;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkActionGroup;
@@ -169,6 +171,21 @@ class AuthorsTable
                     }),
 
                 ActionGroup::make([
+                    Action::make('viewAsAuthor')
+                        ->label('Lihat sebagai peserta')
+                        ->icon('heroicon-o-eye')
+                        ->color('gray')
+                        ->visible(fn (): bool => SpySession::canStart(auth()->user()))
+                        ->requiresConfirmation()
+                        ->modalHeading(fn (Author $record): string => 'Lihat akun '.$record->name.'?')
+                        ->modalDescription('Anda masuk ke portal seperti yang peserta lihat, tanpa bisa mengubah data. Kegiatan ini dicatat di log aplikasi.')
+                        ->modalSubmitActionLabel('Lihat akun')
+                        ->action(function (Author $record, Action $action): void {
+                            app(SpySession::class)->start(auth()->user(), $record);
+
+                            $action->redirect(AuthorDashboard::getUrl(panel: 'author'));
+                        }),
+
                     // Portal author tidak punya reset mandiri, jadi ini satu-satunya
                     // jalan memulihkan akun yang lupa password.
                     Action::make('resetPassword')
@@ -209,7 +226,7 @@ class AuthorsTable
                         ->modalDescription(fn (Author $record) => static::deletionWarning($record))
                         ->modalSubmitActionLabel('Hapus permanen')
                         ->before(fn (Author $record) => static::purgeRelated($record)),
-                ])->label('Kelola')->visible(fn (): bool => auth()->user()?->isSuperadmin() ?? false),
+                ])->label('Kelola')->visible(fn (): bool => SpySession::canStart(auth()->user())),
             ])
             ->headerActions([
                 Action::make('exportContacts')

@@ -6,6 +6,7 @@ use App\Filament\Author\Auth\Login;
 use App\Filament\Author\Pages\AuthorDashboard;
 use App\Filament\Author\Pages\AuthorProfile;
 use App\Filament\Author\Resources\Papers\PaperResource;
+use App\Http\Middleware\EnforceSpyReadOnly;
 use App\Http\Middleware\SetLocale;
 use App\Settings\SiteSettings;
 use Filament\Http\Middleware\Authenticate;
@@ -51,6 +52,7 @@ class AuthorPanelProvider extends PanelProvider
             ->renderHook(PanelsRenderHook::HEAD_END, fn () => new HtmlString(
                 '<style>:root{--brand:'.e($brand).';--brand-2:'.e($brand2).';}</style>'
             ))
+            ->renderHook(PanelsRenderHook::BODY_START, fn () => view('filament.author.components.spy-banner'))
             ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.author.auth.login-after'))
             ->renderHook(PanelsRenderHook::USER_MENU_BEFORE, fn () => view('filament.author.components.language-switcher'))
             ->topNavigation()
@@ -89,6 +91,7 @@ class AuthorPanelProvider extends PanelProvider
                 PreventRequestForgery::class,
                 SubstituteBindings::class,
                 SetLocale::class,
+                EnforceSpyReadOnly::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
