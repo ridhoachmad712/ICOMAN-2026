@@ -142,6 +142,58 @@ class CertificatePdf
     }
 
     /**
+     * Membersihkan tata letak kiriman editor visual sebelum disimpan: hanya
+     * kunci yang dikenal, angka dalam batas kertas, dan nilai pilihan yang sah.
+     *
+     * @param  array<string, mixed>  $layout
+     * @return array<string, array<string, mixed>>
+     */
+    public static function sanitizeLayout(array $layout): array
+    {
+        $clamp = fn ($value, float $min, float $max, float $fallback): float => is_numeric($value)
+            ? round(min($max, max($min, (float) $value)), 1)
+            : $fallback;
+        $clean = [];
+
+        foreach (self::DEFAULT_LAYOUT as $element => $defaults) {
+            $given = (array) ($layout[$element] ?? []);
+            $item = [
+                'top' => $clamp($given['top'] ?? null, 0, 210, $defaults['top']),
+                'left' => $clamp($given['left'] ?? null, 0, 297, $defaults['left']),
+            ];
+
+            if ($element === 'qr') {
+                $item['size'] = $clamp($given['size'] ?? null, 10, 80, $defaults['size']);
+            } else {
+                $item['width'] = $clamp($given['width'] ?? null, 10, 297, $defaults['width']);
+                $item['size'] = $clamp($given['size'] ?? null, 6, 72, $defaults['size']);
+                $item['align'] = in_array($given['align'] ?? null, ['left', 'center', 'right'], true) ? $given['align'] : $defaults['align'];
+                $item['color'] = preg_match('/^#[0-9a-fA-F]{6}$/', (string) ($given['color'] ?? '')) ? strtolower($given['color']) : $defaults['color'];
+                $item['font'] = array_key_exists((string) ($given['font'] ?? ''), self::FONTS) ? $given['font'] : $defaults['font'];
+            }
+
+            foreach (self::SWITCHES as $switch) {
+                if (array_key_exists($switch, $defaults)) {
+                    // Disimpan '1'/'0' agar sama dengan isian di Pengaturan.
+                    $item[$switch] = filter_var($given[$switch] ?? $defaults[$switch], FILTER_VALIDATE_BOOLEAN) ? '1' : '0';
+                }
+            }
+
+            if ($element === 'name') {
+                $item['visible'] = '1';
+            }
+
+            if ($element === 'number') {
+                $item['prefix'] = mb_substr(trim(strip_tags((string) ($given['prefix'] ?? $defaults['prefix']))), 0, 30);
+            }
+
+            $clean[$element] = $item;
+        }
+
+        return $clean;
+    }
+
+    /**
      * Huruf unggahan, bila ada: nama keluarga untuk CSS dan path berkasnya.
      * Nama keluarganya memuat sidik berkas, karena dompdf menyimpan ukuran
      * huruf per nama keluarga; tanpa itu huruf pengganti memakai cache lama.

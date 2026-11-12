@@ -46,6 +46,11 @@ class ManageSiteSettings extends SettingsPage
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('certificateDesigner')
+                ->label('Editor sertifikat')
+                ->icon('heroicon-o-paint-brush')
+                ->color('gray')
+                ->url(fn (): string => CertificateDesigner::getUrl()),
             ActionGroup::make([
                 Action::make('previewPresentationCertificate')
                     ->label('Sertifikat presenter')

@@ -108,6 +108,8 @@ Route::middleware('auth')->get('admin/submissions/{submission}/abstract.docx', [
 
 Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/download', [SubmissionController::class, 'downloadFullPaperForAdmin'])->name('admin.submissions.full-paper.download');
 
+Route::middleware('auth')->get('admin/certificates/font', [CertificateController::class, 'font'])->name('admin.certificates.font');
+
 Route::middleware('auth')->get('admin/certificates/preview/{type}', [CertificateController::class, 'preview'])
     ->where('type', 'presentation|participation')
     ->name('admin.certificates.preview');
