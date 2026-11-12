@@ -67,206 +67,220 @@ class ManageSiteSettings extends SettingsPage
     {
         return $schema
             ->components([
-                Section::make('Identitas')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('conference_name')->required()->maxLength(255),
-                        Select::make('default_locale')
-                            ->options(['en' => 'English', 'id' => 'Indonesia'])
-                            ->required(),
-                        FileUpload::make('logo')->image()->disk('public')->directory('site')->visibility('public'),
-                        FileUpload::make('favicon')->image()->disk('public')->directory('site')->visibility('public'),
-                    ]),
-
-                Section::make('Tipografi')
-                    ->description('Berlaku untuk seluruh halaman publik sekaligus.')
-                    ->columns(3)
-                    ->schema([
-                        Select::make('font_heading')
-                            ->label('Huruf judul')
-                            ->options(SiteSettings::FONTS)
-                            ->searchable()
-                            ->required(),
-                        Select::make('font_body')
-                            ->label('Huruf isi')
-                            ->options(SiteSettings::FONTS)
-                            ->searchable()
-                            ->required(),
-                        TextInput::make('base_font_size')
-                            ->label('Ukuran teks dasar')
-                            ->helperText('Bawaan 16 px. Seluruh ukuran lain ikut menyesuaikan.')
-                            ->numeric()->minValue(12)->maxValue(24)->suffix('px')
-                            ->required(),
-                    ]),
-
-                Section::make('Tema Warna')
-                    ->columns(2)
-                    ->schema([
-                        ColorPicker::make('primary_color'),
-                        ColorPicker::make('secondary_color'),
-                    ]),
-
-                Section::make('Hero Homepage')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('event_location')->label('Lokasi Acara')->placeholder('Makassar, Indonesia'),
-                        TextInput::make('event_mode')->label('Format Acara')->placeholder('Hybrid (Onsite & Online)'),
-                        FileUpload::make('hero_image')->label('Gambar Hero')->image()->disk('public')->directory('site')->visibility('public')->columnSpanFull(),
-                    ]),
-
-                Section::make('Penyelenggara (Host)')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('organizer_name')->label('Nama Penyelenggara')->placeholder('Faculty of Economics, Universitas ...'),
-                        FileUpload::make('organizer_logo')->label('Logo Penyelenggara')->image()->disk('public')->directory('site')->visibility('public'),
-                    ]),
-
-                Section::make('Kontak')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('contact_email')->email(),
-                        TextInput::make('contact_whatsapp'),
-                        Textarea::make('contact_address')->rows(2)->columnSpanFull(),
-                        TextInput::make('whatsapp_group_url')
-                            ->label('Link grup WhatsApp peserta')
-                            ->url()
-                            ->placeholder('https://chat.whatsapp.com/...')
-                            ->helperText('Hanya tampil di portal bagi presenter dan peserta yang pembayarannya sudah lunas. Kosongkan untuk menyembunyikan.')
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('Pendaftaran & Pembayaran Portal')
-                    ->description('Peserta seminar diatur terpisah dari presenter dan co-host. Bila semua jalur ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
-                    ->schema([
-                        Toggle::make('registration_closed')
-                            ->label('Tutup pendaftaran presenter dan co-host')
-                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Peserta seminar tidak terpengaruh.'),
-                        Toggle::make('participant_registration_closed')
-                            ->label('Tutup pendaftaran peserta seminar')
-                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Presenter dan co-host tidak terpengaruh.'),
-                        Textarea::make('registration_closed_note')
-                            ->label('Catatan tambahan (opsional)')
-                            ->placeholder('Mis. Untuk pertanyaan, hubungi panitia melalui email.')
-                            ->helperText('Tampil di bawah pemberitahuan bila semua jalur ditutup, apa adanya untuk kedua bahasa.')
-                            ->rows(3),
-                        Toggle::make('payment_closed')
-                            ->label('Tutup pembayaran presenter dan co-host')
-                            ->helperText('Tombol bayar dan kotak voucher di invoice diganti pemberitahuan bahwa pembayaran sudah ditutup; invoice baru tidak bisa dibuat. Peserta seminar tidak terpengaruh. Pencatatan pembayaran manual oleh bendahara di admin tetap bisa.'),
-                        Toggle::make('participant_payment_closed')
-                            ->label('Tutup pembayaran peserta seminar')
-                            ->helperText('Sama seperti di atas, khusus peserta seminar. Pendaftaran peserta seminar ikut tertutup karena mereka tidak bisa membayar. Presenter dan co-host tidak terpengaruh.'),
-                    ]),
-
-                Section::make('Zoom Konferensi')
-                    ->description('Tampil di dashboard portal hanya bagi peserta seminar yang sudah lunas, dan presenter yang sudah lunas serta sudah mengumpulkan full paper. Kosongkan link untuk menyembunyikan.')
-                    ->columns(2)
-                    ->schema([
-                        TextInput::make('zoom_url')
-                            ->label('Link Zoom')
-                            ->url()
-                            ->placeholder('https://us02web.zoom.us/j/...')
-                            ->columnSpanFull(),
-                        TextInput::make('zoom_meeting_id')->label('Meeting ID')->maxLength(50),
-                        TextInput::make('zoom_passcode')->label('Passcode')->maxLength(50),
-                        Textarea::make('zoom_note')
-                            ->label('Catatan untuk peserta')
-                            ->placeholder('Mis. Ruang dibuka 08.30 WITA. Gunakan nama sesuai akun portal.')
-                            ->rows(3)
-                            ->columnSpanFull(),
-                    ]),
-
-                Section::make('Sertifikat')
-                    ->description('Dibaca setiap kali sertifikat diunduh, jadi perubahan juga berlaku bagi sertifikat yang sudah terbit (nama, afiliasi, dan judul tetap seperti saat terbit). Simpan dulu, lalu gunakan tombol Pratinjau sertifikat di kanan atas.')
-                    ->columns(2)
-                    // Selebar halaman: isian posisi tiap elemen terlalu sempit di setengah kolom.
+                Tabs::make('settings')
+                    ->persistTabInQueryString()
                     ->columnSpanFull()
-                    ->schema([
-                        Toggle::make('certificate_custom_layout')
-                            ->label('Template custom: desain latar sudah memuat judul, teks, logo, dan tanda tangan')
-                            ->helperText('Bila aktif, sistem hanya mencetak nama, afiliasi, judul paper, nomor, dan QR code pada posisi di bawah. Bila tidak, sistem mencetak susunan bawaan di atas gambar latar (atau di atas bingkai bawaan bila latar kosong).')
-                            ->live()
-                            ->columnSpanFull(),
-                        TextInput::make('certificate_signatory_name')->label('Nama penandatangan')->maxLength(150)
-                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
-                        TextInput::make('certificate_signatory_title')->label('Jabatan penandatangan')->maxLength(150)
-                            ->placeholder('Mis. Ketua Panitia ICOMAN 2026')
-                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
-                        FileUpload::make('certificate_signature')
-                            ->label('Gambar tanda tangan')
-                            ->helperText('PNG berlatar transparan.')
-                            ->image()->disk('public')->directory('certificates')->visibility('public')
-                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
-                        FileUpload::make('certificate_font')
-                            ->label('Huruf unggahan (TTF)')
-                            ->helperText('Opsional. Dipakai elemen yang jenis hurufnya "Huruf unggahan". Satu berkas TTF dipakai untuk semua gaya, jadi pilih berkas yang sudah sesuai (mis. versi Bold bila ingin tebal). Pastikan lisensinya mengizinkan disematkan di PDF.')
-                            ->disk('local')->directory('certificates/fonts')->visibility('private')
-                            ->acceptedFileTypes(['font/ttf', 'font/sfnt', 'application/x-font-ttf', 'application/font-sfnt', 'application/x-font-truetype', 'application/octet-stream'])
-                            ->rules(['extensions:ttf'])
-                            ->maxSize(5120)
-                            ->visible(fn ($get) => (bool) $get('certificate_custom_layout'))
-                            ->columnSpanFull(),
-                        Tabs::make('certificate_templates')
-                            ->columnSpanFull()
-                            ->tabs([
-                                static::certificateTemplateTab('presentation', 'Presenter'),
-                                static::certificateTemplateTab('participation', 'Peserta seminar'),
+                    ->tabs([
+                        Tab::make('Umum')
+                            ->icon('heroicon-o-identification')
+                            ->schema([
+                                Section::make('Identitas')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('conference_name')->label('Nama konferensi')->required()->maxLength(255),
+                                        Select::make('default_locale')
+                                            ->label('Bahasa bawaan')
+                                            ->options(['en' => 'English', 'id' => 'Indonesia'])
+                                            ->required(),
+                                        FileUpload::make('logo')->label('Logo')->image()->disk('public')->directory('site')->visibility('public'),
+                                        FileUpload::make('favicon')->label('Favicon')->image()->disk('public')->directory('site')->visibility('public'),
+                                    ]),
+                                Section::make('Penyelenggara (Host)')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('organizer_name')->label('Nama Penyelenggara')->placeholder('Faculty of Economics, Universitas ...'),
+                                        FileUpload::make('organizer_logo')->label('Logo Penyelenggara')->image()->disk('public')->directory('site')->visibility('public'),
+                                    ]),
+                                Section::make('Kontak')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('contact_email')->label('Email kontak')->email(),
+                                        TextInput::make('contact_whatsapp')->label('Nomor WhatsApp kontak'),
+                                        Textarea::make('contact_address')->label('Alamat')->rows(2)->columnSpanFull(),
+                                        TextInput::make('whatsapp_group_url')
+                                            ->label('Link grup WhatsApp peserta')
+                                            ->url()
+                                            ->placeholder('https://chat.whatsapp.com/...')
+                                            ->helperText('Hanya tampil di portal bagi presenter dan peserta yang pembayarannya sudah lunas. Kosongkan untuk menyembunyikan.')
+                                            ->columnSpanFull(),
+                                    ]),
+                                Section::make('Media Sosial')
+                                    ->columns(3)
+                                    ->schema([
+                                        TextInput::make('social_instagram')->label('Instagram')->placeholder('https://instagram.com/...'),
+                                        TextInput::make('social_twitter')->label('X (Twitter)')->placeholder('https://x.com/...'),
+                                        TextInput::make('social_youtube')->label('YouTube')->placeholder('https://youtube.com/...'),
+                                    ]),
+                                Section::make('Lokasi')
+                                    ->schema([
+                                        Textarea::make('google_maps_embed_url')
+                                            ->label('URL embed Google Maps')
+                                            ->rows(2),
+                                    ]),
                             ]),
-                    ]),
+                        Tab::make('Tampilan website')
+                            ->icon('heroicon-o-paint-brush')
+                            ->schema([
+                                Section::make('Tema Warna')
+                                    ->columns(2)
+                                    ->schema([
+                                        ColorPicker::make('primary_color')->label('Warna utama'),
+                                        ColorPicker::make('secondary_color')->label('Warna kedua'),
+                                    ]),
+                                Section::make('Tipografi')
+                                    ->description('Berlaku untuk seluruh halaman publik sekaligus.')
+                                    ->columns(3)
+                                    ->schema([
+                                        Select::make('font_heading')
+                                            ->label('Huruf judul')
+                                            ->options(SiteSettings::FONTS)
+                                            ->searchable()
+                                            ->required(),
+                                        Select::make('font_body')
+                                            ->label('Huruf isi')
+                                            ->options(SiteSettings::FONTS)
+                                            ->searchable()
+                                            ->required(),
+                                        TextInput::make('base_font_size')
+                                            ->label('Ukuran teks dasar')
+                                            ->helperText('Bawaan 16 px. Seluruh ukuran lain ikut menyesuaikan.')
+                                            ->numeric()->minValue(12)->maxValue(24)->suffix('px')
+                                            ->required(),
+                                    ]),
+                                Section::make('Hero Homepage')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('event_location')->label('Lokasi Acara')->placeholder('Makassar, Indonesia'),
+                                        TextInput::make('event_mode')->label('Format Acara')->placeholder('Hybrid (Onsite & Online)'),
+                                        FileUpload::make('hero_image')->label('Gambar Hero')->image()->disk('public')->directory('site')->visibility('public')->columnSpanFull(),
+                                    ]),
+                            ]),
+                        Tab::make('Pendaftaran & pembayaran')
+                            ->icon('heroicon-o-banknotes')
+                            ->schema([
+                                Section::make('Pendaftaran & Pembayaran Portal')
+                                    ->description('Peserta seminar diatur terpisah dari presenter dan co-host. Bila semua jalur ditutup, halaman pendaftaran hanya menampilkan pemberitahuan bahwa registrasi sudah ditutup. Peserta yang sudah punya akun tetap bisa login.')
+                                    ->schema([
+                                        Toggle::make('registration_closed')
+                                            ->label('Tutup pendaftaran presenter dan co-host')
+                                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Peserta seminar tidak terpengaruh.'),
+                                        Toggle::make('participant_registration_closed')
+                                            ->label('Tutup pendaftaran peserta seminar')
+                                            ->helperText('Berlaku tanpa menunggu tenggat di Tanggal Penting. Presenter dan co-host tidak terpengaruh.'),
+                                        Textarea::make('registration_closed_note')
+                                            ->label('Catatan tambahan (opsional)')
+                                            ->placeholder('Mis. Untuk pertanyaan, hubungi panitia melalui email.')
+                                            ->helperText('Tampil di bawah pemberitahuan bila semua jalur ditutup, apa adanya untuk kedua bahasa.')
+                                            ->rows(3),
+                                        Toggle::make('payment_closed')
+                                            ->label('Tutup pembayaran presenter dan co-host')
+                                            ->helperText('Tombol bayar dan kotak voucher di invoice diganti pemberitahuan bahwa pembayaran sudah ditutup; invoice baru tidak bisa dibuat. Peserta seminar tidak terpengaruh. Pencatatan pembayaran manual oleh bendahara di admin tetap bisa.'),
+                                        Toggle::make('participant_payment_closed')
+                                            ->label('Tutup pembayaran peserta seminar')
+                                            ->helperText('Sama seperti di atas, khusus peserta seminar. Pendaftaran peserta seminar ikut tertutup karena mereka tidak bisa membayar. Presenter dan co-host tidak terpengaruh.'),
+                                    ]),
+                                Section::make('Biaya Tambahan Publikasi')
+                                    ->description('Opsi penerbitan lanjutan (Jurnal SINTA 3) yang dapat dipilih presenter saat membayar. Nominal ini ditambahkan ke total invoice mereka.')
+                                    ->schema([
+                                        TextInput::make('sinta3_fee')
+                                            ->label('Biaya tambahan Jurnal SINTA 3')
+                                            ->helperText('Isi 0 bila tidak ada biaya tambahan. Perubahan langsung berlaku untuk invoice berikutnya.')
+                                            ->numeric()
+                                            ->minValue(0)
+                                            ->step(1000)
+                                            ->prefix('Rp')
+                                            ->required()
+                                            ->dehydrateStateUsing(fn ($state): int => (int) $state),
+                                    ]),
+                                Section::make('Payment Gateway (BorderPay)')
+                                    ->description('Kredensial BorderPay dari dashboard project. Key berawalan bp_test_ memakai sandbox (tidak ada uang berpindah), bp_live_ memakai transaksi sungguhan; tidak ada saklar mode tersendiri. Kosongkan untuk memakai nilai dari file .env.')
+                                    ->schema([
+                                        TextInput::make('borderpay_api_key')
+                                            ->label('API Key')
+                                            ->placeholder('bp_live_...')
+                                            ->helperText('Rahasia — disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
+                                            ->password()
+                                            ->revealable()
+                                            ->autocomplete(false)
+                                            // Jangan pernah render kembali nilai rahasia ke form.
+                                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
+                                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
+                                            ->dehydrated(fn (?string $state): bool => filled($state)),
 
-                Section::make('Media Sosial')
-                    ->columns(3)
-                    ->schema([
-                        TextInput::make('social_instagram')->placeholder('https://instagram.com/...'),
-                        TextInput::make('social_twitter')->placeholder('https://x.com/...'),
-                        TextInput::make('social_youtube')->placeholder('https://youtube.com/...'),
-                    ]),
-
-                Section::make('Lokasi')
-                    ->schema([
-                        Textarea::make('google_maps_embed_url')
-                            ->label('Google Maps Embed URL')
-                            ->rows(2),
-                    ]),
-
-                Section::make('Biaya Tambahan Publikasi')
-                    ->description('Opsi penerbitan lanjutan (Jurnal SINTA 3) yang dapat dipilih presenter saat membayar. Nominal ini ditambahkan ke total invoice mereka.')
-                    ->schema([
-                        TextInput::make('sinta3_fee')
-                            ->label('Biaya tambahan Jurnal SINTA 3')
-                            ->helperText('Isi 0 bila tidak ada biaya tambahan. Perubahan langsung berlaku untuk invoice berikutnya.')
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(1000)
-                            ->prefix('Rp')
-                            ->required()
-                            ->dehydrateStateUsing(fn ($state): int => (int) $state),
-                    ]),
-
-                Section::make('Payment Gateway (BorderPay)')
-                    ->description('Kredensial BorderPay dari dashboard project. Key berawalan bp_test_ memakai sandbox (tidak ada uang berpindah), bp_live_ memakai transaksi sungguhan; tidak ada saklar mode tersendiri. Kosongkan untuk memakai nilai dari file .env.')
-                    ->schema([
-                        TextInput::make('borderpay_api_key')
-                            ->label('API Key')
-                            ->placeholder('bp_live_...')
-                            ->helperText('Rahasia — disimpan ter-enkripsi dan tidak ditampilkan kembali. Isi hanya bila ingin mengubah; kosongkan untuk mempertahankan yang tersimpan.')
-                            ->password()
-                            ->revealable()
-                            ->autocomplete(false)
-                            // Jangan pernah render kembali nilai rahasia ke form.
-                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
-                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
-                            ->dehydrated(fn (?string $state): bool => filled($state)),
-
-                        TextInput::make('borderpay_webhook_token')
-                            ->label('Webhook Verification Token')
-                            ->helperText('Token verifikasi webhook dari dashboard project (bpt_...). Ini token statis, bukan signing secret: karena itu isi kiriman webhook tidak pernah dipercaya dan statusnya selalu ditanyakan ulang ke BorderPay. Disimpan ter-enkripsi dan tidak ditampilkan kembali; kosongkan untuk mempertahankan yang tersimpan.')
-                            ->password()
-                            ->revealable()
-                            ->autocomplete(false)
-                            // Jangan pernah render kembali nilai rahasia ke form.
-                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
-                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
-                            ->dehydrated(fn (?string $state): bool => filled($state)),
+                                        TextInput::make('borderpay_webhook_token')
+                                            ->label('Webhook Verification Token')
+                                            ->helperText('Token verifikasi webhook dari dashboard project (bpt_...). Ini token statis, bukan signing secret: karena itu isi kiriman webhook tidak pernah dipercaya dan statusnya selalu ditanyakan ulang ke BorderPay. Disimpan ter-enkripsi dan tidak ditampilkan kembali; kosongkan untuk mempertahankan yang tersimpan.')
+                                            ->password()
+                                            ->revealable()
+                                            ->autocomplete(false)
+                                            // Jangan pernah render kembali nilai rahasia ke form.
+                                            ->afterStateHydrated(fn (TextInput $component) => $component->state(''))
+                                            // Simpan hanya bila admin mengisi; blank = pertahankan nilai lama.
+                                            ->dehydrated(fn (?string $state): bool => filled($state)),
+                                    ]),
+                            ]),
+                        Tab::make('Konferensi')
+                            ->icon('heroicon-o-video-camera')
+                            ->schema([
+                                Section::make('Zoom Konferensi')
+                                    ->description('Tampil di dashboard portal hanya bagi peserta seminar yang sudah lunas, dan presenter yang sudah lunas serta sudah mengumpulkan full paper. Kosongkan link untuk menyembunyikan.')
+                                    ->columns(2)
+                                    ->schema([
+                                        TextInput::make('zoom_url')
+                                            ->label('Link Zoom')
+                                            ->url()
+                                            ->placeholder('https://us02web.zoom.us/j/...')
+                                            ->columnSpanFull(),
+                                        TextInput::make('zoom_meeting_id')->label('Meeting ID')->maxLength(50),
+                                        TextInput::make('zoom_passcode')->label('Passcode')->maxLength(50),
+                                        Textarea::make('zoom_note')
+                                            ->label('Catatan untuk peserta')
+                                            ->placeholder('Mis. Ruang dibuka 08.30 WITA. Gunakan nama sesuai akun portal.')
+                                            ->rows(3)
+                                            ->columnSpanFull(),
+                                    ]),
+                            ]),
+                        Tab::make('Sertifikat')
+                            ->icon('heroicon-o-check-badge')
+                            ->schema([
+                                Section::make('Sertifikat')
+                                    ->description('Dibaca setiap kali sertifikat diunduh, jadi perubahan juga berlaku bagi sertifikat yang sudah terbit (nama, afiliasi, dan judul tetap seperti saat terbit). Simpan dulu, lalu gunakan tombol Pratinjau sertifikat di kanan atas.')
+                                    ->columns(2)
+                                    // Selebar halaman: isian posisi tiap elemen terlalu sempit di setengah kolom.
+                                    ->columnSpanFull()
+                                    ->schema([
+                                        Toggle::make('certificate_custom_layout')
+                                            ->label('Template custom: desain latar sudah memuat judul, teks, logo, dan tanda tangan')
+                                            ->helperText('Bila aktif, sistem hanya mencetak nama, afiliasi, judul paper, nomor, dan QR code pada posisi di bawah. Bila tidak, sistem mencetak susunan bawaan di atas gambar latar (atau di atas bingkai bawaan bila latar kosong).')
+                                            ->live()
+                                            ->columnSpanFull(),
+                                        TextInput::make('certificate_signatory_name')->label('Nama penandatangan')->maxLength(150)
+                                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
+                                        TextInput::make('certificate_signatory_title')->label('Jabatan penandatangan')->maxLength(150)
+                                            ->placeholder('Mis. Ketua Panitia ICOMAN 2026')
+                                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
+                                        FileUpload::make('certificate_signature')
+                                            ->label('Gambar tanda tangan')
+                                            ->helperText('PNG berlatar transparan.')
+                                            ->image()->disk('public')->directory('certificates')->visibility('public')
+                                            ->visible(fn ($get) => ! $get('certificate_custom_layout')),
+                                        FileUpload::make('certificate_font')
+                                            ->label('Huruf unggahan (TTF)')
+                                            ->helperText('Opsional. Dipakai elemen yang jenis hurufnya "Huruf unggahan". Satu berkas TTF dipakai untuk semua gaya, jadi pilih berkas yang sudah sesuai (mis. versi Bold bila ingin tebal). Pastikan lisensinya mengizinkan disematkan di PDF.')
+                                            ->disk('local')->directory('certificates/fonts')->visibility('private')
+                                            ->acceptedFileTypes(['font/ttf', 'font/sfnt', 'application/x-font-ttf', 'application/font-sfnt', 'application/x-font-truetype', 'application/octet-stream'])
+                                            ->rules(['extensions:ttf'])
+                                            ->maxSize(5120)
+                                            ->visible(fn ($get) => (bool) $get('certificate_custom_layout'))
+                                            ->columnSpanFull(),
+                                        Tabs::make('certificate_templates')
+                                            ->columnSpanFull()
+                                            ->tabs([
+                                                static::certificateTemplateTab('presentation', 'Presenter'),
+                                                static::certificateTemplateTab('participation', 'Peserta seminar'),
+                                            ]),
+                                    ]),
+                            ]),
                     ]),
             ]);
     }
