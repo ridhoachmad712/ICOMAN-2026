@@ -35,9 +35,13 @@ class CertificateIssuer
      *
      * @return Collection<int, array<string, mixed>>
      */
-    public function pending(Edition $edition): Collection
+    public function pending(Edition $edition, ?string $type = null): Collection
     {
-        return $this->pendingPresentations($edition)->concat($this->pendingParticipations($edition))->values();
+        return match ($type) {
+            'presentation' => $this->pendingPresentations($edition)->values(),
+            'participation' => $this->pendingParticipations($edition)->values(),
+            default => $this->pendingPresentations($edition)->concat($this->pendingParticipations($edition))->values(),
+        };
     }
 
     /** @return array{presentation: int, participation: int} */
@@ -51,15 +55,18 @@ class CertificateIssuer
         ];
     }
 
-    /** Menerbitkan semua yang memenuhi syarat dan belum punya sertifikat. */
-    public function issuePending(Edition $edition, ?User $issuer = null): int
+    /**
+     * Menerbitkan yang memenuhi syarat dan belum punya sertifikat; $type
+     * membatasi ke satu jenis (presentation atau participation).
+     */
+    public function issuePending(Edition $edition, ?User $issuer = null, ?string $type = null): int
     {
-        return DB::transaction(function () use ($edition, $issuer): int {
+        return DB::transaction(function () use ($edition, $issuer, $type): int {
             // Dua admin yang menekan bersamaan tidak boleh menerbitkan ganda.
             Edition::whereKey($edition->id)->lockForUpdate()->first();
 
             $count = 0;
-            foreach ($this->pending($edition) as $attributes) {
+            foreach ($this->pending($edition, $type) as $attributes) {
                 // Nomor dihitung lebih dulu: number() juga membuang kunci bantu
                 // (submission_number, position) dari $attributes.
                 $number = $this->number($edition, $attributes);

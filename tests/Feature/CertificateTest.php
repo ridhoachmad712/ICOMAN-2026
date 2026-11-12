@@ -177,12 +177,24 @@ class CertificateTest extends TestCase
         $this->actingAs($admin, 'web');
 
         $this->attendee(paid: true, name: 'Citra Lestari');
+        $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas'], ['Budi Hartono', 'UNM']]);
+
+        // Penerbitan presenter tidak ikut menerbitkan peserta seminar, dan sebaliknya.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueParticipation'))
+            ->assertNotified('1 sertifikat peserta seminar diterbitkan');
+        $this->assertSame(['participation'], Certificate::pluck('type')->unique()->values()->all());
 
         Livewire::test(ListCertificates::class)
-            ->callAction(TestAction::make('issue'))
-            ->assertNotified('1 sertifikat diterbitkan');
+            ->callAction(TestAction::make('issuePresentation'))
+            ->assertNotified('2 sertifikat presenter diterbitkan');
+        $this->assertSame(2, Certificate::where('type', 'presentation')->count());
 
-        $certificate = Certificate::sole();
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueParticipation'))
+            ->assertNotified('Tidak ada sertifikat peserta seminar baru');
+
+        $certificate = Certificate::where('type', 'participation')->sole();
         $this->assertSame($admin->id, $certificate->issued_by);
 
         $this->get(route('admin.certificates.pdf', $certificate))

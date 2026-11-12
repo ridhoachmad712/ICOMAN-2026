@@ -31,35 +31,8 @@ class ListCertificates extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            Action::make('issue')
-                ->label('Terbitkan sertifikat')
-                ->icon('heroicon-o-check-badge')
-                ->requiresConfirmation()
-                ->modalHeading('Terbitkan sertifikat')
-                ->modalDescription(function (): string {
-                    $edition = currentEdition();
-                    if (! $edition) {
-                        return 'Belum ada edisi aktif.';
-                    }
-
-                    $counts = app(CertificateIssuer::class)->pendingCounts($edition);
-
-                    return $counts['presentation'] + $counts['participation'] === 0
-                        ? 'Semua yang memenuhi syarat sudah memiliki sertifikat. Tidak ada yang akan diterbitkan.'
-                        : "Akan diterbitkan {$counts['presentation']} sertifikat presenter (per penulis) dan {$counts['participation']} sertifikat peserta seminar. "
-                            .'Yang sudah punya sertifikat, termasuk yang pernah dicabut, tidak diterbitkan lagi.';
-                })
-                ->modalSubmitActionLabel('Terbitkan')
-                ->visible(fn (): bool => currentEdition() !== null)
-                ->action(function (): void {
-                    $count = app(CertificateIssuer::class)->issuePending(currentEdition(), auth()->user());
-
-                    Notification::make()
-                        ->title($count > 0 ? $count.' sertifikat diterbitkan' : 'Tidak ada sertifikat baru')
-                        ->body($count > 0 ? 'Peserta sudah dapat mengunduhnya dari dashboard portal.' : 'Semua yang memenuhi syarat sudah memiliki sertifikat.')
-                        ->success()
-                        ->send();
-                }),
+            $this->issueAction('presentation'),
+            $this->issueAction('participation'),
         ];
     }
 
@@ -82,5 +55,49 @@ class ListCertificates extends ListRecords
                 ->badgeColor('danger')
                 ->modifyQueryUsing(fn ($query) => $query->whereNotNull('revoked_at')),
         ];
+    }
+
+    /**
+     * Penerbitan per jenis: sertifikat presenter baru lengkap setelah semua
+     * moderator mengirim penilaian, sedangkan peserta seminar cukup lunas.
+     */
+    private function issueAction(string $type): Action
+    {
+        $presenter = $type === 'presentation';
+        $label = $presenter ? 'presenter' : 'peserta seminar';
+
+        return Action::make($presenter ? 'issuePresentation' : 'issueParticipation')
+            ->label('Terbitkan sertifikat '.$label)
+            ->icon($presenter ? 'heroicon-o-presentation-chart-bar' : 'heroicon-o-user-group')
+            ->color($presenter ? 'primary' : 'gray')
+            ->requiresConfirmation()
+            ->modalHeading('Terbitkan sertifikat '.$label)
+            ->modalDescription(function () use ($type, $label, $presenter): string {
+                $edition = currentEdition();
+                if (! $edition) {
+                    return 'Belum ada edisi aktif.';
+                }
+
+                $count = app(CertificateIssuer::class)->pendingCounts($edition)[$type];
+
+                if ($count === 0) {
+                    return 'Semua '.$label.' yang memenuhi syarat sudah memiliki sertifikat. Tidak ada yang akan diterbitkan.';
+                }
+
+                return 'Akan diterbitkan '.$count.' sertifikat '.$label.($presenter ? ' (satu per penulis paper)' : '').'. '
+                    .($presenter ? 'Pastikan semua moderator sudah mengirim penilaian, karena kehadiran menjadi syarat. ' : '')
+                    .'Yang sudah punya sertifikat, termasuk yang pernah dicabut, tidak diterbitkan lagi.';
+            })
+            ->modalSubmitActionLabel('Terbitkan')
+            ->visible(fn (): bool => currentEdition() !== null)
+            ->action(function () use ($type, $label): void {
+                $count = app(CertificateIssuer::class)->issuePending(currentEdition(), auth()->user(), $type);
+
+                Notification::make()
+                    ->title($count > 0 ? $count.' sertifikat '.$label.' diterbitkan' : 'Tidak ada sertifikat '.$label.' baru')
+                    ->body($count > 0 ? 'Penerima sudah dapat mengunduhnya dari dashboard portal.' : 'Semua yang memenuhi syarat sudah memiliki sertifikat.')
+                    ->success()
+                    ->send();
+            });
     }
 }
