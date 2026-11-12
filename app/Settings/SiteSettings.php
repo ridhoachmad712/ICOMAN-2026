@@ -82,6 +82,9 @@ class SiteSettings extends Settings
     // settings membaca docblock dan tidak mengenal tipe bersarang.
     public ?array $certificate_layout;
 
+    /** Huruf TTF unggahan panitia (disk local, privat) untuk elemen bergaya "Huruf unggahan". */
+    public ?string $certificate_font;
+
     public ?string $certificate_signatory_name;
 
     public ?string $certificate_signatory_title;

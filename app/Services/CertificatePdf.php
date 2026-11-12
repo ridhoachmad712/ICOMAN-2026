@@ -8,6 +8,7 @@ use chillerlan\QRCode\Common\EccLevel;
 use chillerlan\QRCode\Output\QROutputInterface;
 use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -32,12 +33,27 @@ class CertificatePdf
      * huruf dalam pt; untuk QR, `size` adalah sisi kotaknya dalam mm.
      */
     public const DEFAULT_LAYOUT = [
-        'name' => ['top' => 88, 'left' => 30, 'width' => 237, 'size' => 28, 'align' => 'center', 'color' => '#18315e'],
-        'affiliation' => ['top' => 104, 'left' => 30, 'width' => 237, 'size' => 12, 'align' => 'center', 'color' => '#3d4b5c'],
-        'paper_title' => ['top' => 116, 'left' => 45, 'width' => 207, 'size' => 13, 'align' => 'center', 'color' => '#1f2d3d'],
-        'number' => ['top' => 190, 'left' => 30, 'width' => 237, 'size' => 9, 'align' => 'center', 'color' => '#3d4b5c'],
-        'qr' => ['top' => 160, 'left' => 250, 'size' => 25],
+        'name' => ['top' => 88, 'left' => 30, 'width' => 237, 'size' => 28, 'align' => 'center', 'color' => '#18315e',
+            'font' => 'serif', 'bold' => true, 'italic' => false, 'uppercase' => false, 'visible' => true],
+        'affiliation' => ['top' => 104, 'left' => 30, 'width' => 237, 'size' => 12, 'align' => 'center', 'color' => '#3d4b5c',
+            'font' => 'sans', 'bold' => false, 'italic' => false, 'uppercase' => false, 'visible' => true],
+        'paper_title' => ['top' => 116, 'left' => 45, 'width' => 207, 'size' => 13, 'align' => 'center', 'color' => '#1f2d3d',
+            'font' => 'serif', 'bold' => false, 'italic' => true, 'uppercase' => false, 'visible' => true, 'quotes' => true],
+        'number' => ['top' => 190, 'left' => 30, 'width' => 237, 'size' => 9, 'align' => 'center', 'color' => '#3d4b5c',
+            'font' => 'sans', 'bold' => false, 'italic' => false, 'uppercase' => false, 'visible' => true, 'prefix' => 'No. '],
+        'qr' => ['top' => 160, 'left' => 250, 'size' => 25, 'visible' => true],
     ];
+
+    /** Pilihan huruf. Tiga yang pertama tersedia di dompdf; "custom" memakai TTF unggahan panitia. */
+    public const FONTS = [
+        'sans' => 'Sans-serif (DejaVu Sans)',
+        'serif' => 'Serif (DejaVu Serif)',
+        'mono' => 'Monospace (DejaVu Sans Mono)',
+        'custom' => 'Huruf unggahan (TTF)',
+    ];
+
+    /** Pengaturan ya/tidak per elemen; disimpan sebagai '1'/'0' dari form. */
+    public const SWITCHES = ['bold', 'italic', 'uppercase', 'visible', 'quotes'];
 
     public const ELEMENTS = [
         'name' => 'Nama penerima',
@@ -105,9 +121,58 @@ class CertificatePdf
                 $defaults,
                 array_filter((array) ($saved[$element] ?? []), fn ($value) => $value !== null && $value !== ''),
             );
+
+            foreach (self::SWITCHES as $switch) {
+                if (array_key_exists($switch, $layout[$element])) {
+                    $layout[$element][$switch] = filter_var($layout[$element][$switch], FILTER_VALIDATE_BOOLEAN);
+                }
+            }
+
+            // Nama penerima selalu dicetak: sertifikat tanpa nama tidak ada gunanya.
+            if ($element === 'name') {
+                $layout[$element]['visible'] = true;
+            }
+
+            if (isset($layout[$element]['font']) && ! array_key_exists($layout[$element]['font'], self::FONTS)) {
+                $layout[$element]['font'] = $defaults['font'];
+            }
         }
 
         return $layout;
+    }
+
+    /**
+     * Huruf unggahan, bila ada: nama keluarga untuk CSS dan path berkasnya.
+     * Nama keluarganya memuat sidik berkas, karena dompdf menyimpan ukuran
+     * huruf per nama keluarga; tanpa itu huruf pengganti memakai cache lama.
+     *
+     * @return array{family: string, src: string}|null
+     */
+    public function customFont(): ?array
+    {
+        $path = rescue(fn () => siteSettings()->certificate_font, null, false);
+        $disk = Storage::disk('local');
+
+        if (blank($path) || ! $disk->exists($path)) {
+            return null;
+        }
+
+        return [
+            'family' => 'certfont'.substr(md5($path.'|'.$disk->lastModified($path)), 0, 10),
+            // Path biasa, tanpa file://: bentuk itulah yang dibaca dompdf di Windows dan Linux.
+            'src' => str_replace('\\', '/', $disk->path($path)),
+        ];
+    }
+
+    /** CSS font-family untuk pilihan huruf sebuah elemen. */
+    public static function fontFamily(string $font, ?array $customFont): string
+    {
+        return match ($font) {
+            'serif' => 'DejaVu Serif, serif',
+            'mono' => 'DejaVu Sans Mono, monospace',
+            'custom' => $customFont ? $customFont['family'].', DejaVu Sans, sans-serif' : 'DejaVu Sans, sans-serif',
+            default => 'DejaVu Sans, sans-serif',
+        };
     }
 
     private function pdf(Certificate $certificate)
@@ -118,7 +183,14 @@ class CertificatePdf
             ? ($settings?->certificate_background_participation ?: $settings?->certificate_background_presentation)
             : $settings?->certificate_background_presentation;
 
+        $customFont = ($settings?->certificate_custom_layout ?? false) ? $this->customFont() : null;
+        if ($customFont) {
+            // dompdf menyimpan ukuran huruf unggahan di sini.
+            File::ensureDirectoryExists(storage_path('fonts'));
+        }
+
         return Pdf::loadView('pdf.certificate', [
+            'customFont' => $customFont,
             'certificate' => $certificate,
             'settings' => $settings,
             'qr' => $this->qrDataUri($certificate),

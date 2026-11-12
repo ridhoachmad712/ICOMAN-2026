@@ -50,6 +50,13 @@
         .verify img { width: 26mm; height: 26mm; }
         .verify .number { font-size: 8.5pt; color: #3d4b5c; margin-top: 1mm; }
         .verify .hint { font-size: 7.5pt; color: #8090a2; }
+        @if($customFont ?? null)
+            {{-- Satu berkas TTF dipakai untuk semua gaya: dompdf tidak menebalkan
+                 atau memiringkan sendiri, dan tanpa pasangan ini ia jatuh ke huruf bawaan. --}}
+            @foreach([['normal', 'normal'], ['bold', 'normal'], ['normal', 'italic'], ['bold', 'italic']] as [$weight, $style])
+                @font-face { font-family: '{{ $customFont['family'] }}'; src: url('{{ $customFont['src'] }}') format('truetype'); font-weight: {{ $weight }}; font-style: {{ $style }}; }
+            @endforeach
+        @endif
     </style>
 </head>
 <body>
@@ -61,17 +68,27 @@
         $box = fn (array $p): string => 'position: absolute; top: '.(float) $p['top'].'mm; left: '.(float) $p['left'].'mm; width: '.(float) ($p['width'] ?? 100).'mm;'
             .' text-align: '.(in_array($p['align'] ?? 'center', ['left', 'center', 'right'], true) ? $p['align'] : 'center').';'
             .' font-size: '.(float) ($p['size'] ?? 12).'pt; line-height: 1.25;'
-            .' color: '.(preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($p['color'] ?? '')) ? $p['color'] : '#1f2d3d').';';
+            .' color: '.(preg_match('/^#[0-9a-fA-F]{3,8}$/', (string) ($p['color'] ?? '')) ? $p['color'] : '#1f2d3d').';'
+            .' font-family: '.\App\Services\CertificatePdf::fontFamily((string) ($p['font'] ?? 'sans'), $customFont ?? null).';'
+            .' font-weight: '.(($p['bold'] ?? false) ? 'bold' : 'normal').';'
+            .' font-style: '.(($p['italic'] ?? false) ? 'italic' : 'normal').';'
+            .(($p['uppercase'] ?? false) ? ' text-transform: uppercase;' : '');
+        $shown = fn (string $element): bool => (bool) ($layout[$element]['visible'] ?? true);
     @endphp
-    <div style="{{ $box($layout['name']) }} font-family: DejaVu Serif, Georgia, serif; font-weight: bold;">{{ $certificate->recipient_name }}</div>
-    @if(filled($certificate->recipient_affiliation))
+    <div style="{{ $box($layout['name']) }}">{{ $certificate->recipient_name }}</div>
+    @if($shown('affiliation') && filled($certificate->recipient_affiliation))
         <div style="{{ $box($layout['affiliation']) }}">{{ $certificate->recipient_affiliation }}</div>
     @endif
-    @if($certificate->type === 'presentation' && filled($certificate->paper_title))
-        <div style="{{ $box($layout['paper_title']) }} font-family: DejaVu Serif, Georgia, serif; font-style: italic;">“{{ $certificate->paper_title }}”</div>
+    @if($shown('paper_title') && $certificate->type === 'presentation' && filled($certificate->paper_title))
+        <div style="{{ $box($layout['paper_title']) }}">@if($layout['paper_title']['quotes'] ?? true)“{{ $certificate->paper_title }}”@else{{ $certificate->paper_title }}@endif</div>
     @endif
-    <div style="{{ $box($layout['number']) }}">No. {{ $certificate->number }}</div>
-    <img src="{{ $qr }}" alt="QR" style="position: absolute; top: {{ (float) $layout['qr']['top'] }}mm; left: {{ (float) $layout['qr']['left'] }}mm; width: {{ (float) $layout['qr']['size'] }}mm; height: {{ (float) $layout['qr']['size'] }}mm;">
+    @if($shown('number'))
+        @php $prefix = trim((string) ($layout['number']['prefix'] ?? 'No.')); @endphp
+        <div style="{{ $box($layout['number']) }}">{{ $prefix !== '' && $prefix !== '-' ? $prefix.' ' : '' }}{{ $certificate->number }}</div>
+    @endif
+    @if($shown('qr'))
+        <img src="{{ $qr }}" alt="QR" style="position: absolute; top: {{ (float) $layout['qr']['top'] }}mm; left: {{ (float) $layout['qr']['left'] }}mm; width: {{ (float) $layout['qr']['size'] }}mm; height: {{ (float) $layout['qr']['size'] }}mm;">
+    @endif
 @else
     @if($background)
         <img class="bg" src="{{ $background }}" alt="">

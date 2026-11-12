@@ -178,6 +178,8 @@ class ManageSiteSettings extends SettingsPage
                 Section::make('Sertifikat')
                     ->description('Dibaca setiap kali sertifikat diunduh, jadi perubahan juga berlaku bagi sertifikat yang sudah terbit (nama, afiliasi, dan judul tetap seperti saat terbit). Simpan dulu, lalu gunakan tombol Pratinjau sertifikat di kanan atas.')
                     ->columns(2)
+                    // Selebar halaman: isian posisi tiap elemen terlalu sempit di setengah kolom.
+                    ->columnSpanFull()
                     ->schema([
                         Toggle::make('certificate_custom_layout')
                             ->label('Template custom: desain latar sudah memuat judul, teks, logo, dan tanda tangan')
@@ -194,6 +196,15 @@ class ManageSiteSettings extends SettingsPage
                             ->helperText('PNG berlatar transparan.')
                             ->image()->disk('public')->directory('certificates')->visibility('public')
                             ->visible(fn ($get) => ! $get('certificate_custom_layout')),
+                        FileUpload::make('certificate_font')
+                            ->label('Huruf unggahan (TTF)')
+                            ->helperText('Opsional. Dipakai elemen yang jenis hurufnya "Huruf unggahan". Satu berkas TTF dipakai untuk semua gaya, jadi pilih berkas yang sudah sesuai (mis. versi Bold bila ingin tebal). Pastikan lisensinya mengizinkan disematkan di PDF.')
+                            ->disk('local')->directory('certificates/fonts')->visibility('private')
+                            ->acceptedFileTypes(['font/ttf', 'font/sfnt', 'application/x-font-ttf', 'application/font-sfnt', 'application/x-font-truetype', 'application/octet-stream'])
+                            ->rules(['extensions:ttf'])
+                            ->maxSize(5120)
+                            ->visible(fn ($get) => (bool) $get('certificate_custom_layout'))
+                            ->columnSpanFull(),
                         Tabs::make('certificate_templates')
                             ->columnSpanFull()
                             ->tabs([
@@ -286,6 +297,16 @@ class ManageSiteSettings extends SettingsPage
                 TextInput::make($key.'left')->label('Dari kiri (mm)')->numeric()->minValue(0)->maxValue(297)->placeholder((string) $defaults['left']),
             ];
 
+            // Ya/tidak memakai Select, bukan Toggle: kosong berarti ikut bawaan,
+            // sehingga elemen yang bawaannya tebal tidak tampak "mati" di form.
+            $yesNo = fn (string $switch, string $label): Select => Select::make($key.$switch)->label($label)
+                ->options(['1' => 'Ya', '0' => 'Tidak'])
+                ->placeholder('Bawaan ('.($defaults[$switch] ? 'Ya' : 'Tidak').')');
+
+            if ($element !== 'name') {
+                array_unshift($inputs, $yesNo('visible', 'Tampilkan'));
+            }
+
             if ($element === 'qr') {
                 $inputs[] = TextInput::make($key.'size')->label('Ukuran (mm)')->numeric()->minValue(10)->maxValue(80)->placeholder((string) $defaults['size']);
             } else {
@@ -295,10 +316,27 @@ class ManageSiteSettings extends SettingsPage
                     ->options(['left' => 'Kiri', 'center' => 'Tengah', 'right' => 'Kanan'])
                     ->placeholder('Tengah');
                 $inputs[] = ColorPicker::make($key.'color')->label('Warna')->placeholder($defaults['color']);
+                $inputs[] = Select::make($key.'font')->label('Jenis huruf')
+                    ->options(CertificatePdf::FONTS)
+                    ->placeholder('Bawaan ('.CertificatePdf::FONTS[$defaults['font']].')');
+                $inputs[] = $yesNo('bold', 'Tebal');
+                $inputs[] = $yesNo('italic', 'Miring');
+                $inputs[] = $yesNo('uppercase', 'Huruf kapital semua');
+            }
+
+            if ($element === 'paper_title') {
+                $inputs[] = $yesNo('quotes', 'Tanda kutip');
+            }
+
+            if ($element === 'number') {
+                $inputs[] = TextInput::make($key.'prefix')->label('Teks sebelum nomor')
+                    ->placeholder('No.')
+                    ->helperText('Isi tanda - untuk tanpa teks.')
+                    ->maxLength(30);
             }
 
             $fields[] = Fieldset::make($elementLabel)
-                ->columns(['default' => 2, 'lg' => $element === 'qr' ? 3 : 6])
+                ->columns(['default' => 2, 'md' => 3, 'xl' => $element === 'qr' ? 4 : 6])
                 ->schema($inputs)
                 ->visible(fn ($get) => (bool) $get('certificate_custom_layout'));
         }

@@ -224,6 +224,73 @@ class CertificateTest extends TestCase
         $this->assertStringNotContainsString('This is to certify that', $html);
     }
 
+    public function test_custom_template_styles_text_and_hides_chosen_elements(): void
+    {
+        $settings = app(SiteSettings::class);
+        $settings->certificate_custom_layout = true;
+        $settings->certificate_layout = ['presentation' => [
+            'name' => ['font' => 'sans', 'bold' => '0', 'uppercase' => '1', 'visible' => '0'],
+            'affiliation' => ['visible' => '0'],
+            'paper_title' => ['quotes' => '0', 'italic' => '0', 'font' => 'mono'],
+            'number' => ['prefix' => '-'],
+            'qr' => ['visible' => '0'],
+        ]];
+        $settings->save();
+
+        $pdf = app(CertificatePdf::class);
+        $layout = $pdf->layout('presentation');
+        $this->assertTrue($layout['name']['visible'], 'Nama penerima selalu dicetak.');
+        $this->assertFalse($layout['name']['bold']);
+        $this->assertTrue($layout['name']['uppercase']);
+        $this->assertFalse($layout['affiliation']['visible']);
+        $this->assertTrue($pdf->layout('participation')['affiliation']['visible'], 'Jenis lain tetap memakai bawaan.');
+
+        $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Universitas Hasanuddin']]);
+        app(CertificateIssuer::class)->issuePending($this->edition);
+        $certificate = Certificate::sole();
+
+        $html = view('pdf.certificate', [
+            'certificate' => $certificate, 'settings' => siteSettings(), 'qr' => $pdf->qrDataUri($certificate),
+            'background' => 'data:image/png;base64,AAAA', 'signature' => null, 'logo' => null,
+            'custom' => true, 'layout' => $layout,
+        ])->render();
+
+        $this->assertStringContainsString('Rina Saputri', $html);
+        $this->assertStringContainsString('text-transform: uppercase', $html);
+        $this->assertStringContainsString('font-family: DejaVu Sans Mono', $html);
+        $this->assertStringNotContainsString('Universitas Hasanuddin', $html);
+        $this->assertStringNotContainsString('alt="QR"', $html);
+        $this->assertStringNotContainsString('No. ', $html);
+        $this->assertStringNotContainsString('“', $html);
+        $this->assertStringContainsString($certificate->number, $html);
+    }
+
+    public function test_an_uploaded_font_is_embedded_in_the_pdf(): void
+    {
+        Storage::fake('public');
+        Storage::fake('local');
+        $background = imagecreatetruecolor(20, 14);
+        ob_start();
+        imagepng($background);
+        Storage::disk('public')->put('certificates/latar.png', ob_get_clean());
+        Storage::disk('local')->put('certificates/fonts/merek.ttf', file_get_contents(base_path('vendor/dompdf/dompdf/lib/fonts/DejaVuSansMono.ttf')));
+
+        $settings = app(SiteSettings::class);
+        $settings->certificate_custom_layout = true;
+        $settings->certificate_background_presentation = 'certificates/latar.png';
+        $settings->certificate_font = 'certificates/fonts/merek.ttf';
+        $settings->certificate_layout = ['presentation' => ['name' => ['font' => 'custom']]];
+        $settings->save();
+
+        $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
+        app(CertificateIssuer::class)->issuePending($this->edition);
+
+        $content = app(CertificatePdf::class)->download(Certificate::sole())->getContent();
+
+        $this->assertStringStartsWith('%PDF', $content);
+        $this->assertStringContainsString('DejaVuSansMono', $content, 'Huruf unggahan disematkan di PDF.');
+    }
+
     public function test_the_settings_form_saves_the_custom_layout_per_certificate_type(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
@@ -238,6 +305,9 @@ class CertificateTest extends TestCase
                 'certificate_custom_layout' => true,
                 'certificate_layout.presentation.name.top' => 120,
                 'certificate_layout.participation.qr.size' => 30,
+                'certificate_layout.presentation.affiliation.visible' => '0',
+                'certificate_layout.presentation.name.font' => 'mono',
+                'certificate_layout.presentation.name.uppercase' => '1',
             ])
             ->call('save')
             ->assertHasNoFormErrors();
@@ -246,6 +316,9 @@ class CertificateTest extends TestCase
         $this->assertTrue($settings->certificate_custom_layout);
         $this->assertEquals(120, app(CertificatePdf::class)->layout('presentation')['name']['top']);
         $this->assertEquals(30, app(CertificatePdf::class)->layout('participation')['qr']['size']);
+        $this->assertFalse(app(CertificatePdf::class)->layout('presentation')['affiliation']['visible']);
+        $this->assertSame('mono', app(CertificatePdf::class)->layout('presentation')['name']['font']);
+        $this->assertTrue(app(CertificatePdf::class)->layout('presentation')['name']['uppercase']);
         // Jenis lain tetap memakai posisi bawaannya.
         $this->assertEquals(CertificatePdf::DEFAULT_LAYOUT['name']['top'], app(CertificatePdf::class)->layout('participation')['name']['top']);
     }
