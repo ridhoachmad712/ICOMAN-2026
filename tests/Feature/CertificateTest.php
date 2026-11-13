@@ -264,14 +264,22 @@ class CertificateTest extends TestCase
         $this->assertSame(0, Certificate::valid()->count());
         $this->assertSame(['Template salah'], Certificate::pluck('revoke_reason')->unique()->values()->all());
 
-        // Tombol terbitkan biasa tidak memulihkan yang dicabut.
-        $this->assertSame(0, app(CertificateIssuer::class)->issuePending($this->edition));
+        // Tombol terbitkan biasa menawarkan penerbitan ulang; bila dimatikan, tetap dicabut.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issuePresentation'), ['include_revoked' => false])
+            ->assertNotified('Tidak ada sertifikat presenter baru');
+        $this->assertSame(0, Certificate::valid()->count());
+
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issuePresentation'), ['include_revoked' => true])
+            ->assertNotified('2 diterbitkan ulang');
+        $this->assertSame(['presentation'], Certificate::valid()->pluck('type')->unique()->values()->all());
 
         $attendee->update(['name' => 'Citra Lestari, S.E.']);
         $numbers = Certificate::orderBy('id')->pluck('number')->all();
         Livewire::test(ListCertificates::class)
             ->callAction(TestAction::make('reissueRevoked'), ['scope' => 'all'])
-            ->assertNotified('4 sertifikat diterbitkan ulang');
+            ->assertNotified('2 sertifikat diterbitkan ulang');
 
         $this->assertSame(4, Certificate::valid()->count());
         $this->assertSame($numbers, Certificate::orderBy('id')->pluck('number')->all(), 'Nomor tetap.');

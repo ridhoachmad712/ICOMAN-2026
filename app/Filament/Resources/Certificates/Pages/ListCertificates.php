@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
@@ -178,24 +179,48 @@ class ListCertificates extends ListRecords
                 $count = app(CertificateIssuer::class)->pendingCounts($edition)[$type];
 
                 if ($count === 0) {
-                    return 'Semua '.$label.' yang memenuhi syarat sudah memiliki sertifikat. Tidak ada yang akan diterbitkan.';
+                    return 'Semua '.$label.' yang memenuhi syarat sudah memiliki sertifikat; tidak ada sertifikat baru.';
                 }
 
-                return 'Akan diterbitkan '.$count.' sertifikat '.$label.($presenter ? ' (satu per penulis paper)' : '').'. '
+                return 'Akan diterbitkan '.$count.' sertifikat '.$label.' baru'.($presenter ? ' (satu per penulis paper)' : '').'. '
                     .'Pastikan semua moderator sudah mengirim penilaian, karena kehadiran menjadi syarat'
-                    .($presenter ? '. ' : ' bagi presenter, yang ikut menerima sertifikat ini. ')
-                    .'Yang sudah punya sertifikat, termasuk yang pernah dicabut, tidak diterbitkan lagi.';
+                    .($presenter ? '.' : ' bagi presenter, yang ikut menerima sertifikat ini.');
             })
+            // Yang dicabut tidak terbit lagi diam-diam: panitia memilih di sini.
+            ->schema(fn (): array => ($revoked = $this->revokedCount($type)) > 0 ? [
+                Toggle::make('include_revoked')
+                    ->label('Terbitkan ulang juga '.$revoked.' sertifikat '.$label.' yang dicabut')
+                    ->helperText('Nomor tetap; nama, afiliasi, dan judul diambil dari data terkini, dan QR lama tidak berlaku lagi. Matikan bila ada yang sengaja dicabut (mis. salah penerima).')
+                    ->default(true),
+            ] : [])
             ->modalSubmitActionLabel('Terbitkan')
             ->visible(fn (): bool => currentEdition() !== null)
-            ->action(function () use ($type, $label): void {
-                $count = app(CertificateIssuer::class)->issuePending(currentEdition(), auth()->user(), $type);
+            ->action(function (array $data) use ($type, $label): void {
+                $issuer = app(CertificateIssuer::class);
+                $count = $issuer->issuePending(currentEdition(), auth()->user(), $type);
+                $restored = ($data['include_revoked'] ?? false)
+                    ? $issuer->reissueRevoked(currentEdition(), auth()->user(), $type)
+                    : 0;
+
+                $parts = array_filter([
+                    $count > 0 ? $count.' sertifikat '.$label.' diterbitkan' : null,
+                    $restored > 0 ? $restored.' diterbitkan ulang' : null,
+                ]);
 
                 Notification::make()
-                    ->title($count > 0 ? $count.' sertifikat '.$label.' diterbitkan' : 'Tidak ada sertifikat '.$label.' baru')
-                    ->body($count > 0 ? 'Penerima sudah dapat mengunduhnya dari dashboard portal.' : 'Semua yang memenuhi syarat sudah memiliki sertifikat.')
+                    ->title($parts ? implode(', ', $parts) : 'Tidak ada sertifikat '.$label.' baru')
+                    ->body($parts ? 'Penerima sudah dapat mengunduhnya dari dashboard portal.' : 'Semua yang memenuhi syarat sudah memiliki sertifikat.')
                     ->success()
                     ->send();
             });
+    }
+
+    private function revokedCount(?string $type): int
+    {
+        return Certificate::query()
+            ->where('edition_id', currentEdition()?->id)
+            ->when($type, fn ($query) => $query->where('type', $type))
+            ->whereNotNull('revoked_at')
+            ->count();
     }
 }
