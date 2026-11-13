@@ -61,8 +61,10 @@ class CertificateTest extends TestCase
         $this->attendee(paid: false, name: 'Peserta Belum Bayar');
 
         $issuer = app(CertificateIssuer::class);
-        $this->assertSame(['presentation' => 2, 'participation' => 1], $issuer->pendingCounts($this->edition));
-        $this->assertSame(3, $issuer->issuePending($this->edition));
+        // Presenter yang paper-nya dipresentasikan juga menerima Certificate of
+        // Participation; presenter yang gugur syarat tidak menerima keduanya.
+        $this->assertSame(['presentation' => 2, 'participation' => 2], $issuer->pendingCounts($this->edition));
+        $this->assertSame(4, $issuer->issuePending($this->edition));
 
         $presentations = Certificate::where('type', 'presentation')->orderBy('number')->get();
         $this->assertSame(['Rina Saputri', 'Andi Wijaya'], $presentations->pluck('recipient_name')->all());
@@ -71,13 +73,16 @@ class CertificateTest extends TestCase
         // Semuanya diunduh lewat akun pengirim paper.
         $this->assertSame([$paper->author_id], $presentations->pluck('author_id')->unique()->values()->all());
 
-        $participation = Certificate::where('type', 'participation')->sole();
-        $this->assertSame('ICOMAN2026/A/0001', $participation->number);
-        $this->assertSame($attendee->id, $participation->author_id);
+        $participations = Certificate::where('type', 'participation')->orderBy('number')->get();
+        $this->assertSame(['Citra Lestari', 'Rina Saputri'], $participations->pluck('recipient_name')->all());
+        $this->assertSame(['ICOMAN2026/A/0001', 'ICOMAN2026/A/0002'], $participations->pluck('number')->all());
+        $this->assertSame([$attendee->id, $paper->author_id], $participations->pluck('author_id')->all());
+        // Co-author tidak punya akun: hanya menerima Certificate of Presentation.
+        $this->assertFalse($participations->contains('recipient_name', 'Andi Wijaya'));
 
         // Tombol yang sama ditekan lagi: tidak ada duplikat.
         $this->assertSame(0, $issuer->issuePending($this->edition));
-        $this->assertSame(3, Certificate::count());
+        $this->assertSame(4, Certificate::count());
     }
 
     public function test_the_pdf_renders_with_a_qr_code_to_the_verification_page(): void
@@ -106,7 +111,7 @@ class CertificateTest extends TestCase
     public function test_the_verification_page_shows_valid_revoked_and_unknown_codes(): void
     {
         $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
-        app(CertificateIssuer::class)->issuePending($this->edition);
+        app(CertificateIssuer::class)->issuePending($this->edition, type: 'presentation');
         $certificate = Certificate::sole();
 
         $this->get(route('certificates.verify', $certificate->verification_token))
@@ -130,7 +135,7 @@ class CertificateTest extends TestCase
     public function test_reissuing_keeps_the_number_but_invalidates_the_old_qr(): void
     {
         $paper = $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
-        app(CertificateIssuer::class)->issuePending($this->edition);
+        app(CertificateIssuer::class)->issuePending($this->edition, type: 'presentation');
         $certificate = Certificate::sole();
         $oldToken = $certificate->verification_token;
         app(CertificateIssuer::class)->revoke($certificate, 'Salah nama');
@@ -227,6 +232,52 @@ class CertificateTest extends TestCase
         $this->assertSame('Universitas Negeri Makassar', $certificate->recipient_affiliation);
     }
 
+    public function test_admins_revoke_every_issued_certificate_then_restore_them(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'revoke-all@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+
+        $attendee = $this->attendee(paid: true, name: 'Citra Lestari');
+        $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas'], ['Budi Hartono', 'UNM']]);
+        app(CertificateIssuer::class)->issuePending($this->edition);
+        $this->assertSame(4, Certificate::valid()->count());
+
+        // Tanpa kata konfirmasi yang benar, tidak ada yang dicabut.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('revokeAll'), ['scope' => 'all', 'reason' => 'Template salah', 'confirmation' => 'cabut'])
+            ->assertHasFormErrors(['confirmation']);
+        $this->assertSame(4, Certificate::valid()->count());
+
+        // Satu jenis saja.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('revokeAll'), ['scope' => 'presentation', 'reason' => 'Template salah', 'confirmation' => 'CABUT'])
+            ->assertHasNoFormErrors()
+            ->assertNotified('2 sertifikat dicabut');
+        $this->assertSame(['participation'], Certificate::valid()->pluck('type')->unique()->values()->all());
+
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('revokeAll'), ['scope' => 'all', 'reason' => 'Template salah', 'confirmation' => 'CABUT'])
+            ->assertNotified('2 sertifikat dicabut');
+        $this->assertSame(0, Certificate::valid()->count());
+        $this->assertSame(['Template salah'], Certificate::pluck('revoke_reason')->unique()->values()->all());
+
+        // Tombol terbitkan biasa tidak memulihkan yang dicabut.
+        $this->assertSame(0, app(CertificateIssuer::class)->issuePending($this->edition));
+
+        $attendee->update(['name' => 'Citra Lestari, S.E.']);
+        $numbers = Certificate::orderBy('id')->pluck('number')->all();
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('reissueRevoked'), ['scope' => 'all'])
+            ->assertNotified('4 sertifikat diterbitkan ulang');
+
+        $this->assertSame(4, Certificate::valid()->count());
+        $this->assertSame($numbers, Certificate::orderBy('id')->pluck('number')->all(), 'Nomor tetap.');
+        $this->assertSame('Citra Lestari, S.E.', Certificate::where('author_id', $attendee->id)->sole()->recipient_name);
+    }
+
     public function test_admins_issue_from_the_certificates_page(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
@@ -241,7 +292,7 @@ class CertificateTest extends TestCase
         // Penerbitan presenter tidak ikut menerbitkan peserta seminar, dan sebaliknya.
         Livewire::test(ListCertificates::class)
             ->callAction(TestAction::make('issueParticipation'))
-            ->assertNotified('1 sertifikat peserta seminar diterbitkan');
+            ->assertNotified('2 sertifikat peserta seminar diterbitkan');
         $this->assertSame(['participation'], Certificate::pluck('type')->unique()->values()->all());
 
         Livewire::test(ListCertificates::class)
@@ -253,7 +304,7 @@ class CertificateTest extends TestCase
             ->callAction(TestAction::make('issueParticipation'))
             ->assertNotified('Tidak ada sertifikat peserta seminar baru');
 
-        $certificate = Certificate::where('type', 'participation')->sole();
+        $certificate = Certificate::where('type', 'participation')->where('recipient_name', 'Citra Lestari')->sole();
         $this->assertSame($admin->id, $certificate->issued_by);
 
         $this->get(route('admin.certificates.pdf', $certificate))
@@ -277,7 +328,7 @@ class CertificateTest extends TestCase
         $this->assertSame(CertificatePdf::DEFAULT_LAYOUT['name'], $pdf->layout('participation')['name']);
 
         $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
-        app(CertificateIssuer::class)->issuePending($this->edition);
+        app(CertificateIssuer::class)->issuePending($this->edition, type: 'presentation');
         $certificate = Certificate::sole();
 
         $html = view('pdf.certificate', [
@@ -317,7 +368,7 @@ class CertificateTest extends TestCase
         $this->assertTrue($pdf->layout('participation')['affiliation']['visible'], 'Jenis lain tetap memakai bawaan.');
 
         $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Universitas Hasanuddin']]);
-        app(CertificateIssuer::class)->issuePending($this->edition);
+        app(CertificateIssuer::class)->issuePending($this->edition, type: 'presentation');
         $certificate = Certificate::sole();
 
         $html = view('pdf.certificate', [
@@ -354,7 +405,7 @@ class CertificateTest extends TestCase
         $settings->save();
 
         $this->presenter(paid: true, fullPaper: true, writers: [['Rina Saputri', 'Unhas']]);
-        app(CertificateIssuer::class)->issuePending($this->edition);
+        app(CertificateIssuer::class)->issuePending($this->edition, type: 'presentation');
 
         $content = app(CertificatePdf::class)->download(Certificate::sole())->getContent();
 

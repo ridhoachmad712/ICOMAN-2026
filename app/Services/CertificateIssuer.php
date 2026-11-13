@@ -20,8 +20,12 @@ use Illuminate\Support\Str;
  *   bila invoice presenter lunas, full paper sudah masuk, dan moderator
  *   mencatat paper itu dipresentasikan (hadir atau diwakili co-author) di
  *   room-nya. Semuanya diunduh lewat akun pengirim paper.
- * - Certificate of Participation: satu per peserta seminar yang lunas;
- *   kehadiran peserta seminar tidak diabsen, jadi bukan syarat.
+ * - Certificate of Participation: satu per akun peserta seminar yang lunas,
+ *   kehadirannya tidak diabsen, jadi bukan syarat. Akun presenter yang
+ *   paper-nya berhak atas Certificate of Presentation juga menerima satu,
+ *   sehingga presenter memegang kedua jenis.
+ *   Co-author tidak punya akun, jadi hanya menerima Certificate of
+ *   Presentation.
  *
  * Penerbitan dijalankan panitia (tombol
  * "Terbitkan"), dan dapat diulang: yang sudah punya sertifikat, termasuk yang
@@ -91,6 +95,36 @@ class CertificateIssuer
     }
 
     /**
+     * Mencabut semua sertifikat yang masih berlaku di edisi ini (atau satu
+     * jenis saja). Nomornya tetap tercatat, jadi dapat diterbitkan ulang.
+     */
+    public function revokeAll(Edition $edition, string $reason, ?string $type = null): int
+    {
+        return $this->issued($edition, $type)
+            ->valid()
+            ->update(['revoked_at' => now(), 'revoke_reason' => $reason]);
+    }
+
+    /** Menerbitkan ulang semua yang dicabut, dengan data penerima terkini. */
+    public function reissueRevoked(Edition $edition, ?User $issuer = null, ?string $type = null): int
+    {
+        return DB::transaction(function () use ($edition, $issuer, $type): int {
+            $revoked = $this->issued($edition, $type)->whereNotNull('revoked_at')->get();
+            $revoked->each(fn (Certificate $certificate) => $this->reissue($certificate, $issuer));
+
+            return $revoked->count();
+        });
+    }
+
+    /** @return Builder<Certificate> */
+    private function issued(Edition $edition, ?string $type): Builder
+    {
+        return Certificate::query()
+            ->where('edition_id', $edition->id)
+            ->when($type, fn (Builder $query) => $query->where('type', $type));
+    }
+
+    /**
      * Terbit ulang setelah koreksi data (mis. salah nama): nama, afiliasi, dan
      * judul diambil ulang dari data terkini, nomornya tetap, dan kode QR
      * diganti sehingga cetakan lama tidak lagi lolos verifikasi.
@@ -122,12 +156,7 @@ class CertificateIssuer
             ->where('type', 'presentation')
             ->get(['submission_id', 'submission_author_id']);
 
-        return Submission::query()
-            ->where('edition_id', $edition->id)
-            ->where('status', 'accepted')
-            ->withFullPaper()
-            ->whereHas('author', fn (Builder $author) => $this->paidIn($author, $edition))
-            ->whereHas('roomPresentation', fn (Builder $presentation) => $presentation->whereIn('attendance', RoomPresentation::ATTENDED))
+        return $this->presentedSubmissions(Submission::query(), $edition)
             ->with(['author', 'authors'])
             ->orderBy('submission_number')
             ->get()
@@ -162,8 +191,15 @@ class CertificateIssuer
     private function pendingParticipations(Edition $edition): Collection
     {
         return Author::query()
-            ->where('participation_type', 'participant')
-            ->where(fn (Builder $author) => $this->paidIn($author, $edition))
+            ->where(fn (Builder $author) => $author
+                ->where(fn (Builder $participant) => $participant
+                    ->where('participation_type', 'participant')
+                    ->where(fn (Builder $paid) => $this->paidIn($paid, $edition)))
+                // Presenter: hanya yang paper-nya memenuhi syarat Certificate
+                // of Presentation (lihat presentedSubmissions()).
+                ->orWhere(fn (Builder $presenter) => $presenter
+                    ->where('participation_type', 'presenter')
+                    ->whereHas('submissions', fn (Builder $submission) => $this->presentedSubmissions($submission, $edition))))
             ->whereDoesntHave('certificates', fn (Builder $certificate) => $certificate
                 ->where('edition_id', $edition->id)
                 ->where('type', 'participation'))
@@ -178,6 +214,20 @@ class CertificateIssuer
                 'recipient_affiliation' => $author->affiliation,
                 'paper_title' => null,
             ]);
+    }
+
+    /**
+     * Paper yang berhak atas Certificate of Presentation: diterima, full paper
+     * masuk, pengirimnya lunas, dan moderator mencatatnya dipresentasikan.
+     */
+    private function presentedSubmissions(Builder $submissions, Edition $edition): Builder
+    {
+        return $submissions
+            ->where('edition_id', $edition->id)
+            ->where('status', 'accepted')
+            ->withFullPaper()
+            ->whereHas('author', fn (Builder $author) => $this->paidIn($author, $edition))
+            ->whereHas('roomPresentation', fn (Builder $presentation) => $presentation->whereIn('attendance', RoomPresentation::ATTENDED));
     }
 
     private function paidIn(Builder $author, Edition $edition): Builder

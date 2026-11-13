@@ -1,5 +1,6 @@
-{{-- Sertifikat yang terbit lewat akun ini. Presenter menerima satu per
-     penulis paper (termasuk co-author) untuk diteruskan ke rekan penulisnya. --}}
+{{-- Sertifikat yang terbit lewat akun ini. Presenter menerima Certificate of
+     Presentation untuk setiap penulis paper (termasuk co-author, untuk
+     diteruskan) dan Certificate of Participation untuk dirinya sendiri. --}}
 @php
     $id = app()->getLocale() === 'id';
     $certificates = $author->certificates()
@@ -16,8 +17,8 @@
             <div class="min-w-0 flex-1">
                 <p class="font-semibold text-gray-950 dark:text-white">{{ $id ? 'Sertifikat' : 'Certificates' }}</p>
                 <p class="mt-1 text-sm leading-relaxed text-gray-600 dark:text-gray-400">
-                    {{ $certificates->count() > 1
-                        ? ($id ? 'Sertifikat untuk setiap penulis paper Anda. Teruskan kepada rekan penulis masing-masing.' : 'One certificate for each author of your paper. Please forward them to your co-authors.')
+                    {{ $certificates->where('type', 'presentation')->count() > 1
+                        ? ($id ? 'Certificate of Presentation terbit untuk setiap penulis paper Anda; teruskan kepada rekan penulis masing-masing. Certificate of Participation adalah milik Anda sendiri.' : 'A Certificate of Presentation is issued for each author of your paper; please forward them to your co-authors. The Certificate of Participation is your own.')
                         : ($id ? 'Sertifikat Anda sudah terbit. Keasliannya dapat diperiksa lewat QR code di sertifikat.' : 'Your certificate has been issued. Its authenticity can be checked through the QR code on it.') }}
                 </p>
                 <ul class="mt-3 divide-y divide-gray-100 dark:divide-white/10">
