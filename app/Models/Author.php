@@ -90,6 +90,16 @@ class Author extends Authenticatable implements FilamentUser
         return $this->participation_type === 'participant';
     }
 
+    /**
+     * Nama dan afiliasi dikunci setelah akun ini punya sertifikat: perubahan
+     * berikutnya lewat panitia, supaya sertifikat yang diterbitkan ulang tidak
+     * memuat nama yang diganti sendiri oleh pemilik akun.
+     */
+    public function identityIsLocked(): bool
+    {
+        return $this->certificates()->exists();
+    }
+
     /** Jenis tenggat yang mengatur pembayaran akun ini (lihat ConferenceDeadlines). */
     public function paymentKind(): string
     {

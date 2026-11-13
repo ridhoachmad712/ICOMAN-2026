@@ -186,6 +186,32 @@ class AuthorsTable
                             $action->redirect(AuthorDashboard::getUrl(panel: 'author'));
                         }),
 
+                    // Setelah sertifikat terbit, peserta tidak bisa lagi mengubah
+                    // nama dan afiliasinya sendiri; koreksinya lewat sini.
+                    Action::make('editIdentity')
+                        ->label('Ubah nama & afiliasi')
+                        ->icon('heroicon-o-pencil-square')
+                        ->color('gray')
+                        ->modalHeading(fn (Author $record): string => 'Ubah nama & afiliasi '.$record->name)
+                        ->modalDescription(fn (Author $record): string => $record->certificates()->exists()
+                            ? 'Sertifikat yang sudah terbit tidak ikut berubah. Setelah menyimpan, buka menu Sertifikat dan klik "Terbitkan ulang" pada sertifikat akun ini. Nama penulis di sertifikat presenter diambil dari daftar author paper, bukan dari sini.'
+                            : 'Nama dan afiliasi akun peserta. Nama penulis di sertifikat presenter diambil dari daftar author paper, bukan dari sini.')
+                        ->fillForm(fn (Author $record): array => ['name' => $record->name, 'affiliation' => $record->affiliation])
+                        ->schema([
+                            TextInput::make('name')->label('Nama lengkap (dengan gelar)')->required()->maxLength(255),
+                            TextInput::make('affiliation')->label('Afiliasi')->maxLength(255),
+                        ])
+                        ->action(function (array $data, Author $record): void {
+                            abort_unless(auth()->user()?->managesSubmissions(), 403);
+                            $record->update(['name' => $data['name'], 'affiliation' => $data['affiliation'] ?? null]);
+
+                            Notification::make()
+                                ->title('Nama dan afiliasi diperbarui')
+                                ->body($record->certificates()->exists() ? 'Jangan lupa klik "Terbitkan ulang" di menu Sertifikat.' : null)
+                                ->success()
+                                ->send();
+                        }),
+
                     // Portal author tidak punya reset mandiri, jadi ini satu-satunya
                     // jalan memulihkan akun yang lupa password.
                     Action::make('resetPassword')

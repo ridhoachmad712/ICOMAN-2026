@@ -3,7 +3,9 @@
 namespace Tests\Feature;
 
 use App\Filament\Author\Pages\AuthorDashboard;
+use App\Filament\Author\Pages\AuthorProfile;
 use App\Filament\Pages\Settings\ManageSiteSettings;
+use App\Filament\Resources\Authors\Pages\ListAuthors;
 use App\Filament\Resources\Certificates\Pages\ListCertificates;
 use App\Models\Author;
 use App\Models\Certificate;
@@ -166,6 +168,63 @@ class CertificateTest extends TestCase
         $this->actingAs($certificate->author, 'author')
             ->get(AuthorDashboard::getUrl(panel: 'author'))
             ->assertDontSee(route('author.certificates.download', $certificate), false);
+    }
+
+    public function test_the_name_and_affiliation_lock_once_a_certificate_is_issued(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('author'));
+        $author = $this->attendee(paid: true, name: 'Citra Lestari');
+        $this->actingAs($author, 'author');
+
+        // Sebelum terbit, peserta masih bebas memperbaiki namanya sendiri.
+        Livewire::test(AuthorProfile::class)
+            ->assertFormFieldEnabled('name')
+            ->fillForm(['name' => 'Citra Lestari, S.E.'])
+            ->call('save')
+            ->assertHasNoFormErrors();
+        $this->assertSame('Citra Lestari, S.E.', $author->refresh()->name);
+
+        app(CertificateIssuer::class)->issuePending($this->edition);
+
+        Livewire::test(AuthorProfile::class)
+            ->assertFormFieldDisabled('name')
+            ->assertFormFieldDisabled('affiliation')
+            // Kiriman yang direkayasa pun tidak mengubah nama.
+            ->set('data.name', 'Nama Orang Lain')
+            ->set('data.affiliation', 'Kampus Lain')
+            ->set('data.phone', '081200000000')
+            ->call('save');
+
+        $author->refresh();
+        $this->assertSame('Citra Lestari, S.E.', $author->name);
+        $this->assertSame('Kampus Citra Lestari', $author->affiliation);
+        $this->assertSame('081200000000', $author->phone, 'Isian lain tetap bisa diubah.');
+    }
+
+    public function test_the_committee_corrects_the_name_then_reissues(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'identity-admin@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+
+        $author = $this->attendee(paid: true, name: 'Citra Lestar');
+        app(CertificateIssuer::class)->issuePending($this->edition);
+        $certificate = Certificate::sole();
+
+        Livewire::test(ListAuthors::class)
+            ->callAction(TestAction::make('editIdentity')->table($author), ['name' => 'Citra Lestari, S.E.', 'affiliation' => 'Universitas Negeri Makassar'])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Nama dan afiliasi diperbarui');
+
+        $this->assertSame('Citra Lestar', $certificate->refresh()->recipient_name, 'Sertifikat baru berubah setelah terbit ulang.');
+
+        app(CertificateIssuer::class)->reissue($certificate, $admin);
+
+        $certificate->refresh();
+        $this->assertSame('Citra Lestari, S.E.', $certificate->recipient_name);
+        $this->assertSame('Universitas Negeri Makassar', $certificate->recipient_affiliation);
     }
 
     public function test_admins_issue_from_the_certificates_page(): void

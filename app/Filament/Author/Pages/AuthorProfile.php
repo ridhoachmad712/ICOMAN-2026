@@ -18,12 +18,20 @@ class AuthorProfile extends EditProfile
 
     public function form(Schema $schema): Schema
     {
+        $id = app()->getLocale() === 'id';
+        $locked = $this->getUser()->identityIsLocked();
+        $lockedHint = $id
+            ? 'Terkunci karena sertifikat Anda sudah terbit. Hubungi panitia bila ada yang perlu diperbaiki.'
+            : 'Locked because your certificate has been issued. Contact the committee if anything needs correcting.';
+
         return $schema->components([
-            Section::make(app()->getLocale() === 'id' ? 'Identitas & Jalur Partisipasi' : 'Identity & Participation Path')
-                ->description(app()->getLocale() === 'id' ? 'Digunakan pada paper, invoice, dan komunikasi panitia.' : 'Used for papers, invoices, and committee communication.')
+            Section::make($id ? 'Identitas & Jalur Partisipasi' : 'Identity & Participation Path')
+                ->description($id ? 'Digunakan pada paper, invoice, dan komunikasi panitia.' : 'Used for papers, invoices, and committee communication.')
                 ->columns(2)
                 ->schema([
-                    $this->getNameFormComponent(),
+                    $this->getNameFormComponent()
+                        ->disabled($locked)
+                        ->helperText($locked ? $lockedHint : null),
                     $this->getEmailFormComponent(),
                     Select::make('participation_type')
                         ->label(app()->getLocale() === 'id' ? 'Jalur partisipasi' : 'Participation path')
@@ -32,7 +40,9 @@ class AuthorProfile extends EditProfile
                             'participant' => app()->getLocale() === 'id' ? 'Peserta Seminar' : 'Seminar Participant',
                         ])
                         ->required(),
-                    TextInput::make('affiliation')->label(app()->getLocale() === 'id' ? 'Afiliasi' : 'Affiliation')->maxLength(255),
+                    TextInput::make('affiliation')->label($id ? 'Afiliasi' : 'Affiliation')->maxLength(255)
+                        ->disabled($locked)
+                        ->helperText($locked ? $lockedHint : null),
                     TextInput::make('country')->label(app()->getLocale() === 'id' ? 'Negara' : 'Country')->maxLength(255),
                     TextInput::make('phone')->label(app()->getLocale() === 'id' ? 'Nomor WhatsApp' : 'WhatsApp Number')->maxLength(50),
                 ]),
@@ -44,6 +54,22 @@ class AuthorProfile extends EditProfile
                     $this->getCurrentPasswordFormComponent(),
                 ]),
         ]);
+    }
+
+    /**
+     * Isian yang dinonaktifkan tidak ikut disimpan, tetapi kiriman Livewire bisa
+     * direkayasa; data yang masuk ke penyimpanan tetap dibuang di sini.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeSave(array $data): array
+    {
+        if ($this->getUser()->identityIsLocked()) {
+            unset($data['name'], $data['affiliation']);
+        }
+
+        return parent::mutateFormDataBeforeSave($data);
     }
 
     protected function beforeSave(): void
