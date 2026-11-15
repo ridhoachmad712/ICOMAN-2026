@@ -8,6 +8,7 @@ use App\Services\CertificateIssuer;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Forms\Components\Radio;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
@@ -37,6 +38,7 @@ class ListCertificates extends ListRecords
         return [
             $this->issueAction('presentation'),
             $this->issueAction('participation'),
+            $this->manualAction(),
             ActionGroup::make([
                 $this->revokeAllAction(),
                 $this->reissueRevokedAction(),
@@ -105,6 +107,64 @@ class ListCertificates extends ListRecords
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * Sertifikat yang diisi tangan untuk penerima di luar alur otomatis. Tidak
+     * terkait akun, jadi panitia mengunduh PDF-nya lalu mengirimkannya sendiri.
+     */
+    private function manualAction(): Action
+    {
+        return Action::make('issueManual')
+            ->label('Buat sertifikat manual')
+            ->icon('heroicon-o-pencil-square')
+            ->color('gray')
+            ->modalHeading('Buat sertifikat manual')
+            ->modalDescription('Untuk penerima di luar penerbitan otomatis. Sertifikat ini tidak muncul di dashboard peserta: unduh PDF-nya dari tabel lalu kirimkan sendiri. Keasliannya tetap bisa diperiksa lewat QR code.')
+            ->schema([
+                Radio::make('type')
+                    ->label('Jenis')
+                    ->options(['presentation' => 'Presenter', 'participation' => 'Peserta seminar'])
+                    ->default('presentation')
+                    ->inline()
+                    ->live()
+                    ->required(),
+                TextInput::make('recipient_name')
+                    ->label('Nama penerima')
+                    ->helperText('Tulis persis seperti yang dicetak, termasuk gelar.')
+                    ->required()
+                    ->maxLength(255),
+                TextInput::make('recipient_affiliation')
+                    ->label('Afiliasi')
+                    ->maxLength(255),
+                Textarea::make('paper_title')
+                    ->label('Judul artikel')
+                    ->rows(2)
+                    ->required(fn ($get): bool => $get('type') === 'presentation')
+                    ->visible(fn ($get): bool => $get('type') === 'presentation'),
+                TextInput::make('number')
+                    ->label('Nomor sertifikat')
+                    ->placeholder('Kosongkan untuk nomor otomatis')
+                    ->helperText('Otomatis: '.$this->sequenceExample().'/P/0001 untuk presenter, melanjutkan urutan /A/ untuk peserta seminar.')
+                    ->maxLength(255)
+                    ->unique(Certificate::class, 'number'),
+            ])
+            ->modalSubmitActionLabel('Terbitkan')
+            ->visible(fn (): bool => currentEdition() !== null)
+            ->action(function (array $data): void {
+                $certificate = app(CertificateIssuer::class)->issueManual(currentEdition(), $data, auth()->user());
+
+                Notification::make()
+                    ->title('Sertifikat '.$certificate->number.' diterbitkan')
+                    ->body('Unduh PDF-nya dari tabel untuk dikirimkan ke '.$certificate->recipient_name.'.')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    private function sequenceExample(): string
+    {
+        return strtoupper((string) preg_replace('/[^A-Za-z0-9]/', '', (string) currentEdition()?->name));
     }
 
     private function reissueRevokedAction(): Action

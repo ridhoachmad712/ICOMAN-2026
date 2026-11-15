@@ -89,6 +89,36 @@ class CertificateIssuer
         });
     }
 
+    /**
+     * Sertifikat manual dari panitia, untuk penerima di luar alur otomatis
+     * (mis. pemakalah tanpa akun). Tidak terkait akun atau paper, jadi
+     * diunduh panitia lalu dikirimkan sendiri. Nomor kosong diisi otomatis:
+     * EDISI/P/0001 untuk presenter, urutan EDISI/A/ yang sama untuk peserta.
+     *
+     * @param  array{type: string, recipient_name: string, recipient_affiliation?: ?string, paper_title?: ?string, number?: ?string}  $data
+     */
+    public function issueManual(Edition $edition, array $data, ?User $issuer = null): Certificate
+    {
+        return DB::transaction(function () use ($edition, $data, $issuer): Certificate {
+            Edition::whereKey($edition->id)->lockForUpdate()->first();
+
+            $presentation = $data['type'] === 'presentation';
+            $number = trim((string) ($data['number'] ?? ''));
+
+            return Certificate::create([
+                'edition_id' => $edition->id,
+                'type' => $data['type'],
+                'number' => $number !== '' ? $number : $this->sequence($edition, $presentation ? 'P' : 'A'),
+                'recipient_name' => trim($data['recipient_name']),
+                'recipient_affiliation' => filled($data['recipient_affiliation'] ?? null) ? trim($data['recipient_affiliation']) : null,
+                'paper_title' => $presentation && filled($data['paper_title'] ?? null) ? trim($data['paper_title']) : null,
+                'verification_token' => Certificate::newToken(),
+                'issued_at' => now(),
+                'issued_by' => $issuer?->id,
+            ]);
+        });
+    }
+
     public function revoke(Certificate $certificate, string $reason): void
     {
         $certificate->update(['revoked_at' => now(), 'revoke_reason' => $reason]);
@@ -252,8 +282,14 @@ class CertificateIssuer
             return $this->unique($base);
         }
 
+        return $this->sequence($edition, 'A');
+    }
+
+    /** Nomor urut berikutnya dalam deret EDISI/{seri}/0001. */
+    private function sequence(Edition $edition, string $series): string
+    {
         $code = (string) Str::of($edition->name)->replaceMatches('/[^A-Za-z0-9]/', '')->upper();
-        $prefix = $code.'/A/';
+        $prefix = $code.'/'.$series.'/';
         $last = Certificate::query()
             ->where('number', 'like', $prefix.'%')
             ->pluck('number')

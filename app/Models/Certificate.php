@@ -74,6 +74,12 @@ class Certificate extends Model
         return $this->revoked_at !== null;
     }
 
+    /** Dibuat tangan oleh panitia: tidak terkait akun maupun paper. */
+    public function isManual(): bool
+    {
+        return $this->author_id === null && $this->submission_id === null && $this->submission_author_id === null;
+    }
+
     public function typeLabel(): string
     {
         return self::TYPES[$this->type] ?? $this->type;

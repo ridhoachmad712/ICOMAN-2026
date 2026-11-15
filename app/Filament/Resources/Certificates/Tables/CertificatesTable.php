@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Certificates\Tables;
 use App\Models\Certificate;
 use App\Services\CertificateIssuer;
 use Filament\Actions\Action;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
@@ -66,6 +67,25 @@ class CertificatesTable
                     ->color('gray')
                     ->url(fn (Certificate $record): string => $record->verificationUrl())
                     ->openUrlInNewTab(),
+                // Sertifikat manual tidak punya sumber data untuk diambil ulang,
+                // jadi koreksinya langsung di sini (nomor dan QR tetap).
+                Action::make('editManual')
+                    ->label('Ubah data')
+                    ->icon('heroicon-o-pencil')
+                    ->color('gray')
+                    ->visible(fn (Certificate $record): bool => $record->isManual())
+                    ->fillForm(fn (Certificate $record): array => $record->only(['recipient_name', 'recipient_affiliation', 'paper_title']))
+                    ->schema(fn (Certificate $record): array => array_filter([
+                        TextInput::make('recipient_name')->label('Nama penerima')->required()->maxLength(255),
+                        TextInput::make('recipient_affiliation')->label('Afiliasi')->maxLength(255),
+                        $record->type === 'presentation'
+                            ? Textarea::make('paper_title')->label('Judul artikel')->rows(2)->required()
+                            : null,
+                    ]))
+                    ->action(function (Certificate $record, array $data): void {
+                        $record->update($data);
+                        Notification::make()->title('Data sertifikat diperbarui')->success()->send();
+                    }),
                 Action::make('revoke')
                     ->label('Cabut')
                     ->icon('heroicon-o-no-symbol')

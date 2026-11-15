@@ -286,6 +286,63 @@ class CertificateTest extends TestCase
         $this->assertSame('Citra Lestari, S.E.', Certificate::where('author_id', $attendee->id)->sole()->recipient_name);
     }
 
+    public function test_admins_create_manual_certificates(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'manual-cert@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+        $this->attendee(paid: true, name: 'Citra Lestari');
+        app(CertificateIssuer::class)->issuePending($this->edition);
+
+        // Presenter wajib judul artikel.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueManual'), ['type' => 'presentation', 'recipient_name' => 'Dr. Budi'])
+            ->assertHasFormErrors(['paper_title' => 'required']);
+
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueManual'), [
+                'type' => 'presentation', 'recipient_name' => 'Dr. Budi Hartono', 'recipient_affiliation' => 'UNM',
+                'paper_title' => 'Green Marketing in Makassar',
+            ])
+            ->assertHasNoFormErrors()
+            ->assertNotified('Sertifikat ICOMAN2026/P/0001 diterbitkan');
+
+        // Peserta melanjutkan urutan /A/; judul diabaikan.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueManual'), [
+                'type' => 'participation', 'recipient_name' => 'Sari', 'paper_title' => 'Tidak dipakai',
+            ])
+            ->assertHasNoFormErrors();
+
+        // Nomor yang diisi sendiri tidak boleh bentrok.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('issueManual'), ['type' => 'participation', 'recipient_name' => 'Tono', 'number' => 'ICOMAN2026/A/0001'])
+            ->assertHasFormErrors(['number' => 'unique']);
+
+        $presenter = Certificate::where('number', 'ICOMAN2026/P/0001')->sole();
+        $this->assertTrue($presenter->isManual());
+        $this->assertNull($presenter->author_id);
+        $this->assertSame(['Dr. Budi Hartono', 'UNM', 'Green Marketing in Makassar'], [$presenter->recipient_name, $presenter->recipient_affiliation, $presenter->paper_title]);
+
+        $participant = Certificate::where('recipient_name', 'Sari')->sole();
+        $this->assertSame('ICOMAN2026/A/0002', $participant->number);
+        $this->assertNull($participant->paper_title);
+
+        // Koreksi langsung, dan terbit ulang tidak menimpa data yang diisi tangan.
+        Livewire::test(ListCertificates::class)
+            ->callTableAction('editManual', $presenter, ['recipient_name' => 'Dr. Budi Hartono, M.M.', 'recipient_affiliation' => 'UNM', 'paper_title' => 'Green Marketing'])
+            ->assertHasNoTableActionErrors();
+        app(CertificateIssuer::class)->reissue($presenter->refresh(), $admin);
+        $this->assertSame('Dr. Budi Hartono, M.M.', $presenter->refresh()->recipient_name);
+        Livewire::test(ListCertificates::class)
+            ->assertTableActionHidden('editManual', Certificate::where('recipient_name', 'Citra Lestari')->sole());
+
+        $this->get(route('admin.certificates.pdf', $presenter))->assertOk()->assertHeader('content-type', 'application/pdf');
+        $this->get(route('certificates.verify', $presenter->verification_token))->assertSee('Dr. Budi Hartono, M.M.');
+    }
+
     public function test_admins_issue_from_the_certificates_page(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));
