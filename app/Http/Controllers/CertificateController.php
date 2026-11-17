@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Services\CertificatePdf;
+use App\Services\CertificateZipExport;
 use App\Services\ManualCertificateImport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -66,24 +67,21 @@ class CertificateController extends Controller
         ]);
     }
 
-    /**
-     * Semua sertifikat manual yang berlaku di edisi aktif dalam satu ZIP,
-     * untuk dikirim panitia ke penerimanya (sertifikat manual tidak punya akun).
-     */
-    public function manualZip(CertificatePdf $pdf): Response
+    /** ZIP yang sudah disiapkan antrean untuk admin ini (lihat CertificateZipExport). */
+    public function downloadZip(CertificateZipExport $export): Response
     {
-        abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);
+        $user = Auth::guard('web')->user();
+        abort_unless($user?->managesSubmissions(), 403);
 
-        $certificates = Certificate::query()
-            ->where('edition_id', currentEdition()?->id)
-            ->manual()
-            ->valid()
-            ->orderBy('number')
-            ->get();
+        $status = $export->status($user);
+        abort_unless(($status['state'] ?? null) === 'ready', 404);
+        abort_unless(Storage::disk('local')->exists($export->path($status['token'])), 404);
 
-        return response()->download($pdf->zip($certificates), 'sertifikat-manual-'.now()->format('Ymd-His').'.zip', [
-            'Content-Type' => 'application/zip',
-        ])->deleteFileAfterSend();
+        return Storage::disk('local')->download(
+            $export->path($status['token']),
+            'sertifikat-'.str($status['label'])->slug().'-'.now()->format('Ymd-His').'.zip',
+            ['Content-Type' => 'application/zip'],
+        );
     }
 
     public function downloadForAdmin(Certificate $certificate, CertificatePdf $pdf): Response

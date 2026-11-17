@@ -20,6 +20,8 @@
 @endphp
 
 <div style="display:flex;flex-direction:column;gap:.75rem;">
+    @livewire(\App\Livewire\CertificateZipStatus::class, key('certificate-zip-status'))
+
     <div style="display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(min(100%,13rem),1fr));">
         @foreach($tiles as [$label, $value, $hint, $icon, $color])
             <div class="fi-section" style="display:flex;align-items:center;gap:.875rem;padding:1rem 1.125rem;border-radius:.75rem;">

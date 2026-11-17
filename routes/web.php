@@ -110,7 +110,7 @@ Route::middleware('auth')->get('admin/submissions/{submission}/full-paper/downlo
 
 Route::middleware('auth')->get('admin/certificates/import-template', [CertificateController::class, 'importTemplate'])->name('admin.certificates.import-template');
 
-Route::middleware('auth')->get('admin/certificates/manual.zip', [CertificateController::class, 'manualZip'])->name('admin.certificates.manual-zip');
+Route::middleware('auth')->get('admin/certificates/zip', [CertificateController::class, 'downloadZip'])->name('admin.certificates.zip');
 
 Route::middleware('auth')->get('admin/certificates/font', [CertificateController::class, 'font'])->name('admin.certificates.font');
 

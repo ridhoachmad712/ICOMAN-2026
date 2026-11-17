@@ -77,34 +77,38 @@ class CertificatePdf
     }
 
     /**
-     * Mengemas banyak sertifikat ke satu ZIP sementara dan mengembalikan
-     * path-nya; pemanggil yang menghapus berkas itu setelah dikirim.
+     * Mengemas sertifikat ke ZIP dan mengembalikan path-nya. Bila $path sudah
+     * berisi ZIP, sertifikat ditambahkan ke dalamnya, sehingga antrean bisa
+     * menyusunnya sedikit demi sedikit (lihat BuildCertificateZip). $progress
+     * dipanggil setiap satu sertifikat masuk; kembalikan false untuk berhenti.
      *
      * @param  iterable<Certificate>  $certificates
+     * @param  (callable(): bool)|null  $progress
      */
-    public function zip(iterable $certificates): string
+    public function zip(iterable $certificates, ?string $path = null, ?callable $progress = null): string
     {
-        // dompdf butuh waktu per halaman; ratusan sertifikat bisa lebih dari 30 detik.
-        @set_time_limit(600);
+        @set_time_limit(0);
 
-        $path = (string) tempnam(sys_get_temp_dir(), 'sertifikat-');
+        $path ??= (string) tempnam(sys_get_temp_dir(), 'sertifikat-');
         $zip = new ZipArchive;
-        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+        $zip->open($path, is_file($path) && filesize($path) > 0 ? ZipArchive::CREATE : ZipArchive::CREATE | ZipArchive::OVERWRITE);
 
-        $used = [];
         foreach ($certificates as $certificate) {
             $name = Str::limit(preg_replace('/[^\pL\pN .,\-]+/u', '', $certificate->recipient_name) ?: 'sertifikat', 60, '');
             $base = str_replace('/', '-', $certificate->number).' - '.trim($name);
             $file = $base.'.pdf';
-            for ($i = 2; isset($used[$file]); $i++) {
+            for ($i = 2; $zip->locateName($file) !== false; $i++) {
                 $file = $base.' ('.$i.').pdf';
             }
-            $used[$file] = true;
 
             $zip->addFromString($file, $this->output($certificate));
+
+            if ($progress && $progress() === false) {
+                break;
+            }
         }
 
-        if ($used === []) {
+        if ($zip->numFiles === 0) {
             $zip->addFromString('KOSONG.txt', 'Tidak ada sertifikat untuk diunduh.');
         }
         $zip->close();
@@ -299,18 +303,26 @@ class CertificatePdf
         ])->setPaper('a4', 'landscape');
     }
 
+    /** @var array<string, ?string> gambar yang sudah dibaca, dipakai ulang saat mengemas banyak PDF */
+    private array $images = [];
+
     private function imageDataUri(?string $path): ?string
     {
-        $disk = Storage::disk('public');
-
-        if (blank($path) || ! $disk->exists($path)) {
+        if (blank($path)) {
             return null;
         }
 
-        $mime = $disk->mimeType($path) ?: 'image/png';
+        return $this->images[$path] ??= (function () use ($path): ?string {
+            $disk = Storage::disk('public');
+            if (! $disk->exists($path)) {
+                return null;
+            }
 
-        return in_array($mime, ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true)
-            ? 'data:'.$mime.';base64,'.base64_encode($disk->get($path))
-            : null;
+            $mime = $disk->mimeType($path) ?: 'image/png';
+
+            return in_array($mime, ['image/png', 'image/jpeg', 'image/gif', 'image/webp'], true)
+                ? 'data:'.$mime.';base64,'.base64_encode($disk->get($path))
+                : null;
+        })();
     }
 }

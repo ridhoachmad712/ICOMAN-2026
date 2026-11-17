@@ -4,7 +4,7 @@ namespace App\Filament\Resources\Certificates\Tables;
 
 use App\Models\Certificate;
 use App\Services\CertificateIssuer;
-use App\Services\CertificatePdf;
+use App\Services\CertificateZipExport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
 use Filament\Actions\BulkAction;
@@ -139,9 +139,16 @@ class CertificatesTable
                     ->icon('heroicon-o-arrow-down-tray')
                     ->color('gray')
                     ->deselectRecordsAfterCompletion()
-                    ->action(fn (Collection $records) => response()
-                        ->download(app(CertificatePdf::class)->zip($records->sortBy('number')), 'sertifikat-'.now()->format('Ymd-His').'.zip', ['Content-Type' => 'application/zip'])
-                        ->deleteFileAfterSend()),
+                    ->action(function (Collection $records, $livewire): void {
+                        app(CertificateZipExport::class)->start(auth()->user(), currentEdition(), $records->modelKeys());
+                        $livewire->dispatch('certificate-zip-started');
+
+                        Notification::make()
+                            ->title('ZIP sedang disiapkan')
+                            ->body($records->count().' sertifikat. Tombol unduh muncul di atas tabel setelah selesai.')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->emptyStateIcon('heroicon-o-check-badge')
             ->emptyStateHeading('Belum ada sertifikat')

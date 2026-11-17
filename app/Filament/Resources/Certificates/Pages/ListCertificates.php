@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Certificates\Pages;
 use App\Filament\Resources\Certificates\CertificateResource;
 use App\Models\Certificate;
 use App\Services\CertificateIssuer;
+use App\Services\CertificateZipExport;
 use App\Services\ManualCertificateImport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
@@ -61,21 +62,15 @@ class ListCertificates extends ListRecords
                 ->color('primary')
                 ->button()
                 ->visible(fn (): bool => currentEdition() !== null),
-            Action::make('downloadManualZip')
-                ->label('Unduh semua (ZIP)')
+            $this->zipAction('downloadManualZip', 'Unduh semua (ZIP)')
                 ->tooltip('Semua sertifikat manual yang berlaku, dalam satu berkas ZIP')
-                ->icon('heroicon-o-arrow-down-tray')
                 ->color('success')
-                ->url(fn (): string => route('admin.certificates.manual-zip'))
                 ->visible(fn (): bool => $this->activeTab === 'manual'
                     && Certificate::where('edition_id', currentEdition()?->id)->manual()->valid()->exists()),
             ActionGroup::make([
                 $this->manualAction(),
                 $this->importAction(),
-                Action::make('downloadManualZipMenu')
-                    ->label('Unduh semua (ZIP)')
-                    ->icon('heroicon-o-arrow-down-tray')
-                    ->url(fn (): string => route('admin.certificates.manual-zip')),
+                $this->zipAction('downloadManualZipMenu', 'Unduh semua (ZIP)'),
             ])
                 ->label('Sertifikat manual')
                 ->icon('heroicon-o-pencil-square')
@@ -255,6 +250,24 @@ class ListCertificates extends ListRecords
                 Notification::make()
                     ->title($result['count'].' sertifikat manual diterbitkan')
                     ->body('Unduh PDF-nya dari tabel untuk dikirimkan ke masing-masing penerima.')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /** Memesan ZIP semua sertifikat manual; disusun di antrean, lihat ringkasan halaman. */
+    private function zipAction(string $name, string $label): Action
+    {
+        return Action::make($name)
+            ->label($label)
+            ->icon('heroicon-o-arrow-down-tray')
+            ->action(function (): void {
+                $status = app(CertificateZipExport::class)->start(auth()->user(), currentEdition());
+                $this->dispatch('certificate-zip-started');
+
+                Notification::make()
+                    ->title('ZIP sedang disiapkan')
+                    ->body($status['total'].' sertifikat. Kemajuannya tampil di atas tabel, dan tombol unduh muncul setelah selesai. Halaman ini boleh ditinggal.')
                     ->success()
                     ->send();
             });

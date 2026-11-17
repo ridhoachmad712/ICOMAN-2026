@@ -7,6 +7,8 @@ use App\Filament\Author\Pages\AuthorProfile;
 use App\Filament\Pages\Settings\ManageSiteSettings;
 use App\Filament\Resources\Authors\Pages\ListAuthors;
 use App\Filament\Resources\Certificates\Pages\ListCertificates;
+use App\Jobs\BuildCertificateZip;
+use App\Livewire\CertificateZipStatus;
 use App\Models\Author;
 use App\Models\Certificate;
 use App\Models\Edition;
@@ -19,11 +21,14 @@ use App\Models\User;
 use App\Services\AbstractWordDocument;
 use App\Services\CertificateIssuer;
 use App\Services\CertificatePdf;
+use App\Services\CertificateZipExport;
 use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -411,28 +416,67 @@ class CertificateTest extends TestCase
             ->set('activeTab', 'manual')
             ->assertCanSeeTableRecords([$budi, $sari])
             ->assertCanNotSeeTableRecords([$account])
-            ->assertActionVisible('downloadManualZip')
-            ->callTableBulkAction('downloadZip', [$budi, $account])
-            ->assertFileDownloaded();
+            ->assertActionVisible('downloadManualZip');
 
-        // Semua sertifikat manual yang berlaku, tanpa yang dicabut atau milik akun.
-        $response = $this->get(route('admin.certificates.manual-zip'))
-            ->assertOk()
-            ->assertHeader('content-type', 'application/zip');
+        // Dipesan dulu, disusun di antrean: belum ada yang bisa diunduh.
+        Queue::fake();
+        Livewire::test(ListCertificates::class)
+            ->set('activeTab', 'manual')
+            ->callAction(TestAction::make('downloadManualZip'))
+            ->assertNotified('ZIP sedang disiapkan');
+        Queue::assertPushed(BuildCertificateZip::class);
+        Livewire::test(CertificateZipStatus::class)->assertSee('ZIP menunggu antrean');
+        $this->get(route('admin.certificates.zip'))->assertNotFound();
+
+        // Antrean berjalan, satu sertifikat per putaran (seolah tiap PDF makan
+        // seluruh jatah waktu): tiap putaran menjadwalkan lanjutannya.
+        BuildCertificateZip::$budgetSeconds = 0;
+        $status = app(CertificateZipExport::class)->status($admin);
+        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
+        $this->assertSame(['running', 1], [app(CertificateZipExport::class)->status($admin)['state'], app(CertificateZipExport::class)->status($admin)['done']]);
+        Queue::assertPushed(BuildCertificateZip::class, 2);
+        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
+        BuildCertificateZip::$budgetSeconds = 45;
+        Livewire::test(CertificateZipStatus::class)->assertSee('ZIP siap')->assertSee('Unduh ZIP');
+        $this->assertSame(
+            ['ICOMAN2026-A-0002 - Sari Wulandari.pdf', 'ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'],
+            $this->zipEntries($this->get(route('admin.certificates.zip'))->assertOk()->assertHeader('content-type', 'application/zip')),
+        );
+
+        // Baris terpilih, termasuk milik akun; pesanan baru menggantikan yang lama.
+        Queue::fake([]);
+        $this->app->forgetInstance('queue');
+        Livewire::test(ListCertificates::class)
+            ->set('activeTab', 'manual')
+            ->callTableBulkAction('downloadZip', [$budi])
+            ->assertNotified('ZIP sedang disiapkan');
+        $status = app(CertificateZipExport::class)->status($admin);
+        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
+        $this->assertSame(['ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $this->zipEntries($this->get(route('admin.certificates.zip'))));
+
+        // Ditutup: berkasnya dibuang.
+        Livewire::test(CertificateZipStatus::class)->call('dismiss')->assertDontSee('ZIP siap');
+        $this->assertFalse(Storage::disk('local')->exists(app(CertificateZipExport::class)->path($status['token'])));
+
+        // Hanya panitia pengelola submission.
+        $this->actingAs(User::create(['name' => 'Lain', 'email' => 'lain-zip@example.test', 'password' => 'secret-password']), 'web')
+            ->get(route('admin.certificates.zip'))
+            ->assertForbidden();
+    }
+
+    /** @return list<string> */
+    private function zipEntries(TestResponse $response): array
+    {
         $path = tempnam(sys_get_temp_dir(), 'uji-zip');
         file_put_contents($path, $response->streamedContent());
         $zip = new \ZipArchive;
         $zip->open($path);
         $names = collect(range(0, $zip->numFiles - 1))->map(fn (int $i) => $zip->getNameIndex($i))->all();
-        $this->assertSame(['ICOMAN2026-A-0002 - Sari Wulandari.pdf', 'ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $names);
-        $this->assertStringStartsWith('%PDF', $zip->getFromIndex(0));
+        $this->assertStringStartsWith('%PDF', (string) $zip->getFromIndex(0));
         $zip->close();
         unlink($path);
 
-        // Hanya panitia pengelola submission.
-        $this->actingAs(User::create(['name' => 'Lain', 'email' => 'lain-zip@example.test', 'password' => 'secret-password']), 'web')
-            ->get(route('admin.certificates.manual-zip'))
-            ->assertForbidden();
+        return $names;
     }
 
     public function test_admins_issue_from_the_certificates_page(): void
