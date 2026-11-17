@@ -332,6 +332,7 @@ class CertificateTest extends TestCase
 
         // Koreksi langsung, dan terbit ulang tidak menimpa data yang diisi tangan.
         Livewire::test(ListCertificates::class)
+            ->set('activeTab', 'manual')
             ->callTableAction('editManual', $presenter, ['recipient_name' => 'Dr. Budi Hartono, M.M.', 'recipient_affiliation' => 'UNM', 'paper_title' => 'Green Marketing'])
             ->assertHasNoTableActionErrors();
         app(CertificateIssuer::class)->reissue($presenter->refresh(), $admin);
@@ -385,6 +386,53 @@ class CertificateTest extends TestCase
             ->callAction(TestAction::make('importManual'), ['file' => UploadedFile::fake()->createWithContent('lagi.csv', "jenis;nama;nomor\npeserta;Ani;SERT/KHUSUS/01\n")])
             ->assertNotified('Impor dibatalkan: 1 kesalahan');
         $this->assertSame(3, Certificate::count());
+    }
+
+    public function test_manual_certificates_are_listed_apart_and_download_as_a_zip(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'zip-cert@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+
+        $this->attendee(paid: true, name: 'Citra Lestari');
+        $issuer = app(CertificateIssuer::class);
+        $issuer->issuePending($this->edition);
+        $budi = $issuer->issueManual($this->edition, ['type' => 'presentation', 'recipient_name' => 'Dr. Budi Hartono', 'paper_title' => 'Green Marketing']);
+        $sari = $issuer->issueManual($this->edition, ['type' => 'participation', 'recipient_name' => 'Sari Wulandari']);
+        $revoked = $issuer->issueManual($this->edition, ['type' => 'participation', 'recipient_name' => 'Dicabut Saja']);
+        $issuer->revoke($revoked, 'Uji');
+        $account = Certificate::linkedToAccount()->sole();
+
+        Livewire::test(ListCertificates::class)
+            ->assertCanSeeTableRecords([$account])
+            ->assertCanNotSeeTableRecords([$budi, $sari])
+            ->set('activeTab', 'manual')
+            ->assertCanSeeTableRecords([$budi, $sari])
+            ->assertCanNotSeeTableRecords([$account])
+            ->assertActionVisible('downloadManualZip')
+            ->callTableBulkAction('downloadZip', [$budi, $account])
+            ->assertFileDownloaded();
+
+        // Semua sertifikat manual yang berlaku, tanpa yang dicabut atau milik akun.
+        $response = $this->get(route('admin.certificates.manual-zip'))
+            ->assertOk()
+            ->assertHeader('content-type', 'application/zip');
+        $path = tempnam(sys_get_temp_dir(), 'uji-zip');
+        file_put_contents($path, $response->streamedContent());
+        $zip = new \ZipArchive;
+        $zip->open($path);
+        $names = collect(range(0, $zip->numFiles - 1))->map(fn (int $i) => $zip->getNameIndex($i))->all();
+        $this->assertSame(['ICOMAN2026-A-0002 - Sari Wulandari.pdf', 'ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $names);
+        $this->assertStringStartsWith('%PDF', $zip->getFromIndex(0));
+        $zip->close();
+        unlink($path);
+
+        // Hanya panitia pengelola submission.
+        $this->actingAs(User::create(['name' => 'Lain', 'email' => 'lain-zip@example.test', 'password' => 'secret-password']), 'web')
+            ->get(route('admin.certificates.manual-zip'))
+            ->assertForbidden();
     }
 
     public function test_admins_issue_from_the_certificates_page(): void

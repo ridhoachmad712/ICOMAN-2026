@@ -66,6 +66,26 @@ class CertificateController extends Controller
         ]);
     }
 
+    /**
+     * Semua sertifikat manual yang berlaku di edisi aktif dalam satu ZIP,
+     * untuk dikirim panitia ke penerimanya (sertifikat manual tidak punya akun).
+     */
+    public function manualZip(CertificatePdf $pdf): Response
+    {
+        abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);
+
+        $certificates = Certificate::query()
+            ->where('edition_id', currentEdition()?->id)
+            ->manual()
+            ->valid()
+            ->orderBy('number')
+            ->get();
+
+        return response()->download($pdf->zip($certificates), 'sertifikat-manual-'.now()->format('Ymd-His').'.zip', [
+            'Content-Type' => 'application/zip',
+        ])->deleteFileAfterSend();
+    }
+
     public function downloadForAdmin(Certificate $certificate, CertificatePdf $pdf): Response
     {
         abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);

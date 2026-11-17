@@ -10,7 +10,9 @@ use chillerlan\QRCode\QRCode;
 use chillerlan\QRCode\QROptions;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\Response;
+use ZipArchive;
 
 /**
  * PDF sertifikat A4 landscape, dibuat saat diunduh (tidak disimpan), jadi
@@ -66,6 +68,48 @@ class CertificatePdf
     public function download(Certificate $certificate): Response
     {
         return $this->pdf($certificate)->download($certificate->fileName());
+    }
+
+    /** Isi PDF mentah, mis. untuk dikemas ke ZIP. */
+    public function output(Certificate $certificate): string
+    {
+        return $this->pdf($certificate)->output();
+    }
+
+    /**
+     * Mengemas banyak sertifikat ke satu ZIP sementara dan mengembalikan
+     * path-nya; pemanggil yang menghapus berkas itu setelah dikirim.
+     *
+     * @param  iterable<Certificate>  $certificates
+     */
+    public function zip(iterable $certificates): string
+    {
+        // dompdf butuh waktu per halaman; ratusan sertifikat bisa lebih dari 30 detik.
+        @set_time_limit(600);
+
+        $path = (string) tempnam(sys_get_temp_dir(), 'sertifikat-');
+        $zip = new ZipArchive;
+        $zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE);
+
+        $used = [];
+        foreach ($certificates as $certificate) {
+            $name = Str::limit(preg_replace('/[^\pL\pN .,\-]+/u', '', $certificate->recipient_name) ?: 'sertifikat', 60, '');
+            $base = str_replace('/', '-', $certificate->number).' - '.trim($name);
+            $file = $base.'.pdf';
+            for ($i = 2; isset($used[$file]); $i++) {
+                $file = $base.' ('.$i.').pdf';
+            }
+            $used[$file] = true;
+
+            $zip->addFromString($file, $this->output($certificate));
+        }
+
+        if ($used === []) {
+            $zip->addFromString('KOSONG.txt', 'Tidak ada sertifikat untuk diunduh.');
+        }
+        $zip->close();
+
+        return $path;
     }
 
     public function stream(Certificate $certificate): Response

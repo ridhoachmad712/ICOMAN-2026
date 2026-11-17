@@ -15,7 +15,10 @@ use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
+use Filament\Schemas\Components\EmbeddedTable;
 use Filament\Schemas\Components\Tabs\Tab;
+use Filament\Schemas\Components\View;
+use Filament\Schemas\Schema;
 use Filament\Tables\Table;
 use Illuminate\Support\HtmlString;
 
@@ -25,7 +28,17 @@ class ListCertificates extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'Presenter: satu sertifikat per penulis paper, bila invoice lunas, full paper sudah masuk, dan moderator mencatatnya hadir (atau diwakili) di room presentasi. Peserta seminar: bila invoice lunas; presenter yang memenuhi syarat di atas juga menerima sertifikat peserta seminar ini, jadi memegang keduanya. Semuanya diunduh peserta dari dashboard portal.';
+        return 'Terbitkan, unduh, dan kelola sertifikat presenter dan peserta seminar.';
+    }
+
+    /** Ringkasan dan aturan penerbitan di atas tab, supaya kepala halaman tetap ringkas. */
+    public function content(Schema $schema): Schema
+    {
+        return $schema->components([
+            View::make('filament.certificates.summary'),
+            $this->getTabsContentComponent(),
+            EmbeddedTable::make(),
+        ]);
     }
 
     public function table(Table $table): Table
@@ -39,11 +52,30 @@ class ListCertificates extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-            $this->issueAction('presentation'),
-            $this->issueAction('participation'),
+            ActionGroup::make([
+                $this->issueAction('presentation'),
+                $this->issueAction('participation'),
+            ])
+                ->label('Terbitkan')
+                ->icon('heroicon-o-check-badge')
+                ->color('primary')
+                ->button()
+                ->visible(fn (): bool => currentEdition() !== null),
+            Action::make('downloadManualZip')
+                ->label('Unduh semua (ZIP)')
+                ->tooltip('Semua sertifikat manual yang berlaku, dalam satu berkas ZIP')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('success')
+                ->url(fn (): string => route('admin.certificates.manual-zip'))
+                ->visible(fn (): bool => $this->activeTab === 'manual'
+                    && Certificate::where('edition_id', currentEdition()?->id)->manual()->valid()->exists()),
             ActionGroup::make([
                 $this->manualAction(),
                 $this->importAction(),
+                Action::make('downloadManualZipMenu')
+                    ->label('Unduh semua (ZIP)')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn (): string => route('admin.certificates.manual-zip')),
             ])
                 ->label('Sertifikat manual')
                 ->icon('heroicon-o-pencil-square')
@@ -54,8 +86,8 @@ class ListCertificates extends ListRecords
                 $this->revokeAllAction(),
                 $this->reissueRevokedAction(),
             ])
-                ->label('Tarik sertifikat')
-                ->icon('heroicon-o-ellipsis-vertical')
+                ->label('Tarik')
+                ->icon('heroicon-o-no-symbol')
                 ->color('gray')
                 ->button()
                 ->visible(fn (): bool => currentEdition() !== null),
@@ -263,16 +295,17 @@ class ListCertificates extends ListRecords
     {
         $count = fn ($query) => ($edition = currentEdition()) ? $query->where('edition_id', $edition->id)->count() : 0;
 
+        // Dipisah menurut asal: yang terbit ke akun peserta (diunduh sendiri dari
+        // portal) dan yang dibuat manual (diunduh panitia lalu dikirimkan).
         return [
-            'all' => Tab::make('Semua')
-                ->badge($count(Certificate::query()))
-                ->badgeColor('gray'),
-            'presentation' => Tab::make('Presenter')
-                ->badge($count(Certificate::where('type', 'presentation')))
-                ->modifyQueryUsing(fn ($query) => $query->where('type', 'presentation')),
-            'participation' => Tab::make('Peserta seminar')
-                ->badge($count(Certificate::where('type', 'participation')))
-                ->modifyQueryUsing(fn ($query) => $query->where('type', 'participation')),
+            'account' => Tab::make('Akun peserta')
+                ->icon('heroicon-o-user-circle')
+                ->badge($count(Certificate::linkedToAccount()))
+                ->modifyQueryUsing(fn ($query) => $query->linkedToAccount()),
+            'manual' => Tab::make('Manual')
+                ->icon('heroicon-o-pencil-square')
+                ->badge($count(Certificate::manual()))
+                ->modifyQueryUsing(fn ($query) => $query->manual()),
             'revoked' => Tab::make('Dicabut')
                 ->badge($count(Certificate::whereNotNull('revoked_at')))
                 ->badgeColor('danger')
@@ -291,7 +324,7 @@ class ListCertificates extends ListRecords
         $label = $presenter ? 'presenter' : 'peserta seminar';
 
         return Action::make($presenter ? 'issuePresentation' : 'issueParticipation')
-            ->label('Terbitkan sertifikat '.$label)
+            ->label('Sertifikat '.$label)
             ->icon($presenter ? 'heroicon-o-presentation-chart-bar' : 'heroicon-o-user-group')
             ->color($presenter ? 'primary' : 'gray')
             ->requiresConfirmation()

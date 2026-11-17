@@ -96,6 +96,20 @@ class Certificate extends Model
         return str_replace('/', '-', $this->number).'.pdf';
     }
 
+    /** Dibuat tangan oleh panitia (lihat isManual()). */
+    public function scopeManual(Builder $query): Builder
+    {
+        return $query->whereNull('author_id')->whereNull('submission_id')->whereNull('submission_author_id');
+    }
+
+    /** Terbit ke akun peserta lewat penerbitan otomatis. */
+    public function scopeLinkedToAccount(Builder $query): Builder
+    {
+        return $query->where(fn (Builder $query) => $query->whereNotNull('author_id')
+            ->orWhereNotNull('submission_id')
+            ->orWhereNotNull('submission_author_id'));
+    }
+
     public function scopeValid(Builder $query): Builder
     {
         return $query->whereNull('revoked_at');
