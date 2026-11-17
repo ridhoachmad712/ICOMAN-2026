@@ -145,7 +145,7 @@ class CertificatesTable
 
                         Notification::make()
                             ->title('ZIP sedang disiapkan')
-                            ->body($records->count().' sertifikat. Tombol unduh muncul di atas tabel setelah selesai.')
+                            ->body($records->count().' sertifikat. Tombol unduh muncul di atas tabel setelah selesai; biarkan halaman ini terbuka.')
                             ->success()
                             ->send();
                     }),

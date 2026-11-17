@@ -8,9 +8,10 @@ use Livewire\Attributes\On;
 use Livewire\Component;
 
 /**
- * Kemajuan ZIP sertifikat yang sedang disusun antrean. Komponen terpisah
- * supaya hanya panel kecil ini yang memperbarui diri tiap beberapa detik,
- * bukan seluruh tabel sertifikat.
+ * Panel ZIP sertifikat di halaman Sertifikat. Selama ZIP disusun, panel ini
+ * terus memanggil work() sehingga penyusunannya berjalan dari browser admin
+ * (tanpa queue worker), langkah demi langkah di bawah batas waktu nginx.
+ * Komponen terpisah supaya hanya panel kecil ini yang memperbarui diri.
  */
 class CertificateZipStatus extends Component
 {
@@ -18,6 +19,14 @@ class CertificateZipStatus extends Component
     public function refreshStatus(): void
     {
         // Merender ulang cukup; statusnya dibaca dari cache di render().
+    }
+
+    /** Dipanggil berulang oleh panel selama ZIP disusun; tiap panggilan satu langkah. */
+    public function work(CertificateZipExport $export): void
+    {
+        if (auth()->user()?->managesSubmissions()) {
+            $export->work(auth()->user());
+        }
     }
 
     public function dismiss(CertificateZipExport $export): void

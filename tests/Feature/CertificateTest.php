@@ -7,7 +7,6 @@ use App\Filament\Author\Pages\AuthorProfile;
 use App\Filament\Pages\Settings\ManageSiteSettings;
 use App\Filament\Resources\Authors\Pages\ListAuthors;
 use App\Filament\Resources\Certificates\Pages\ListCertificates;
-use App\Jobs\BuildCertificateZip;
 use App\Livewire\CertificateZipStatus;
 use App\Models\Author;
 use App\Models\Certificate;
@@ -26,7 +25,6 @@ use App\Settings\SiteSettings;
 use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
@@ -418,40 +416,38 @@ class CertificateTest extends TestCase
             ->assertCanNotSeeTableRecords([$account])
             ->assertActionVisible('downloadManualZip');
 
-        // Dipesan dulu, disusun di antrean: belum ada yang bisa diunduh.
-        Queue::fake();
+        // Dipesan dulu: belum ada yang bisa diunduh.
         Livewire::test(ListCertificates::class)
             ->set('activeTab', 'manual')
             ->callAction(TestAction::make('downloadManualZip'))
             ->assertNotified('ZIP sedang disiapkan');
-        Queue::assertPushed(BuildCertificateZip::class);
-        Livewire::test(CertificateZipStatus::class)->assertSee('ZIP menunggu antrean');
+        Livewire::test(CertificateZipStatus::class)->assertSee('Menyiapkan ZIP: 0 dari 2');
         $this->get(route('admin.certificates.zip'))->assertNotFound();
 
-        // Antrean berjalan, satu sertifikat per putaran (seolah tiap PDF makan
-        // seluruh jatah waktu): tiap putaran menjadwalkan lanjutannya.
-        BuildCertificateZip::$budgetSeconds = 0;
-        $status = app(CertificateZipExport::class)->status($admin);
-        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
-        $this->assertSame(['running', 1], [app(CertificateZipExport::class)->status($admin)['state'], app(CertificateZipExport::class)->status($admin)['done']]);
-        Queue::assertPushed(BuildCertificateZip::class, 2);
-        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
-        BuildCertificateZip::$budgetSeconds = 45;
-        Livewire::test(CertificateZipStatus::class)->assertSee('ZIP siap')->assertSee('Unduh ZIP');
+        // Panel memanggil work() berulang; satu sertifikat per langkah (seolah
+        // tiap PDF menghabiskan jatah waktu), tanpa queue worker.
+        CertificateZipExport::$budgetSeconds = 0;
+        Livewire::test(CertificateZipStatus::class)
+            ->call('work')
+            ->assertSee('Menyiapkan ZIP: 1 dari 2')
+            ->call('work')
+            ->assertSee('ZIP siap')
+            ->assertSee('Unduh ZIP');
+        CertificateZipExport::$budgetSeconds = 20;
         $this->assertSame(
             ['ICOMAN2026-A-0002 - Sari Wulandari.pdf', 'ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'],
             $this->zipEntries($this->get(route('admin.certificates.zip'))->assertOk()->assertHeader('content-type', 'application/zip')),
         );
 
         // Baris terpilih, termasuk milik akun; pesanan baru menggantikan yang lama.
-        Queue::fake([]);
-        $this->app->forgetInstance('queue');
+        $first = app(CertificateZipExport::class)->status($admin)['token'];
         Livewire::test(ListCertificates::class)
             ->set('activeTab', 'manual')
             ->callTableBulkAction('downloadZip', [$budi])
             ->assertNotified('ZIP sedang disiapkan');
+        $this->assertFalse(Storage::disk('local')->exists(app(CertificateZipExport::class)->path($first)));
+        Livewire::test(CertificateZipStatus::class)->call('work')->assertSee('ZIP siap');
         $status = app(CertificateZipExport::class)->status($admin);
-        (new BuildCertificateZip($admin->id, $status['token']))->handle(app(CertificateZipExport::class), app(CertificatePdf::class));
         $this->assertSame(['ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $this->zipEntries($this->get(route('admin.certificates.zip'))));
 
         // Ditutup: berkasnya dibuang.
@@ -612,6 +608,9 @@ class CertificateTest extends TestCase
 
         $this->assertStringStartsWith('%PDF', $content);
         $this->assertStringContainsString('DejaVuSansMono', $content, 'Huruf unggahan disematkan di PDF.');
+        // Latar PNG diubah sekali ke JPEG (jauh lebih cepat bagi dompdf) dan dipakai ulang.
+        $this->assertCount(1, Storage::disk('local')->files('certificate-cache'));
+        $this->assertStringContainsString('/DCTDecode', $content);
     }
 
     public function test_the_settings_form_saves_the_custom_layout_per_certificate_type(): void

@@ -79,7 +79,7 @@ class CertificatePdf
     /**
      * Mengemas sertifikat ke ZIP dan mengembalikan path-nya. Bila $path sudah
      * berisi ZIP, sertifikat ditambahkan ke dalamnya, sehingga antrean bisa
-     * menyusunnya sedikit demi sedikit (lihat BuildCertificateZip). $progress
+     * menyusunnya sedikit demi sedikit (lihat CertificateZipExport). $progress
      * dipanggil setiap satu sertifikat masuk; kembalikan false untuk berhenti.
      *
      * @param  iterable<Certificate>  $certificates
@@ -294,13 +294,49 @@ class CertificatePdf
             'certificate' => $certificate,
             'settings' => $settings,
             'qr' => $this->qrDataUri($certificate),
-            'background' => $this->imageDataUri($background),
+            'background' => $this->backgroundDataUri($background),
             'signature' => $this->imageDataUri($settings?->certificate_signature),
             'logo' => $this->imageDataUri($settings?->logo),
             // Mode custom butuh latar; tanpa latar, kertasnya kosong selain data.
             'custom' => (bool) $settings?->certificate_custom_layout && filled($background),
             'layout' => $this->layout($certificate->type),
         ])->setPaper('a4', 'landscape');
+    }
+
+    /**
+     * Latar sertifikat sebagai JPEG. dompdf memproses PNG (apalagi yang
+     * transparan) piksel demi piksel, sekitar 3 detik per halaman untuk latar
+     * A4 300 dpi, sedangkan JPEG disematkan apa adanya. Latar memenuhi satu
+     * halaman sehingga tak butuh transparansi: PNG diratakan di atas putih,
+     * disimpan sekali, dan dipakai ulang sampai berkas latarnya berganti.
+     */
+    private function backgroundDataUri(?string $path): ?string
+    {
+        $disk = Storage::disk('public');
+        if (blank($path) || ! $disk->exists($path) || $disk->mimeType($path) !== 'image/png' || ! function_exists('imagecreatefrompng')) {
+            return $this->imageDataUri($path);
+        }
+
+        $cache = Storage::disk('local');
+        $jpeg = 'certificate-cache/'.sha1($path.'|'.$disk->size($path).'|'.$disk->lastModified($path)).'.jpg';
+
+        if (! $cache->exists($jpeg)) {
+            $png = @imagecreatefrompng($disk->path($path));
+            if (! $png) {
+                return $this->imageDataUri($path);
+            }
+
+            $canvas = imagecreatetruecolor(imagesx($png), imagesy($png));
+            imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
+            imagecopy($canvas, $png, 0, 0, 0, 0, imagesx($png), imagesy($png));
+            imagedestroy($png);
+
+            $cache->makeDirectory('certificate-cache');
+            imagejpeg($canvas, $cache->path($jpeg), 90);
+            imagedestroy($canvas);
+        }
+
+        return $this->images[$jpeg] ??= 'data:image/jpeg;base64,'.base64_encode($cache->get($jpeg));
     }
 
     /** @var array<string, ?string> gambar yang sudah dibaca, dipakai ulang saat mengemas banyak PDF */

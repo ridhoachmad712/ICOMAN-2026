@@ -267,7 +267,7 @@ class ListCertificates extends ListRecords
 
                 Notification::make()
                     ->title('ZIP sedang disiapkan')
-                    ->body($status['total'].' sertifikat. Kemajuannya tampil di atas tabel, dan tombol unduh muncul setelah selesai. Halaman ini boleh ditinggal.')
+                    ->body($status['total'].' sertifikat. Kemajuannya tampil di atas tabel, dan tombol unduh muncul setelah selesai. Biarkan halaman ini terbuka.')
                     ->success()
                     ->send();
             });

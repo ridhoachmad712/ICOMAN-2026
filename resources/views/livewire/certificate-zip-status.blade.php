@@ -1,12 +1,12 @@
 @php
     $state = $status['state'] ?? null;
-    $busy = in_array($state, ['queued', 'running'], true);
+    $busy = $state === 'running';
     $total = max(1, (int) ($status['total'] ?? 0));
     $done = (int) ($status['done'] ?? 0);
     $percent = $state === 'ready' ? 100 : (int) floor($done / $total * 100);
 @endphp
 
-<div @if($busy) wire:poll.4s @endif>
+<div @if($busy) wire:poll.500ms="work" @endif>
     @if($status)
         <div class="fi-section" style="display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem;padding:.875rem 1.125rem;border-radius:.75rem;">
             <x-filament::icon
@@ -16,7 +16,6 @@
             <div style="flex:1 1 16rem;min-width:0;font-size:.875rem;line-height:1.25rem;">
                 <div style="font-weight:600;">
                     @switch($state)
-                        @case('queued') ZIP menunggu antrean: {{ $status['label'] }} @break
                         @case('running') Menyiapkan ZIP: {{ $done }} dari {{ $status['total'] }} sertifikat @break
                         @case('ready') ZIP siap: {{ $status['label'] }} ({{ $status['total'] }} sertifikat, {{ \Illuminate\Support\Number::fileSize($status['size'] ?? 0, 1) }}) @break
                         @default Gagal menyiapkan ZIP
@@ -27,11 +26,7 @@
                         <div style="height:100%;width:{{ $percent }}%;background:var(--primary-500);transition:width .4s;"></div>
                     </div>
                     <div style="margin-top:.25rem;font-size:.75rem;color:var(--gray-500);">
-                        @if($state === 'queued')
-                            Bila tidak bergerak beberapa menit, pastikan queue worker server berjalan.
-                        @else
-                            Halaman ini boleh ditinggal; ZIP tetap disiapkan.
-                        @endif
+                        Biarkan halaman ini terbuka sampai selesai. Bila ditinggal, penyusunan berhenti sementara dan berlanjut saat halaman dibuka lagi.
                     </div>
                 @elseif($state === 'failed')
                     <div style="font-size:.75rem;color:var(--gray-500);">{{ \Illuminate\Support\Str::limit($status['error'] ?? 'Coba ulangi, atau unduh per kelompok.', 160) }}</div>
