@@ -300,39 +300,53 @@ class CertificatePdf
             // Mode custom butuh latar; tanpa latar, kertasnya kosong selain data.
             'custom' => (bool) $settings?->certificate_custom_layout && filled($background),
             'layout' => $this->layout($certificate->type),
-        ])->setPaper('a4', 'landscape');
+        ])
+            // Hanya huruf yang terpakai yang disematkan: tanpa ini setiap PDF
+            // membawa berkas huruf utuh (~1,5 MB), dan ZIP ratusan sertifikat membengkak.
+            ->setOption('isFontSubsettingEnabled', true)
+            ->setPaper('a4', 'landscape');
     }
 
+    /** Lebar latar di PDF: sekitar 210 dpi pada A4 landscape, tajam untuk cetak. */
+    public const BACKGROUND_WIDTH = 2480;
+
     /**
-     * Latar sertifikat sebagai JPEG. dompdf memproses PNG (apalagi yang
-     * transparan) piksel demi piksel, sekitar 3 detik per halaman untuk latar
-     * A4 300 dpi, sedangkan JPEG disematkan apa adanya. Latar memenuhi satu
-     * halaman sehingga tak butuh transparansi: PNG diratakan di atas putih,
-     * disimpan sekali, dan dipakai ulang sampai berkas latarnya berganti.
+     * Latar sertifikat sebagai JPEG ringkas. dompdf memproses PNG (apalagi
+     * yang transparan) piksel demi piksel, sekitar 3 detik per halaman untuk
+     * latar A4 300 dpi, sedangkan JPEG disematkan apa adanya. Latar juga
+     * dikecilkan ke BACKGROUND_WIDTH, karena setiap PDF menyimpan salinannya
+     * sendiri: ZIP berisi ratusan sertifikat jadi beberapa kali lebih kecil.
+     * Latar memenuhi satu halaman sehingga tak butuh transparansi (PNG
+     * diratakan di atas putih). Hasilnya disimpan dan dipakai ulang sampai
+     * berkas latarnya berganti.
      */
     private function backgroundDataUri(?string $path): ?string
     {
         $disk = Storage::disk('public');
-        if (blank($path) || ! $disk->exists($path) || $disk->mimeType($path) !== 'image/png' || ! function_exists('imagecreatefrompng')) {
+        $mime = filled($path) && $disk->exists($path) ? $disk->mimeType($path) : null;
+        $reader = ['image/png' => 'imagecreatefrompng', 'image/jpeg' => 'imagecreatefromjpeg'][$mime] ?? null;
+        if (! $reader || ! function_exists($reader)) {
             return $this->imageDataUri($path);
         }
 
         $cache = Storage::disk('local');
-        $jpeg = 'certificate-cache/'.sha1($path.'|'.$disk->size($path).'|'.$disk->lastModified($path)).'.jpg';
+        $jpeg = 'certificate-cache/'.sha1('v2|'.$path.'|'.$disk->size($path).'|'.$disk->lastModified($path)).'.jpg';
 
         if (! $cache->exists($jpeg)) {
-            $png = @imagecreatefrompng($disk->path($path));
-            if (! $png) {
+            $source = @$reader($disk->path($path));
+            if (! $source) {
                 return $this->imageDataUri($path);
             }
 
-            $canvas = imagecreatetruecolor(imagesx($png), imagesy($png));
+            $width = min(imagesx($source), self::BACKGROUND_WIDTH);
+            $height = (int) round(imagesy($source) * $width / imagesx($source));
+            $canvas = imagecreatetruecolor($width, $height);
             imagefill($canvas, 0, 0, imagecolorallocate($canvas, 255, 255, 255));
-            imagecopy($canvas, $png, 0, 0, 0, 0, imagesx($png), imagesy($png));
-            imagedestroy($png);
+            imagecopyresampled($canvas, $source, 0, 0, 0, 0, $width, $height, imagesx($source), imagesy($source));
+            imagedestroy($source);
 
             $cache->makeDirectory('certificate-cache');
-            imagejpeg($canvas, $cache->path($jpeg), 90);
+            imagejpeg($canvas, $cache->path($jpeg), 82);
             imagedestroy($canvas);
         }
 

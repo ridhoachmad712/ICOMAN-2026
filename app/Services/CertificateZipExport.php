@@ -16,10 +16,17 @@ use Illuminate\Support\Str;
  * kali bekerja beberapa detik dan menambahkan ke ZIP yang sama. Tidak
  * bergantung pada queue worker/cron. Satu admin memegang satu unduhan (yang
  * baru menggantikan yang lama); statusnya di cache, jadi tak butuh tabel baru.
+ *
+ * ZIP disimpan di disk publik dalam folder ber-UUID acak dan diunduh langsung
+ * dari web server: mengalirkan berkas ratusan MB lewat PHP di shared hosting
+ * jauh lebih lambat. Folder itu dihapus saat ditutup, diganti, atau setelah
+ * TTL_HOURS.
  */
 class CertificateZipExport
 {
     public const DIRECTORY = 'certificate-zips';
+
+    public const DISK = 'public';
 
     private const TTL_HOURS = 24;
 
@@ -37,6 +44,7 @@ class CertificateZipExport
     public function start(User $user, Edition $edition, ?array $ids = null): array
     {
         $this->discard($user);
+        $this->pruneExpired();
 
         $status = [
             'token' => (string) Str::uuid(),
@@ -73,8 +81,14 @@ class CertificateZipExport
 
         try {
             $token = $status['token'];
-            $disk = Storage::disk('local');
-            $disk->makeDirectory(self::DIRECTORY);
+            $disk = Storage::disk(self::DISK);
+            $disk->makeDirectory(dirname($this->path($token)));
+            // Cegah daftar isi folder bila web server mengizinkan directory listing.
+            foreach ([self::DIRECTORY, dirname($this->path($token))] as $directory) {
+                if (! $disk->exists($directory.'/index.html')) {
+                    $disk->put($directory.'/index.html', '');
+                }
+            }
 
             $done = (int) $status['done'];
             $started = microtime(true);
@@ -93,7 +107,7 @@ class CertificateZipExport
 
             // Dibatalkan di tengah jalan: berkas yang baru ditulis ikut dibuang.
             if (($this->status($user)['token'] ?? null) !== $token) {
-                $disk->delete($this->path($token));
+                $disk->deleteDirectory(dirname($this->path($token)));
 
                 return $this->status($user);
             }
@@ -135,7 +149,26 @@ class CertificateZipExport
 
     public function path(string $token): string
     {
-        return self::DIRECTORY.'/'.$token.'.zip';
+        return self::DIRECTORY.'/'.$token.'/sertifikat.zip';
+    }
+
+    /** Alamat unduhan langsung (web server, tanpa PHP). */
+    public function url(string $token): string
+    {
+        return Storage::disk(self::DISK)->url($this->path($token));
+    }
+
+    /** Membuang ZIP yang terlupa (tidak pernah ditutup) lebih dari TTL_HOURS. */
+    public function pruneExpired(): void
+    {
+        $disk = Storage::disk(self::DISK);
+        foreach ($disk->directories(self::DIRECTORY) as $directory) {
+            $files = $disk->files($directory);
+            $age = $files === [] ? 0 : now()->timestamp - $disk->lastModified($files[0]);
+            if ($files === [] || $age > self::TTL_HOURS * 3600) {
+                $disk->deleteDirectory($directory);
+            }
+        }
     }
 
     /** @param  list<int>|null  $ids */
@@ -152,7 +185,7 @@ class CertificateZipExport
     public function discard(User $user): void
     {
         if ($token = $this->status($user)['token'] ?? null) {
-            Storage::disk('local')->delete($this->path($token));
+            Storage::disk(self::DISK)->deleteDirectory(dirname($this->path($token)));
         }
         Cache::forget($this->key($user));
     }

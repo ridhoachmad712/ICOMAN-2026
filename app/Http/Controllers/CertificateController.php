@@ -67,7 +67,10 @@ class CertificateController extends Controller
         ]);
     }
 
-    /** ZIP yang sudah disiapkan antrean untuk admin ini (lihat CertificateZipExport). */
+    /**
+     * ZIP yang sudah disusun untuk admin ini (lihat CertificateZipExport).
+     * Diarahkan ke berkas di disk publik agar dikirim langsung oleh web server.
+     */
     public function downloadZip(CertificateZipExport $export): Response
     {
         $user = Auth::guard('web')->user();
@@ -75,13 +78,9 @@ class CertificateController extends Controller
 
         $status = $export->status($user);
         abort_unless(($status['state'] ?? null) === 'ready', 404);
-        abort_unless(Storage::disk('local')->exists($export->path($status['token'])), 404);
+        abort_unless(Storage::disk(CertificateZipExport::DISK)->exists($export->path($status['token'])), 404);
 
-        return Storage::disk('local')->download(
-            $export->path($status['token']),
-            'sertifikat-'.str($status['label'])->slug().'-'.now()->format('Ymd-His').'.zip',
-            ['Content-Type' => 'application/zip'],
-        );
+        return redirect()->away($export->url($status['token']));
     }
 
     public function downloadForAdmin(Certificate $certificate, CertificatePdf $pdf): Response

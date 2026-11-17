@@ -26,7 +26,6 @@ use Filament\Actions\Testing\TestAction;
 use Filament\Facades\Filament;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Testing\TestResponse;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -393,6 +392,7 @@ class CertificateTest extends TestCase
 
     public function test_manual_certificates_are_listed_apart_and_download_as_a_zip(): void
     {
+        Storage::fake('public');
         Filament::setCurrentPanel(Filament::getPanel('admin'));
         Role::findOrCreate('admin_registrasi', 'web');
         $admin = User::create(['name' => 'Admin', 'email' => 'zip-cert@example.test', 'password' => 'secret-password']);
@@ -434,10 +434,14 @@ class CertificateTest extends TestCase
             ->assertSee('ZIP siap')
             ->assertSee('Unduh ZIP');
         CertificateZipExport::$budgetSeconds = 20;
+        // Diunduh langsung dari web server (disk publik, folder acak).
+        $token = app(CertificateZipExport::class)->status($admin)['token'];
+        $this->get(route('admin.certificates.zip'))->assertRedirect(app(CertificateZipExport::class)->url($token));
         $this->assertSame(
             ['ICOMAN2026-A-0002 - Sari Wulandari.pdf', 'ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'],
-            $this->zipEntries($this->get(route('admin.certificates.zip'))->assertOk()->assertHeader('content-type', 'application/zip')),
+            $this->zipEntries($token),
         );
+        $this->assertTrue(Storage::disk('public')->exists('certificate-zips/index.html'), 'Folder tidak bisa didaftar isinya.');
 
         // Baris terpilih, termasuk milik akun; pesanan baru menggantikan yang lama.
         $first = app(CertificateZipExport::class)->status($admin)['token'];
@@ -445,14 +449,14 @@ class CertificateTest extends TestCase
             ->set('activeTab', 'manual')
             ->callTableBulkAction('downloadZip', [$budi])
             ->assertNotified('ZIP sedang disiapkan');
-        $this->assertFalse(Storage::disk('local')->exists(app(CertificateZipExport::class)->path($first)));
+        $this->assertFalse(Storage::disk('public')->exists(app(CertificateZipExport::class)->path($first)));
         Livewire::test(CertificateZipStatus::class)->call('work')->assertSee('ZIP siap');
         $status = app(CertificateZipExport::class)->status($admin);
-        $this->assertSame(['ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $this->zipEntries($this->get(route('admin.certificates.zip'))));
+        $this->assertSame(['ICOMAN2026-P-0001 - Dr. Budi Hartono.pdf'], $this->zipEntries($status['token']));
 
         // Ditutup: berkasnya dibuang.
         Livewire::test(CertificateZipStatus::class)->call('dismiss')->assertDontSee('ZIP siap');
-        $this->assertFalse(Storage::disk('local')->exists(app(CertificateZipExport::class)->path($status['token'])));
+        $this->assertFalse(Storage::disk('public')->exists(app(CertificateZipExport::class)->path($status['token'])));
 
         // Hanya panitia pengelola submission.
         $this->actingAs(User::create(['name' => 'Lain', 'email' => 'lain-zip@example.test', 'password' => 'secret-password']), 'web')
@@ -461,16 +465,13 @@ class CertificateTest extends TestCase
     }
 
     /** @return list<string> */
-    private function zipEntries(TestResponse $response): array
+    private function zipEntries(string $token): array
     {
-        $path = tempnam(sys_get_temp_dir(), 'uji-zip');
-        file_put_contents($path, $response->streamedContent());
         $zip = new \ZipArchive;
-        $zip->open($path);
+        $zip->open(Storage::disk('public')->path(app(CertificateZipExport::class)->path($token)));
         $names = collect(range(0, $zip->numFiles - 1))->map(fn (int $i) => $zip->getNameIndex($i))->all();
         $this->assertStringStartsWith('%PDF', (string) $zip->getFromIndex(0));
         $zip->close();
-        unlink($path);
 
         return $names;
     }
