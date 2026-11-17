@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Certificate;
 use App\Services\CertificatePdf;
+use App\Services\ManualCertificateImport;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -38,6 +39,17 @@ class CertificateController extends Controller
         abort_unless(array_key_exists($type, Certificate::TYPES), 404);
 
         return $pdf->preview($type);
+    }
+
+    /** Templat CSV untuk impor massal sertifikat manual. */
+    public function importTemplate(): Response
+    {
+        abort_unless(Auth::guard('web')->user()?->managesSubmissions(), 403);
+
+        return response(ManualCertificateImport::template(), 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="templat-sertifikat-manual.csv"',
+        ]);
     }
 
     /** Huruf unggahan untuk kanvas editor sertifikat; berkasnya tersimpan privat. */

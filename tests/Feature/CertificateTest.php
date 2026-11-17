@@ -343,6 +343,50 @@ class CertificateTest extends TestCase
         $this->get(route('certificates.verify', $presenter->verification_token))->assertSee('Dr. Budi Hartono, M.M.');
     }
 
+    public function test_admins_bulk_import_manual_certificates_from_csv(): void
+    {
+        Filament::setCurrentPanel(Filament::getPanel('admin'));
+        Role::findOrCreate('admin_registrasi', 'web');
+        $admin = User::create(['name' => 'Admin', 'email' => 'import-cert@example.test', 'password' => 'secret-password']);
+        $admin->assignRole('admin_registrasi');
+        $this->actingAs($admin, 'web');
+
+        $this->get(route('admin.certificates.import-template'))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8')
+            ->assertSee('jenis;nama;afiliasi;judul;nomor', false);
+
+        // Satu baris salah: tidak ada yang diterbitkan, kesalahannya disebut per baris.
+        $broken = "jenis;nama;afiliasi;judul;nomor\npresenter;Dr. Budi;UNM;;\nhadirin;Sari;UH;;\n";
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('importManual'), ['file' => UploadedFile::fake()->createWithContent('sertifikat.csv', $broken)])
+            ->assertNotified('Impor dibatalkan: 2 kesalahan');
+        $this->assertSame(0, Certificate::count());
+
+        // BOM dari Excel, pemisah koma, dan judul berkoma yang dikutip.
+        $csv = "\u{FEFF}Jenis,Nama,Afiliasi,Judul,Nomor\n"
+            ."presenter,\"Dr. Budi Hartono, M.M.\",UNM,\"Green Marketing, Loyalty, and Trust\",\n"
+            ."Peserta,Sari Wulandari,Universitas Hasanuddin,diabaikan,\n"
+            .",,,,\n"
+            ."peserta,Tono,,,SERT/KHUSUS/01\n";
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('importManual'), ['file' => UploadedFile::fake()->createWithContent('sertifikat.csv', $csv)])
+            ->assertNotified('3 sertifikat manual diterbitkan');
+
+        $budi = Certificate::where('number', 'ICOMAN2026/P/0001')->sole();
+        $this->assertSame(['Dr. Budi Hartono, M.M.', 'UNM', 'Green Marketing, Loyalty, and Trust'], [$budi->recipient_name, $budi->recipient_affiliation, $budi->paper_title]);
+        $this->assertTrue($budi->isManual());
+        $sari = Certificate::where('recipient_name', 'Sari Wulandari')->sole();
+        $this->assertSame(['participation', 'ICOMAN2026/A/0001', null], [$sari->type, $sari->number, $sari->paper_title]);
+        $this->assertSame('SERT/KHUSUS/01', Certificate::where('recipient_name', 'Tono')->sole()->number);
+
+        // Nomor yang sudah terpakai ditolak.
+        Livewire::test(ListCertificates::class)
+            ->callAction(TestAction::make('importManual'), ['file' => UploadedFile::fake()->createWithContent('lagi.csv', "jenis;nama;nomor\npeserta;Ani;SERT/KHUSUS/01\n")])
+            ->assertNotified('Impor dibatalkan: 1 kesalahan');
+        $this->assertSame(3, Certificate::count());
+    }
+
     public function test_admins_issue_from_the_certificates_page(): void
     {
         Filament::setCurrentPanel(Filament::getPanel('admin'));

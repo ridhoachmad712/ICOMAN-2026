@@ -5,8 +5,10 @@ namespace App\Filament\Resources\Certificates\Pages;
 use App\Filament\Resources\Certificates\CertificateResource;
 use App\Models\Certificate;
 use App\Services\CertificateIssuer;
+use App\Services\ManualCertificateImport;
 use Filament\Actions\Action;
 use Filament\Actions\ActionGroup;
+use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Radio;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -15,6 +17,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Schemas\Components\Tabs\Tab;
 use Filament\Tables\Table;
+use Illuminate\Support\HtmlString;
 
 class ListCertificates extends ListRecords
 {
@@ -38,7 +41,15 @@ class ListCertificates extends ListRecords
         return [
             $this->issueAction('presentation'),
             $this->issueAction('participation'),
-            $this->manualAction(),
+            ActionGroup::make([
+                $this->manualAction(),
+                $this->importAction(),
+            ])
+                ->label('Sertifikat manual')
+                ->icon('heroicon-o-pencil-square')
+                ->color('gray')
+                ->button()
+                ->visible(fn (): bool => currentEdition() !== null),
             ActionGroup::make([
                 $this->revokeAllAction(),
                 $this->reissueRevokedAction(),
@@ -157,6 +168,61 @@ class ListCertificates extends ListRecords
                 Notification::make()
                     ->title('Sertifikat '.$certificate->number.' diterbitkan')
                     ->body('Unduh PDF-nya dari tabel untuk dikirimkan ke '.$certificate->recipient_name.'.')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * Impor massal dari CSV. Semua baris diperiksa dulu: satu saja salah,
+     * tidak ada yang diterbitkan, dan kesalahannya ditampilkan per baris.
+     */
+    private function importAction(): Action
+    {
+        return Action::make('importManual')
+            ->label('Impor dari CSV')
+            ->icon('heroicon-o-arrow-up-tray')
+            ->color('gray')
+            ->modalHeading('Impor sertifikat manual')
+            ->modalDescription(new HtmlString(
+                'Satu baris satu sertifikat, dengan kolom <b>jenis</b> (presenter / peserta), <b>nama</b>, <b>afiliasi</b>, <b>judul</b> (wajib untuk presenter), dan <b>nomor</b> (kosongkan untuk nomor otomatis). '
+                .'Bila ada satu baris yang salah, tidak ada yang diterbitkan. '
+                .'<a href="'.e(route('admin.certificates.import-template')).'" style="text-decoration:underline;font-weight:600">Unduh templat CSV</a>'
+            ))
+            ->schema([
+                FileUpload::make('file')
+                    ->label('Berkas CSV')
+                    ->helperText('Dari Excel: File → Save As → CSV UTF-8. Pemisah koma atau titik koma sama-sama diterima.')
+                    ->acceptedFileTypes(['text/csv', 'text/plain', 'application/csv', 'application/vnd.ms-excel'])
+                    ->rules(['extensions:csv,txt'])
+                    ->maxSize(2048)
+                    ->storeFiles(false)
+                    ->required(),
+            ])
+            ->modalSubmitActionLabel('Impor')
+            ->action(function (array $data, Action $action): void {
+                $result = app(ManualCertificateImport::class)->import(currentEdition(), $data['file']->getRealPath(), auth()->user());
+
+                if ($result['errors'] !== []) {
+                    $shown = array_slice($result['errors'], 0, 10);
+                    $more = count($result['errors']) - count($shown);
+
+                    Notification::make()
+                        ->title('Impor dibatalkan: '.count($result['errors']).' kesalahan')
+                        ->body(new HtmlString(
+                            collect($shown)->map(fn (string $error) => e($error))->implode('<br>')
+                            .($more > 0 ? '<br>…dan '.$more.' lainnya.' : '')
+                            .'<br><br>Perbaiki berkasnya lalu unggah ulang; belum ada yang diterbitkan.'
+                        ))
+                        ->danger()
+                        ->persistent()
+                        ->send();
+                    $action->halt();
+                }
+
+                Notification::make()
+                    ->title($result['count'].' sertifikat manual diterbitkan')
+                    ->body('Unduh PDF-nya dari tabel untuk dikirimkan ke masing-masing penerima.')
                     ->success()
                     ->send();
             });
